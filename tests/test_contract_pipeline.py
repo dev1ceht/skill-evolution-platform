@@ -1,6 +1,8 @@
+import copy
+import json
 from pathlib import Path
 
-from skill_evolution.contracts import build_integration
+from skill_evolution.contracts import build_integration, diff_contracts, normalize_openapi
 
 
 def test_openapi_contract_produces_ir_tasks_and_typed_client() -> None:
@@ -17,4 +19,17 @@ def test_openapi_contract_produces_ir_tasks_and_typed_client() -> None:
     assert "export type User" in result["typescriptClient"]
     assert "export async function listUsers" in result["typescriptClient"]
     assert "cursor?: string" in result["typescriptClient"]
+    assert "listUsers keeps its method and path" in result["contractTests"]
 
+
+def test_contract_diff_detects_required_parameter_as_breaking() -> None:
+    document = json.loads(Path("examples/user-api.openapi.json").read_text(encoding="utf-8"))
+    changed = copy.deepcopy(document)
+    changed["paths"]["/api/users"]["get"]["parameters"].append(
+        {"name": "tenantId", "in": "query", "required": True, "schema": {"type": "string"}}
+    )
+
+    report = diff_contracts(normalize_openapi(document), normalize_openapi(changed))
+
+    assert report["changed"][0]["path"] == "/api/users"
+    assert report["breaking"][0]["type"] == "added-required-parameter:query:tenantId"

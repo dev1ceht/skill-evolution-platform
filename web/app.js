@@ -15,18 +15,21 @@ async function loadContract() {
 }
 
 async function loadDashboard() {
-  const dashboard = await api("/api/dashboard");
+  const [dashboard, candidates, versions] = await Promise.all([api("/api/dashboard"), api("/api/candidates"), api("/api/versions")]);
   Object.entries(dashboard.metrics).forEach(([key, value]) => {
     const node = document.querySelector(`[data-metric="${key}"]`);
     if (node) node.textContent = value;
   });
   $("#auditList").innerHTML = dashboard.recentAudit.length ? dashboard.recentAudit.slice().reverse().map((event) => `
     <div class="event"><code>${event.action}</code><span>${event.entity_type} · ${event.entity_id}</span><time>${new Date(event.created_at).toLocaleTimeString()}</time></div>`).join("") : '<p class="empty">暂无事件，运行上方 Demo 后将在这里形成审计轨迹。</p>';
+  $("#candidateHistory").innerHTML = candidates.length ? candidates.slice().reverse().map((item) => `<div class="event"><code>${item.decision.toUpperCase()}</code><span>${item.status} · confidence ${Math.round(item.confidence * 100)}%</span><time>${item.id.slice(-6)}</time></div>`).join("") : '<p class="empty">暂无候选</p>';
+  $("#versionHistory").innerHTML = versions.length ? versions.slice().reverse().map((item, index) => `<div class="event"><code>${item.version}</code><span>${item.status} · ${item.content_hash.slice(0, 8)}</span>${index === 0 ? `<button class="mini-action" data-rollback="${item.id}">回滚</button>` : '<time>history</time>'}</div>`).join("") : '<p class="empty">暂无版本</p>';
+  document.querySelectorAll("[data-rollback]").forEach((button) => button.addEventListener("click", () => rollbackVersion(button.dataset.rollback)));
 }
 
 function renderIntegration() {
   if (!state.integration) return;
-  const value = state.tab === "tasks" ? state.integration.tasks : state.tab === "ir" ? { title: state.integration.title, version: state.integration.version, operations: state.integration.operations } : state.integration.typescriptClient;
+  const value = state.tab === "tasks" ? state.integration.tasks : state.tab === "ir" ? { title: state.integration.title, version: state.integration.version, operations: state.integration.operations } : state.tab === "client" ? state.integration.typescriptClient : state.integration.contractTests;
   $("#integrationOutput").textContent = typeof value === "string" ? value : JSON.stringify(value, null, 2);
 }
 
@@ -61,6 +64,10 @@ async function evaluateCandidate() {
 
 async function promoteCandidate() {
   try { state.version = await api(`/api/candidates/${state.candidate.id}/promote`, { method: "POST", body: "{}" }); $("#promoteLight").textContent = state.version.version; $("#promoteLight").className = "ok"; $("#promoteCandidate").disabled = true; await loadDashboard(); toast(`Skill ${state.version.version} 已原子落盘，可回滚`); } catch (error) { toast(error.message); }
+}
+
+async function rollbackVersion(versionId) {
+  try { const result = await api(`/api/versions/${versionId}/rollback`, { method: "POST", body: "{}" }); await loadDashboard(); toast(`已追加回滚版本 ${result.version}，历史记录保持不变`); } catch (error) { toast(error.message); }
 }
 
 document.querySelectorAll(".tab").forEach((tab) => tab.addEventListener("click", () => { document.querySelectorAll(".tab").forEach((node) => node.classList.remove("active")); tab.classList.add("active"); state.tab = tab.dataset.tab; renderIntegration(); }));

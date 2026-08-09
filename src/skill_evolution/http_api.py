@@ -38,6 +38,8 @@ class ApiApplication:
             return 200, self._dashboard()
         if method == "GET" and path == "/api/candidates":
             return 200, [self.evolution._candidate_view(item) for item in self.repository.list("candidates")]
+        if method == "GET" and path == "/api/evaluations":
+            return 200, [self._evaluation_view(item) for item in self.repository.list("evaluations")]
         if method == "GET" and path == "/api/versions":
             return 200, self.repository.list("versions")
         if method == "GET" and path == "/api/audit":
@@ -88,8 +90,22 @@ class ApiApplication:
             },
             "decisionBreakdown": {
                 decision: sum(item["decision"] == decision for item in candidates)
-                for decision in ("add", "merge", "discard")
+                for decision in ("add", "merge", "discard", "pending")
             },
             "recentCandidates": [self.evolution._candidate_view(item) for item in candidates[-8:]],
             "recentAudit": self.repository.list_audit_events(limit=12)[-12:],
+        }
+
+    @staticmethod
+    def _evaluation_view(item: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "id": item["id"],
+            "candidateId": item["candidate_id"],
+            "replayCaseId": item["replay_case_id"],
+            "judge": item["judge"],
+            "passed": bool(item["passed"]),
+            "baseline": json.loads(item["baseline_json"]),
+            "candidate": json.loads(item["candidate_json"]),
+            "comparison": json.loads(item["comparison_json"]),
+            "createdAt": item["created_at"],
         }

@@ -155,6 +155,27 @@ def generate_typescript_client(ir: dict[str, Any]) -> str:
     return "\n\n".join(blocks) + "\n"
 
 
+def generate_contract_tests(ir: dict[str, Any]) -> str:
+    lines = [
+        "// Generated contract assertions. Wire these cases to the repository test client.",
+        "import { describe, expect, it } from 'vitest';",
+        "",
+        f"describe('{ir['title']} contract', () => {{",
+    ]
+    for operation in ir["operations"]:
+        lines.extend(
+            [
+                f"  it('{operation['operationId']} keeps its method and path', () => {{",
+                f"    expect({{ method: '{operation['method']}', path: '{operation['path']}' }}).toEqual(",
+                f"      {{ method: '{operation['method']}', path: '{operation['path']}' }},",
+                "    );",
+                "  });",
+            ]
+        )
+    lines.append("});")
+    return "\n".join(lines) + "\n"
+
+
 def build_integration(source: str | dict[str, Any], page_name: str) -> dict[str, Any]:
     ir = normalize_openapi(source)
     tasks = [
@@ -172,7 +193,54 @@ def build_integration(source: str | dict[str, Any], page_name: str) -> dict[str,
         **ir,
         "tasks": tasks,
         "typescriptClient": generate_typescript_client(ir),
+        "contractTests": generate_contract_tests(ir),
     }
+
+
+def _parameter_map(operation: dict[str, Any]) -> dict[tuple[str, str], dict[str, Any]]:
+    return {
+        (item.get("in", "query"), item["name"]): item
+        for item in operation.get("parameters", [])
+    }
+
+
+def _body_schema(operation: dict[str, Any]) -> dict[str, Any]:
+    return (
+        (operation.get("requestBody") or {})
+        .get("content", {})
+        .get("application/json", {})
+        .get("schema", {})
+    )
+
+
+def _schema_breaks(
+    before: dict[str, Any],
+    after: dict[str, Any],
+    before_schemas: dict[str, Any],
+    after_schemas: dict[str, Any],
+) -> bool:
+    def resolve(schema: dict[str, Any], components: dict[str, Any]) -> dict[str, Any]:
+        reference = schema.get("$ref")
+        return components.get(str(reference).rsplit("/", 1)[-1], {}) if reference else schema
+
+    old = resolve(before, before_schemas)
+    new = resolve(after, after_schemas)
+    if old.get("type") != new.get("type"):
+        return True
+    old_enum, new_enum = set(old.get("enum", [])), set(new.get("enum", []))
+    if old_enum and new_enum and not old_enum.issubset(new_enum):
+        return True
+    old_properties = set(old.get("properties", {}))
+    new_properties = set(new.get("properties", {}))
+    if old_properties - new_properties:
+        return True
+    if set(new.get("required", [])) - set(old.get("required", [])):
+        return True
+    return False
+
+
+def _operation_semantics(operation: dict[str, Any]) -> dict[str, Any]:
+    return {key: value for key, value in operation.items() if key != "provenance"}
 
 
 def diff_contracts(before: dict[str, Any], after: dict[str, Any]) -> dict[str, Any]:
@@ -180,8 +248,49 @@ def diff_contracts(before: dict[str, Any], after: dict[str, Any]) -> dict[str, A
     new = {(item["method"], item["path"]): item for item in after["operations"]}
     removed = sorted(set(old) - set(new))
     added = sorted(set(new) - set(old))
+    changed: list[dict[str, Any]] = []
+    breaking = [
+        {"type": "removed-operation", "method": method, "path": path}
+        for method, path in removed
+    ]
+    for method, path in sorted(set(old) & set(new)):
+        old_operation, new_operation = old[(method, path)], new[(method, path)]
+        old_parameters = _parameter_map(old_operation)
+        new_parameters = _parameter_map(new_operation)
+        reasons = []
+        for parameter_key in sorted(set(old_parameters) - set(new_parameters)):
+            reasons.append(f"removed-parameter:{parameter_key[0]}:{parameter_key[1]}")
+        for parameter_key, parameter in new_parameters.items():
+            previous = old_parameters.get(parameter_key)
+            if previous is None and parameter.get("required"):
+                reasons.append(f"added-required-parameter:{parameter_key[0]}:{parameter_key[1]}")
+            elif previous and not previous.get("required") and parameter.get("required"):
+                reasons.append(f"parameter-became-required:{parameter_key[0]}:{parameter_key[1]}")
+            elif previous and _schema_breaks(
+                previous.get("schema", {}),
+                parameter.get("schema", {}),
+                before.get("schemas", {}),
+                after.get("schemas", {}),
+            ):
+                reasons.append(f"parameter-schema-narrowed:{parameter_key[0]}:{parameter_key[1]}")
+        old_body, new_body = _body_schema(old_operation), _body_schema(new_operation)
+        if old_body != new_body and _schema_breaks(
+            old_body, new_body, before.get("schemas", {}), after.get("schemas", {})
+        ):
+            reasons.append("request-schema-became-incompatible")
+        old_response, new_response = _success_schema(old_operation), _success_schema(new_operation)
+        if old_response != new_response and _schema_breaks(
+            old_response, new_response, before.get("schemas", {}), after.get("schemas", {})
+        ):
+            reasons.append("response-schema-became-incompatible")
+        if _operation_semantics(old_operation) != _operation_semantics(new_operation):
+            changed.append({"method": method, "path": path, "breakingReasons": reasons})
+        breaking.extend(
+            {"type": reason, "method": method, "path": path} for reason in reasons
+        )
     return {
         "added": [{"method": method, "path": path} for method, path in added],
         "removed": [{"method": method, "path": path} for method, path in removed],
-        "breaking": [{"type": "removed-operation", "method": method, "path": path} for method, path in removed],
+        "changed": changed,
+        "breaking": breaking,
     }

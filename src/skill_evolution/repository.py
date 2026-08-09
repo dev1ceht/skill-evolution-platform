@@ -35,6 +35,9 @@ CREATE TABLE IF NOT EXISTS candidates (
     decision TEXT NOT NULL,
     status TEXT NOT NULL,
     similarity REAL NOT NULL,
+    confidence REAL NOT NULL,
+    retrieved_rules_json TEXT NOT NULL,
+    base_content_hash TEXT NOT NULL,
     staged_content TEXT,
     evaluation_id TEXT,
     created_at TEXT NOT NULL
@@ -53,7 +56,9 @@ CREATE TABLE IF NOT EXISTS evaluations (
     replay_case_id TEXT NOT NULL REFERENCES replay_cases(id),
     judge TEXT NOT NULL,
     passed INTEGER NOT NULL,
-    checks_json TEXT NOT NULL,
+    baseline_json TEXT NOT NULL,
+    candidate_json TEXT NOT NULL,
+    comparison_json TEXT NOT NULL,
     created_at TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS versions (
@@ -61,9 +66,27 @@ CREATE TABLE IF NOT EXISTS versions (
     skill_name TEXT NOT NULL,
     version TEXT NOT NULL,
     candidate_id TEXT NOT NULL REFERENCES candidates(id),
+    parent_version_id TEXT,
     before_content TEXT NOT NULL,
     after_content TEXT NOT NULL,
     content_hash TEXT NOT NULL,
+    status TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS skill_heads (
+    skill_name TEXT PRIMARY KEY,
+    version_id TEXT NOT NULL REFERENCES versions(id),
+    content_hash TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS promotion_intents (
+    id TEXT PRIMARY KEY,
+    candidate_id TEXT NOT NULL REFERENCES candidates(id),
+    skill_name TEXT NOT NULL,
+    target_version TEXT NOT NULL,
+    base_content_hash TEXT NOT NULL,
+    before_content TEXT NOT NULL,
+    after_content TEXT NOT NULL,
     status TEXT NOT NULL,
     created_at TEXT NOT NULL
 );
@@ -141,3 +164,50 @@ class SQLiteRepository:
     def count(self, table: str) -> int:
         with self.connection() as connection:
             return int(connection.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0])
+
+    def get_skill_head(self, skill_name: str) -> dict[str, Any] | None:
+        with self.connection() as connection:
+            row = connection.execute(
+                """
+                SELECT heads.skill_name, heads.version_id, heads.content_hash,
+                       versions.version, versions.after_content
+                FROM skill_heads AS heads
+                JOIN versions ON versions.id = heads.version_id
+                WHERE heads.skill_name = ?
+                """,
+                (skill_name,),
+            ).fetchone()
+        return dict(row) if row else None
+
+    def finalize_promotion(
+        self,
+        intent_id: str,
+        version: dict[str, Any],
+    ) -> None:
+        with self.connection() as connection:
+            columns = ", ".join(version)
+            placeholders = ", ".join("?" for _ in version)
+            connection.execute(
+                f"INSERT INTO versions ({columns}) VALUES ({placeholders})",
+                tuple(version.values()),
+            )
+            connection.execute(
+                """
+                INSERT INTO skill_heads (skill_name, version_id, content_hash, updated_at)
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT(skill_name) DO UPDATE SET
+                    version_id = excluded.version_id,
+                    content_hash = excluded.content_hash,
+                    updated_at = excluded.updated_at
+                """,
+                (
+                    version["skill_name"],
+                    version["id"],
+                    version["content_hash"],
+                    version["created_at"],
+                ),
+            )
+            connection.execute(
+                "UPDATE promotion_intents SET status = 'completed' WHERE id = ?",
+                (intent_id,),
+            )

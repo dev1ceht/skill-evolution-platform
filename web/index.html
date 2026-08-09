@@ -52,7 +52,7 @@
           <div class="card-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><b>integration.run</b><span class="status" id="integrationStatus">READY</span></div>
           <div class="workspace-grid">
             <div class="input-pane"><label>输入契约</label><textarea id="contractInput" spellcheck="false" placeholder="OpenAPI JSON loading…"></textarea></div>
-            <div class="output-pane"><div class="tabs"><button class="tab active" data-tab="tasks">任务计划</button><button class="tab" data-tab="ir">API IR</button><button class="tab" data-tab="client">TypeScript</button></div><pre id="integrationOutput">点击“运行接口对接 Demo”生成产物。</pre></div>
+            <div class="output-pane"><div class="tabs"><button class="tab active" data-tab="tasks">任务计划</button><button class="tab" data-tab="ir">API IR</button><button class="tab" data-tab="client">TypeScript</button><button class="tab" data-tab="tests">契约测试</button></div><pre id="integrationOutput">点击“运行接口对接 Demo”生成产物。</pre></div>
           </div>
         </div>
       </section>
@@ -87,6 +87,7 @@
         <div class="governance-grid">
           <div class="table-card"><h3>最近审计事件</h3><div id="auditList" class="event-list"><p class="empty">暂无事件</p></div></div>
           <div class="score-card"><p class="eyebrow">QUALITY GATE</p><div class="score"><strong id="qualityScore">—</strong><span>/ 100</span></div><div class="score-line"><i></i></div><ul><li><span>Frontmatter 完整</span><b id="checkFrontmatter">—</b></li><li><span>候选规则可回放</span><b id="checkRule">—</b></li><li><span>Skill 体积约束</span><b id="checkSize">—</b></li><li><span>无占位内容</span><b id="checkTodo">—</b></li></ul></div>
+          <div class="table-card wide"><h3>候选与版本历史</h3><div class="history-split"><div><label>候选记录</label><div id="candidateHistory" class="event-list"><p class="empty">暂无候选</p></div></div><div><label>不可变版本</label><div id="versionHistory" class="event-list"><p class="empty">暂无版本</p></div></div></div></div>
         </div>
       </section>
     </main>
@@ -95,4 +96,3 @@
     <script src="/app.js"></script>
   </body>
 </html>
-
