@@ -157,18 +157,39 @@ def generate_typescript_client(ir: dict[str, Any]) -> str:
 
 def generate_contract_tests(ir: dict[str, Any]) -> str:
     lines = [
-        "// Generated contract assertions. Wire these cases to the repository test client.",
-        "import { describe, expect, it } from 'vitest';",
+        "// Generated behavior tests for the typed API client.",
+        "import { beforeEach, describe, expect, it, vi } from 'vitest';",
+        "import * as client from './client';",
+        "",
+        "const fetchMock = vi.fn();",
+        "vi.stubGlobal('fetch', fetchMock);",
+        "vi.stubGlobal('window', { location: { origin: 'https://contract.test' } });",
         "",
         f"describe('{ir['title']} contract', () => {{",
+        "  beforeEach(() => {",
+        "    fetchMock.mockReset();",
+        "    fetchMock.mockResolvedValue({ ok: true, json: async () => ({}) });",
+        "  });",
     ]
     for operation in ir["operations"]:
+        arguments = []
+        for parameter in operation.get("parameters", []):
+            arguments.append("'fixture'" if parameter.get("required") else "undefined")
+        body_schema = (
+            (operation.get("requestBody") or {})
+            .get("content", {})
+            .get("application/json", {})
+            .get("schema")
+        )
+        if body_schema:
+            arguments.append("{} as never")
         lines.extend(
             [
-                f"  it('{operation['operationId']} keeps its method and path', () => {{",
-                f"    expect({{ method: '{operation['method']}', path: '{operation['path']}' }}).toEqual(",
-                f"      {{ method: '{operation['method']}', path: '{operation['path']}' }},",
-                "    );",
+                f"  it('{operation['operationId']} sends {operation['method']} {operation['path']}', async () => {{",
+                f"    await client.{operation['operationId']}({', '.join(arguments)});",
+                "    const [requestUrl, options] = fetchMock.mock.calls[0];",
+                f"    expect(new URL(requestUrl).pathname).toBe('{operation['path']}');",
+                f"    expect(options.method).toBe('{operation['method']}');",
                 "  });",
             ]
         )

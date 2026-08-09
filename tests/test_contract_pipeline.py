@@ -19,7 +19,9 @@ def test_openapi_contract_produces_ir_tasks_and_typed_client() -> None:
     assert "export type User" in result["typescriptClient"]
     assert "export async function listUsers" in result["typescriptClient"]
     assert "cursor?: string" in result["typescriptClient"]
-    assert "listUsers keeps its method and path" in result["contractTests"]
+    assert "await client.listUsers(undefined)" in result["contractTests"]
+    assert "expect(options.method).toBe('GET')" in result["contractTests"]
+    assert "new URL(requestUrl).pathname" in result["contractTests"]
 
 
 def test_contract_diff_detects_required_parameter_as_breaking() -> None:

@@ -14,7 +14,7 @@ Convert an API contract into reviewable frontend code and verification artifacts
 3. Stop and report ambiguities when the contract omits an operation ID, success schema, authentication requirement, or pagination mode that cannot be inferred safely.
 4. Group operations by page behavior and produce a task plan containing dependencies, loading/error/empty states, mock work, and verification work.
 5. Read `references/frontend-standards.md`, then generate or adapt the typed client with `scripts/generate_client.py`.
-6. Read `references/testing-policy.md` and run the smallest applicable test matrix before broader regression tests.
+6. Read `references/testing-policy.md`, generate client behavior tests with `scripts/generate_contract_tests.py`, and run the smallest applicable test matrix before broader regression tests.
 7. When an old contract exists, normalize both contracts and run `scripts/diff_contracts.py`. Read `references/versioning-policy.md` before proposing migrations.
 8. Report generated files, unresolved assumptions, breaking changes, test results, and measured human review time.
 

@@ -399,6 +399,12 @@ class EvolutionService:
             "created_at": _now(),
         }
         self.repository.insert("promotion_intents", intent)
+        self._audit(
+            "promotion_intent.prepared",
+            "promotion_intent",
+            intent["id"],
+            {"targetVersion": version_number, "baseContentHash": intent["base_content_hash"]},
+        )
         self._atomic_write(after)
         record = {
             "id": _id("version"),
@@ -413,6 +419,18 @@ class EvolutionService:
             "created_at": _now(),
         }
         self.repository.finalize_promotion(intent["id"], record)
+        self._audit(
+            "promotion_intent.completed",
+            "promotion_intent",
+            intent["id"],
+            {"versionId": record["id"]},
+        )
+        self._audit(
+            "skill_head.changed",
+            "skill",
+            skill_name,
+            {"fromVersionId": parent_version_id, "toVersionId": record["id"]},
+        )
         if status == "promotion":
             self.repository.update("candidates", candidate["id"], {"status": "promoted"})
             self._audit("candidate.promoted", "candidate", candidate["id"], {"version": version_number})
