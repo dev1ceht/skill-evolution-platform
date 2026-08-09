@@ -1,0 +1,10 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.pytest-tmp/
+*.egg-info/
+.venv/
+.playwright-cli/
+work/
+data/*.db
+data/*.db-*

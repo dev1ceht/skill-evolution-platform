@@ -1,0 +1,52 @@
+{
+  "openapi": "3.0.3",
+  "info": {"title": "User API", "version": "2.1.0"},
+  "paths": {
+    "/api/users": {
+      "get": {
+        "operationId": "listUsers",
+        "tags": ["users"],
+        "parameters": [
+          {"name": "cursor", "in": "query", "required": false, "schema": {"type": "string"}}
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {"application/json": {"schema": {"type": "array", "items": {"$ref": "#/components/schemas/User"}}}}
+          }
+        }
+      },
+      "post": {
+        "operationId": "createUser",
+        "tags": ["users"],
+        "requestBody": {
+          "required": true,
+          "content": {"application/json": {"schema": {"$ref": "#/components/schemas/CreateUser"}}}
+        },
+        "responses": {
+          "201": {
+            "description": "created",
+            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/User"}}}
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "User": {
+        "type": "object",
+        "required": ["id", "name"],
+        "properties": {
+          "id": {"type": "string"},
+          "name": {"type": "string"}
+        }
+      },
+      "CreateUser": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {"name": {"type": "string"}}
+      }
+    }
+  }
+}
