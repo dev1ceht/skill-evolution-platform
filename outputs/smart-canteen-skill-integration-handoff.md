@@ -12,10 +12,11 @@
 | 菜单审批 | DRAFT → PENDING_APPROVAL → APPROVED/REJECTED | Java 领域测试 + MockMvc |
 | 采购计划 | 菜谱需求减当前库存，仅输出正缺口 | Java 领域测试 |
 | 单位换算 | kg/g、L/ml、count 统一为基础单位 | Java 领域测试 |
-| 数据持久化 | MySQL + JDBC + Flyway，菜单、库存、入库幂等键和台账跨重启保留 | H2 文件库重启测试 + Spring 测试 |
+| 数据持久化 | MySQL + JDBC + Flyway，菜单、库存、入库幂等键和台账跨重启保留 | H2 文件库重启测试 + 真实 MySQL 8.4 重启测试 |
 | 库存入库 | `Idempotency-Key` 防重复，入库和幂等记录位于同一事务 | MockMvc 工作流测试 + 重启测试 |
 | 台账预警 | 完成缺失台账后动态清除预警 | Java 领域测试 + MockMvc |
-| 本地中间件 | MySQL、Redis、RabbitMQ 使用独立 Dockerfile 构建，由 Compose 编排并提供健康检查 | `docker compose config` 静态校验 + `verify-stack.ps1` 运行态验收入口 |
+| 本地中间件 | MySQL、Redis、RabbitMQ 使用独立 Dockerfile 构建，由 Compose 编排并提供健康检查 | 三个镜像实际构建并达到 healthy + `verify-stack.ps1` |
+| MySQL 并发验收 | 相同幂等键只入库一次、并发首次物料不丢量、异维单位回滚、隔离数据库自动清理 | `verify-mysql-workflow.ps1` + `SmartCanteenMySqlIntegrationTest` |
 | Vue 页面 | Axios 适配、统一 envelope、loading/empty/error、审批交互 | Vitest + Vue Test Utils |
 | 自动化接口测试 | 6 个生成式 fetch 契约测试 | Vitest + TypeScript 编译 |
 | Skill 自进化 | pending episode、merge 候选、contract replay、审计与提升 | Python replay 测试 |
@@ -45,7 +46,7 @@
 
 ## 推荐下一迭代
 
-1. 使用 Testcontainers 在 CI 中补充真实 MySQL 兼容性与并发幂等测试。
+1. 将 `verify-stack.ps1` 和 `verify-mysql-workflow.ps1` 接入具备 Docker 的 CI runner。
 2. 为 Redis 缓存和 RabbitMQ 领域事件定义端口、失效策略、重试与死信语义后再接入业务。
 3. 增加菜单分页 envelope、Excel 菜单导入 multipart 和旧版 action API 差异回放。
 4. 将 replay runner 接入 CI，阻止未通过候选提升和破坏性契约变更合并。

@@ -30,6 +30,14 @@ docker compose ps
 
 也可以运行 `./verify-stack.ps1`，它会从三个 Dockerfile 构建镜像，并等待 MySQL、Redis、RabbitMQ 全部通过健康检查；任何服务未就绪都会以非零状态退出。
 
+容器健康后，运行真实 MySQL 工作流验收。脚本会创建随机命名的隔离数据库，执行 Flyway、并发幂等、单位回滚和跨应用重启测试，并在结束时删除该测试数据库：
+
+```powershell
+./verify-mysql-workflow.ps1
+```
+
+两条验收链路会分别更新 `outputs/verification/smart-canteen-runtime-latest.json` 和 `outputs/verification/smart-canteen-mysql-workflow-latest.json`，记录时间、镜像摘要、健康状态、MySQL/Flyway 版本、测试结论和隔离数据库清理结果；不写入任何密码。
+
 端口只绑定在本机回环地址。MySQL 为 `127.0.0.1:3306`，Redis 为 `127.0.0.1:6379`，RabbitMQ AMQP/管理台为 `127.0.0.1:5672/15672`；均可在 `.env` 中调整。
 
 后端需要 Java 17 和 Maven。后端环境变量与 `infra/.env` 是两个显式边界；如果修改了 Compose 的端口、数据库名或用户，必须同步修改以下三项：

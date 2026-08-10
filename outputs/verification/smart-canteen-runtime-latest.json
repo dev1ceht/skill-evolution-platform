@@ -1,0 +1,82 @@
+﻿{
+    "schemaVersion":  1,
+    "recordedAt":  "2026-08-10T14:13:28.0736891Z",
+    "result":  "passed",
+    "composeProject":  "smart-canteen-infra",
+    "containers":  [
+                       {
+                           "Service":  "mysql",
+                           "Image":  "smart-canteen/mysql:8.4.11",
+                           "State":  "running",
+                           "Health":  "healthy",
+                           "ExitCode":  0,
+                           "Publishers":  [
+                                              {
+                                                  "URL":  "127.0.0.1",
+                                                  "TargetPort":  3306,
+                                                  "PublishedPort":  3306,
+                                                  "Protocol":  "tcp"
+                                              }
+                                          ]
+                       },
+                       {
+                           "Service":  "rabbitmq",
+                           "Image":  "smart-canteen/rabbitmq:4.3.4",
+                           "State":  "running",
+                           "Health":  "healthy",
+                           "ExitCode":  0,
+                           "Publishers":  [
+                                              {
+                                                  "URL":  "127.0.0.1",
+                                                  "TargetPort":  5672,
+                                                  "PublishedPort":  5672,
+                                                  "Protocol":  "tcp"
+                                              },
+                                              {
+                                                  "URL":  "127.0.0.1",
+                                                  "TargetPort":  15672,
+                                                  "PublishedPort":  15672,
+                                                  "Protocol":  "tcp"
+                                              }
+                                          ]
+                       },
+                       {
+                           "Service":  "redis",
+                           "Image":  "smart-canteen/redis:7.4.10",
+                           "State":  "running",
+                           "Health":  "healthy",
+                           "ExitCode":  0,
+                           "Publishers":  [
+                                              {
+                                                  "URL":  "127.0.0.1",
+                                                  "TargetPort":  6379,
+                                                  "PublishedPort":  6379,
+                                                  "Protocol":  "tcp"
+                                              }
+                                          ]
+                       }
+                   ],
+    "images":  [
+                   {
+                       "Repository":  "smart-canteen/rabbitmq",
+                       "Tag":  "4.3.4",
+                       "ID":  "sha256:8bfb9dd06304cb0e958ba307e7610264ae6d8e5583326f94724af173274ec40e",
+                       "Platform":  "linux/amd64",
+                       "Size":  88784388
+                   },
+                   {
+                       "Repository":  "smart-canteen/redis",
+                       "Tag":  "7.4.10",
+                       "ID":  "sha256:e700393ea3e7a955cc8a9ca454c698d220236f636285f46e19a013e4e202a725",
+                       "Platform":  "linux/amd64",
+                       "Size":  16267742
+                   },
+                   {
+                       "Repository":  "smart-canteen/mysql",
+                       "Tag":  "8.4.11",
+                       "ID":  "sha256:0e1500e270c2f35ca6299b8cb0fc8cc0f6121a1fc00a6c17539ab22041500b2b",
+                       "Platform":  "linux/amd64",
+                       "Size":  238989427
+                   }
+               ]
+}

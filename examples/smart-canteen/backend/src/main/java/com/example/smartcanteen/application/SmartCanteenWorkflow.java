@@ -15,6 +15,7 @@ import com.example.smartcanteen.domain.UnitConverter;
 import java.math.BigDecimal;
 import java.util.List;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -64,7 +65,7 @@ public class SmartCanteenWorkflow {
                 store.findRecipe(menuId), store.inventorySnapshot());
     }
 
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public ReceiptResult receive(
             String idempotencyKey,
             String materialId,

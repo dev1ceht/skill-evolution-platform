@@ -1,0 +1,17 @@
+﻿{
+    "schemaVersion":  1,
+    "recordedAt":  "2026-08-10T14:18:26.7519178Z",
+    "result":  "passed",
+    "database":  "smart_canteen_it_65f7cb35ec96",
+    "databaseRemoved":  true,
+    "mysqlImage":  "smart-canteen/mysql:8.4.11",
+    "flywayVersion":  "11.20.3",
+    "testClass":  "SmartCanteenMySqlIntegrationTest",
+    "checks":  [
+                   "flyway migration on MySQL",
+                   "same-key concurrent receipt is applied once",
+                   "concurrent first-material receipts preserve both quantities",
+                   "incompatible unit rolls back receipt reservation",
+                   "state survives Spring application restart"
+               ]
+}
