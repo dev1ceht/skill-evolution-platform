@@ -6,6 +6,7 @@ import shutil
 import tempfile
 from pathlib import Path
 
+from .benchmark_io import write_benchmark_report
 from .http_api import ApiApplication
 from .repository import SQLiteRepository
 from .server import ProjectServer
@@ -64,10 +65,21 @@ def main() -> None:
     serve.add_argument("--host", default="127.0.0.1")
     serve.add_argument("--port", type=int, default=8765)
     subparsers.add_parser("demo", help="Run an isolated end-to-end demonstration")
+    benchmark = subparsers.add_parser("benchmark", help="Build an auditable efficiency report")
+    benchmark.add_argument("--input", type=Path, required=True, help="Paired benchmark CSV or JSON")
+    benchmark.add_argument("--project-root", type=Path, default=_project_root())
+    benchmark.add_argument("--name", default="latest")
     args = parser.parse_args()
     root = _project_root()
     if args.command == "demo":
         print(json.dumps(run_demo(root), ensure_ascii=False, indent=2))
+        return
+    if args.command == "benchmark":
+        try:
+            result = write_benchmark_report(args.input, args.project_root, args.name)
+        except (OSError, ValueError, json.JSONDecodeError) as error:
+            parser.error(str(error))
+        print(json.dumps(result, ensure_ascii=False, indent=2))
         return
     application = _application(root)
     ProjectServer(application, root / "web", root / "examples").serve(args.host, args.port)
@@ -75,4 +87,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

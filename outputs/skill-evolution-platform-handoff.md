@@ -1,6 +1,6 @@
 # Skill Evolution Platform — 交接文档
 
-更新时间：2026-08-09  
+更新时间：2026-08-11
 项目目录：`D:\project\skill-evolution-platform`  
 当前分支：`main`  
 当前状态：工作区干净，MVP 已实现并完成测试、浏览器验收和双轴代码审查。
@@ -73,6 +73,12 @@ Skill 使用渐进式披露结构：核心流程在 `SKILL.md`，详细规范在
 - 候选、版本与审计历史；
 - active 版本回滚。
 
+### 提效基准与持续集成
+
+`src\skill_evolution\benchmark_io.py`、`benchmark.py`、`benchmark_dashboard.py` 与 `skill-evolution benchmark` 已实现成对任务导入、字段校验、确定性统计、P50/P90、加权提速、首轮通过率、返工/缺陷、Token、来源引用和输入哈希报告。HTML 看板与 JSON 审计报告固定写入 `outputs\benchmarks`；20 个真实任务与 20× 声明门槛不可由 CLI 下调，存在真实样本时主指标不会混入合成数据。
+
+`.github\workflows\ci.yml` 已覆盖 Python/Skill replay、Vue 测试与构建、Spring/H2、三中间件 Docker 健康检查和真实 MySQL 工作流，并上传基准与运行 evidence。运行前会清除历史 evidence，避免失败任务误用旧证据；Docker 构建或健康检查失败时也会生成带失败阶段的 JSON。
+
 ## 3. 运行与验证
 
 ```powershell
@@ -114,15 +120,15 @@ fcd6727 feat: build auditable skill evolution platform
 
 ## 5. 后续优先级
 
-当前是可演示 MVP，不应直接宣称已经实现“整体提效 20 倍”。下一阶段建议按以下顺序推进：
+当前是可演示 MVP，不应直接宣称已经实现“整体提效 20 倍”。基准采集与看板链路已经具备，下一阶段应按以下顺序推进：
 
-1. 建立 20～50 个真实接口任务的基准集，记录人工耗时、AI 耗时、返工和缺陷数据。
+1. 按 `docs\benchmark-methodology.md` 收集 20～50 个真实接口任务，替换当前合成样本并保留任务单/PR/计时来源。
 2. 将规则检索从轻量词法相似度升级为 BM25 + Embedding 混合检索。
 3. 接入可配置 LLM Judge，同时继续保持编译、Schema、测试等确定性断言优先。
 4. 为 SQLite 增加正式迁移机制；当前 Schema 面向新建数据库。
 5. 接入真实 React/Vue 企业工程，替换演示用 fetch client 和默认目录约定。
 6. 增加认证、权限、脱敏和数据保留策略后，再考虑多人或生产部署。
-7. 用 P50/P90 任务耗时、成功率、回归数、Token 和延迟形成实习成果数据看板。
+7. 将当前静态 HTML 基准报告接入长期趋势存储，按项目、框架与任务复杂度分层展示。
 
 ## 6. 注意事项
 

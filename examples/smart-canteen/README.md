@@ -38,6 +38,8 @@ docker compose ps
 
 两条验收链路会分别更新 `outputs/verification/smart-canteen-runtime-latest.json` 和 `outputs/verification/smart-canteen-mysql-workflow-latest.json`，记录时间、镜像摘要、健康状态、MySQL/Flyway 版本、测试结论和隔离数据库清理结果；不写入任何密码。
 
+仓库根目录的 `.github/workflows/ci.yml` 会在 Python、Vue 和 Spring 基础回归全部通过后运行这两条 Docker 验收链路，并上传本次运行产生的 evidence。CI 会先移除仓库中的历史 evidence，避免失败运行误上传旧结果。
+
 端口只绑定在本机回环地址。MySQL 为 `127.0.0.1:3306`，Redis 为 `127.0.0.1:6379`，RabbitMQ AMQP/管理台为 `127.0.0.1:5672/15672`；均可在 `.env` 中调整。
 
 后端需要 Java 17 和 Maven。后端环境变量与 `infra/.env` 是两个显式边界；如果修改了 Compose 的端口、数据库名或用户，必须同步修改以下三项：

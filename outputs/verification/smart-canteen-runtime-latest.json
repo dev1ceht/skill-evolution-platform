@@ -1,7 +1,9 @@
 ﻿{
     "schemaVersion":  1,
-    "recordedAt":  "2026-08-10T14:13:28.0736891Z",
+    "recordedAt":  "2026-08-10T17:34:54.1272613Z",
     "result":  "passed",
+    "failureStage":  null,
+    "error":  null,
     "composeProject":  "smart-canteen-infra",
     "containers":  [
                        {
@@ -58,23 +60,23 @@
                    ],
     "images":  [
                    {
-                       "Repository":  "smart-canteen/rabbitmq",
-                       "Tag":  "4.3.4",
-                       "ID":  "sha256:8bfb9dd06304cb0e958ba307e7610264ae6d8e5583326f94724af173274ec40e",
-                       "Platform":  "linux/amd64",
-                       "Size":  88784388
-                   },
-                   {
                        "Repository":  "smart-canteen/redis",
                        "Tag":  "7.4.10",
-                       "ID":  "sha256:e700393ea3e7a955cc8a9ca454c698d220236f636285f46e19a013e4e202a725",
+                       "ID":  "sha256:e42ef0d74bc40ac67e8c512c548eb15e25426f9f8579b4c639b5291b48343db8",
                        "Platform":  "linux/amd64",
                        "Size":  16267742
                    },
                    {
+                       "Repository":  "smart-canteen/rabbitmq",
+                       "Tag":  "4.3.4",
+                       "ID":  "sha256:17954ac22e908898bfa9a1a99853b5418e8b063b1e20fad0bc1d852545b4f0f1",
+                       "Platform":  "linux/amd64",
+                       "Size":  88784388
+                   },
+                   {
                        "Repository":  "smart-canteen/mysql",
                        "Tag":  "8.4.11",
-                       "ID":  "sha256:0e1500e270c2f35ca6299b8cb0fc8cc0f6121a1fc00a6c17539ab22041500b2b",
+                       "ID":  "sha256:d0bae0403f58679cc4604f3752298276945002d2a165bcd3d8cf7ef5c80637a9",
                        "Platform":  "linux/amd64",
                        "Size":  238989427
                    }

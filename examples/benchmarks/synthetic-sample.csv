@@ -1,0 +1,3 @@
+task_id,task_name,project,framework,operation_count,traditional_minutes,skill_minutes,traditional_rework_count,skill_rework_count,traditional_defect_count,skill_defect_count,traditional_first_pass,skill_first_pass,skill_token_count,sample_type,recorded_at,source_ref
+DEMO-001,菜单审批页面,smart-canteen,vue,4,100,10,2,0,1,0,false,true,4000,synthetic,2026-08-01T08:00:00+08:00,demo:DEMO-001
+DEMO-002,库存收货页面,smart-canteen,react,2,60,5,0,1,0,0,true,false,2000,synthetic,2026-08-02T08:00:00+08:00,demo:DEMO-002
