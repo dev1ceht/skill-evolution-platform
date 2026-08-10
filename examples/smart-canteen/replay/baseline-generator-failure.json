@@ -1,0 +1,19 @@
+{
+  "artifactVersion": 1,
+  "sourceCommit": "72d57ad5f2e84baebbd87fdef5be96ff9e93d81d",
+  "contract": "../contracts/smart-canteen.openapi.yaml",
+  "contractHash": "5eb59f4ae74171f6c55785b56928146135932ffd5cc61f5c01a2d8f987a16cb3",
+  "capturedStage": "generate-typescript-client",
+  "failure": {
+    "type": "KeyError",
+    "message": "name",
+    "cause": "The normalized parameter remained a $ref object, so the generator could not read parameter.name."
+  },
+  "checks": {
+    "contractSourceMatched": true,
+    "contractGenerated": false,
+    "parameterReferencesResolved": false,
+    "pathParametersEncoded": false,
+    "headerNamesPreserved": false
+  }
+}

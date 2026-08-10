@@ -1,0 +1,37 @@
+{
+  "feature": "smart-canteen-core-workflow",
+  "contract": "smart-canteen.openapi.yaml",
+  "pages": [
+    {
+      "page": "MenuApprovalPage",
+      "operations": ["submitMenu", "decideMenuApproval"],
+      "states": ["loading", "ready", "submitting", "success", "business-error"],
+      "dependencies": []
+    },
+    {
+      "page": "ProcurementWorkbenchPage",
+      "operations": ["generateProcurementPlan", "receiveInventory"],
+      "states": ["loading", "empty", "ready", "submitting", "business-error"],
+      "dependencies": ["MenuApprovalPage:APPROVED"]
+    },
+    {
+      "page": "LedgerAlertPage",
+      "operations": ["getCurrentLedgerAlert", "completeLedgerRecord"],
+      "states": ["loading", "empty", "ready", "submitting", "business-error"],
+      "dependencies": ["ProcurementWorkbenchPage:receipt-completed"]
+    }
+  ],
+  "verification": [
+    "OpenAPI normalization",
+    "generated client compile",
+    "generated fetch contract tests",
+    "Vue page loading/empty/error tests",
+    "Spring HTTP workflow tests",
+    "candidate replay and provenance audit"
+  ],
+  "assumptions": [
+    "The demo uses in-memory adapters and one seeded menu instead of production MySQL and Redis.",
+    "Bright-kitchen devices, WeChat, SSO and external procurement platforms are represented as future ports.",
+    "All quantities are normalized server-side to g, ml or count."
+  ]
+}

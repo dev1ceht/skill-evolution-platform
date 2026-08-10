@@ -1,0 +1,275 @@
+openapi: 3.0.3
+info:
+  title: Smart Canteen Workflow API
+  version: 1.0.0
+  description: 菜单审批、采购缺口、库存入库和台账预警的最小业务闭环。
+servers:
+  - url: http://localhost:8080
+paths:
+  /api/v1/menus/{menuId}/submit:
+    post:
+      operationId: submitMenu
+      tags: [menu-approval]
+      parameters:
+        - $ref: '#/components/parameters/MenuId'
+      responses:
+        '200':
+          description: 菜单已提交审批
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MenuResponse'
+        '400':
+          $ref: '#/components/responses/BusinessError'
+  /api/v1/menu-approvals/{menuId}/decision:
+    post:
+      operationId: decideMenuApproval
+      tags: [menu-approval]
+      parameters:
+        - $ref: '#/components/parameters/MenuId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApprovalDecision'
+      responses:
+        '200':
+          description: 审批结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MenuResponse'
+        '400':
+          $ref: '#/components/responses/BusinessError'
+  /api/v1/procurement-plans/generate:
+    post:
+      operationId: generateProcurementPlan
+      tags: [procurement]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenerateProcurementRequest'
+      responses:
+        '200':
+          description: 基于已审批菜单和当前库存生成的采购缺口
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProcurementPlanResponse'
+        '400':
+          $ref: '#/components/responses/BusinessError'
+  /api/v1/inventory/receipts:
+    post:
+      operationId: receiveInventory
+      tags: [inventory]
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: 防止入库单重复提交
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InventoryReceipt'
+      responses:
+        '200':
+          description: 入库后的基础单位库存
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReceiptResponse'
+        '400':
+          $ref: '#/components/responses/BusinessError'
+  /api/v1/ledger-records:
+    post:
+      operationId: completeLedgerRecord
+      tags: [ledger]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LedgerRecord'
+      responses:
+        '200':
+          description: 台账完成后的预警状态
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LedgerAlertResponse'
+        '400':
+          $ref: '#/components/responses/BusinessError'
+  /api/v1/ledger-alerts/current:
+    get:
+      operationId: getCurrentLedgerAlert
+      tags: [ledger]
+      responses:
+        '200':
+          description: 当前待补台账和预警状态
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LedgerAlertResponse'
+components:
+  parameters:
+    MenuId:
+      name: menuId
+      in: path
+      required: true
+      schema:
+        type: string
+  responses:
+    BusinessError:
+      description: 业务规则或参数校验失败
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+  schemas:
+    Menu:
+      type: object
+      required: [id, status]
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+          enum: [DRAFT, PENDING_APPROVAL, APPROVED, REJECTED]
+        decisionComment:
+          type: string
+          nullable: true
+    ApprovalDecision:
+      type: object
+      required: [decision, comment]
+      properties:
+        decision:
+          type: string
+          enum: [APPROVE, REJECT]
+        comment:
+          type: string
+    GenerateProcurementRequest:
+      type: object
+      required: [menuId]
+      properties:
+        menuId:
+          type: string
+    ProcurementItem:
+      type: object
+      required: [materialId, requiredBaseQuantity, shortageBaseQuantity, baseUnit]
+      properties:
+        materialId:
+          type: string
+        requiredBaseQuantity:
+          type: number
+        shortageBaseQuantity:
+          type: number
+        baseUnit:
+          type: string
+          enum: [g, ml, count]
+    ProcurementPlan:
+      type: object
+      required: [menuId, items]
+      properties:
+        menuId:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProcurementItem'
+    InventoryReceipt:
+      type: object
+      required: [materialId, quantity, unit]
+      properties:
+        materialId:
+          type: string
+        quantity:
+          type: number
+          minimum: 0
+          exclusiveMinimum: true
+        unit:
+          type: string
+          enum: [kg, g, L, ml, count]
+    Receipt:
+      type: object
+      required: [materialId, quantityBase, baseUnit]
+      properties:
+        materialId:
+          type: string
+        quantityBase:
+          type: number
+        baseUnit:
+          type: string
+    LedgerRecord:
+      type: object
+      required: [ledgerCode]
+      properties:
+        ledgerCode:
+          type: string
+          enum: [PURCHASE_ACCEPTANCE]
+    LedgerAlert:
+      type: object
+      required: [cleared, missingLedgerCodes]
+      properties:
+        cleared:
+          type: boolean
+        missingLedgerCodes:
+          type: array
+          items:
+            type: string
+    MenuResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/Menu'
+    ProcurementPlanResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/ProcurementPlan'
+    ReceiptResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/Receipt'
+    LedgerAlertResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/LedgerAlert'
+    ErrorResponse:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          nullable: true

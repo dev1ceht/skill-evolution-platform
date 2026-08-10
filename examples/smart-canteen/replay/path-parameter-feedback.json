@@ -1,0 +1,51 @@
+{
+  "replayCase": "smart-canteen-path-and-header-parameters-v1",
+  "source": {
+    "task": "Integrate the smart-canteen approval and procurement workflow",
+    "contract": "../contracts/smart-canteen.openapi.yaml",
+    "baselineArtifact": "baseline-generator-failure.json",
+    "baselineSourceCommit": "72d57ad5f2e84baebbd87fdef5be96ff9e93d81d",
+    "contractHash": "5eb59f4ae74171f6c55785b56928146135932ffd5cc61f5c01a2d8f987a16cb3",
+    "page": "MenuApprovalPage",
+    "observedAt": "OpenAPI -> API IR -> TypeScript client"
+  },
+  "feedback": "API clients must resolve reusable parameter references, encode path parameters, and map wire-level header names to valid TypeScript identifiers.",
+  "decision": "merge",
+  "baselineObservation": {
+    "contractSourceMatched": true,
+    "contractGenerated": false,
+    "parameterReferencesResolved": false,
+    "pathParametersEncoded": false,
+    "headerNamesPreserved": false
+  },
+  "offlineJudge": {
+    "name": "contract-replay-v1",
+    "requiredChecks": [
+      "frontmatterPreserved",
+      "candidateRulePresent",
+      "skillSizeWithinLimit",
+      "noTodoPlaceholder",
+      "contractSourceMatched",
+      "contractGenerated",
+      "parameterReferencesResolved",
+      "pathParametersEncoded",
+      "headerNamesPreserved"
+    ],
+    "result": "passed",
+    "improvements": [
+      "candidateRulePresent",
+      "contractGenerated",
+      "parameterReferencesResolved",
+      "pathParametersEncoded",
+      "headerNamesPreserved"
+    ],
+    "regressions": []
+  },
+  "promotion": {
+    "result": "accepted-after-replay",
+    "learnedRules": [
+      "Resolve reusable local OpenAPI parameter references before generation.",
+      "Encode path parameters and preserve wire-level HTTP header names."
+    ]
+  }
+}

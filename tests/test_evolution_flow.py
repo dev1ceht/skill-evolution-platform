@@ -174,3 +174,63 @@ def test_skill_write_must_stay_inside_configured_root(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError, match="inside the configured Skill root"):
         EvolutionService(repository, outside, skill_root=tmp_path / "skills")
+
+
+def test_failed_database_finalize_restores_skill_file(
+    tmp_path: Path, skill_file: Path
+) -> None:
+    class FailingFinalizeRepository(SQLiteRepository):
+        def finalize_promotion(self, intent_id, version):  # type: ignore[no-untyped-def]
+            raise RuntimeError("database unavailable")
+
+    repository = FailingFinalizeRepository(tmp_path / "state.db")
+    service = EvolutionService(repository, skill_file)
+    baseline = skill_file.read_text(encoding="utf-8")
+    episode = service.open_episode("Errors", "frontend-api-integration", "1.0.0", "ok")
+    candidate = service.capture_feedback(
+        episode["id"], "API error mappings must follow the declared response schema."
+    )
+    service.evaluate_candidate(candidate["id"])
+
+    with pytest.raises(RuntimeError, match="database unavailable"):
+        service.promote_candidate(candidate["id"])
+
+    assert skill_file.read_text(encoding="utf-8") == baseline
+    assert repository.list("promotion_intents")[0]["status"] == "failed"
+
+
+def test_prepared_intent_is_recovered_after_process_interruption(
+    tmp_path: Path, skill_file: Path
+) -> None:
+    repository = SQLiteRepository(tmp_path / "state.db")
+    service = EvolutionService(repository, skill_file)
+    baseline = skill_file.read_text(encoding="utf-8")
+    episode = service.open_episode("Errors", "frontend-api-integration", "1.0.0", "ok")
+    candidate_view = service.capture_feedback(
+        episode["id"], "API error mappings must follow the declared response schema."
+    )
+    candidate = repository.get("candidates", candidate_view["id"])
+    assert candidate is not None
+    staged = candidate["staged_content"]
+    skill_file.write_text(staged, encoding="utf-8")
+    repository.insert(
+        "promotion_intents",
+        {
+            "id": "intent_0123456789ab",
+            "candidate_id": candidate["id"],
+            "skill_name": "frontend-api-integration",
+            "target_version": "1.0.1",
+            "base_content_hash": candidate["base_content_hash"],
+            "before_content": baseline,
+            "after_content": staged,
+            "status": "prepared",
+            "created_at": "2026-08-10T00:00:00+00:00",
+        },
+    )
+
+    EvolutionService(repository, skill_file)
+
+    assert skill_file.read_text(encoding="utf-8") == baseline
+    assert repository.get("promotion_intents", "intent_0123456789ab")["status"] == (
+        "recovered"
+    )

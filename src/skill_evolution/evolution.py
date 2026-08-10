@@ -4,6 +4,8 @@ import hashlib
 import json
 import os
 import re
+import tempfile
+import threading
 import uuid
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -13,11 +15,13 @@ from .ports import JudgePort, RepositoryPort
 
 
 ID_PATTERN = re.compile(r"^[a-z]+_[0-9a-f]{12}$")
-STRUCTURAL_CHECKS = (
-    "frontmatterPreserved",
-    "skillSizeWithinLimit",
-    "noTodoPlaceholder",
-)
+_SKILL_LOCKS: dict[Path, threading.RLock] = {}
+_SKILL_LOCKS_GUARD = threading.Lock()
+
+
+def _skill_lock(path: Path) -> threading.RLock:
+    with _SKILL_LOCKS_GUARD:
+        return _SKILL_LOCKS.setdefault(path, threading.RLock())
 
 
 def _now() -> str:
@@ -132,6 +136,35 @@ class EvolutionService:
         if not self.skill_file.is_relative_to(self.skill_root):
             raise ValueError("Skill file must be inside the configured Skill root")
         self.judge = judge or DeterministicJudge()
+        self._promotion_lock = _skill_lock(self.skill_file)
+        self._recover_prepared_intents()
+
+    def _recover_prepared_intents(self) -> None:
+        intents = [
+            intent
+            for intent in self.repository.list("promotion_intents", limit=1000)
+            if intent["skill_name"] and intent["status"] == "prepared"
+        ]
+        with self._promotion_lock:
+            for intent in intents:
+                current = self.skill_file.read_text(encoding="utf-8")
+                current_hash = _hash(current)
+                after_hash = _hash(intent["after_content"])
+                if current_hash == after_hash:
+                    self._atomic_write(intent["before_content"])
+                    recovery_status = "recovered"
+                elif current_hash == intent["base_content_hash"]:
+                    recovery_status = "recovered"
+                else:
+                    recovery_status = "recovery_required"
+                self.repository.update(
+                    "promotion_intents", intent["id"], {"status": recovery_status}
+                )
+                self._audit(
+                    f"promotion_intent.{recovery_status}",
+                    "promotion_intent",
+                    intent["id"],
+                )
 
     def _audit(
         self,
@@ -275,28 +308,40 @@ class EvolutionService:
         staged = candidate["staged_content"] or ""
         baseline_checks = self.judge.evaluate(baseline, candidate["proposed_rule"])
         candidate_checks = self.judge.evaluate(staged, candidate["proposed_rule"])
+        check_names = sorted(set(baseline_checks) | set(candidate_checks))
         regressions = [
-            key for key in STRUCTURAL_CHECKS if baseline_checks[key] and not candidate_checks[key]
+            key
+            for key in check_names
+            if baseline_checks.get(key, False) and not candidate_checks.get(key, False)
         ]
-        improvements = []
-        if not baseline_checks["candidateRulePresent"] and candidate_checks["candidateRulePresent"]:
-            improvements.append("candidateRulePresent")
+        improvements = [
+            key
+            for key in check_names
+            if not baseline_checks.get(key, False) and candidate_checks.get(key, False)
+        ]
         passed = (
-            all(candidate_checks[key] for key in STRUCTURAL_CHECKS)
-            and candidate_checks["candidateRulePresent"]
+            all(candidate_checks.values())
+            and candidate_checks.get("candidateRulePresent", False)
             and not regressions
         )
         comparison = {"improvements": improvements, "regressions": regressions}
 
         replay_id = _id("replay")
+        replay_input = {"feedback": candidate["feedback"], "judge": self.judge.name}
+        provenance = getattr(self.judge, "provenance", None)
+        if callable(provenance):
+            replay_input["judgeProvenance"] = provenance()
         self.repository.insert(
             "replay_cases",
             {
                 "id": replay_id,
                 "candidate_id": candidate_id,
                 "source_episode_id": candidate["source_episode_id"],
-                "input_json": json.dumps({"feedback": candidate["feedback"]}, ensure_ascii=False),
-                "expected_json": json.dumps({"rulePresent": True}, ensure_ascii=False),
+                "input_json": json.dumps(replay_input, ensure_ascii=False),
+                "expected_json": json.dumps(
+                    {"rulePresent": True, "checks": sorted(candidate_checks)},
+                    ensure_ascii=False,
+                ),
                 "created_at": _now(),
             },
         )
@@ -387,38 +432,54 @@ class EvolutionService:
         parent_version_id: str | None,
         status: str,
     ) -> dict[str, Any]:
-        intent = {
-            "id": _id("intent"),
-            "candidate_id": candidate["id"],
-            "skill_name": skill_name,
-            "target_version": version_number,
-            "base_content_hash": _hash(before),
-            "before_content": before,
-            "after_content": after,
-            "status": "prepared",
-            "created_at": _now(),
-        }
-        self.repository.insert("promotion_intents", intent)
-        self._audit(
-            "promotion_intent.prepared",
-            "promotion_intent",
-            intent["id"],
-            {"targetVersion": version_number, "baseContentHash": intent["base_content_hash"]},
-        )
-        self._atomic_write(after)
-        record = {
-            "id": _id("version"),
-            "skill_name": skill_name,
-            "version": version_number,
-            "candidate_id": candidate["id"],
-            "parent_version_id": parent_version_id,
-            "before_content": before,
-            "after_content": after,
-            "content_hash": _hash(after),
-            "status": status,
-            "created_at": _now(),
-        }
-        self.repository.finalize_promotion(intent["id"], record)
+        with self._promotion_lock:
+            if self.skill_file.read_text(encoding="utf-8") != before:
+                raise ValueError("Skill changed before publication; promotion aborted")
+            intent = {
+                "id": _id("intent"),
+                "candidate_id": candidate["id"],
+                "skill_name": skill_name,
+                "target_version": version_number,
+                "base_content_hash": _hash(before),
+                "before_content": before,
+                "after_content": after,
+                "status": "prepared",
+                "created_at": _now(),
+            }
+            self.repository.insert("promotion_intents", intent)
+            self._audit(
+                "promotion_intent.prepared",
+                "promotion_intent",
+                intent["id"],
+                {
+                    "targetVersion": version_number,
+                    "baseContentHash": intent["base_content_hash"],
+                },
+            )
+            self._atomic_write(after)
+            record = {
+                "id": _id("version"),
+                "skill_name": skill_name,
+                "version": version_number,
+                "candidate_id": candidate["id"],
+                "parent_version_id": parent_version_id,
+                "before_content": before,
+                "after_content": after,
+                "content_hash": _hash(after),
+                "status": status,
+                "created_at": _now(),
+            }
+            try:
+                self.repository.finalize_promotion(intent["id"], record)
+            except Exception:
+                self._atomic_write(before)
+                try:
+                    self.repository.update(
+                        "promotion_intents", intent["id"], {"status": "failed"}
+                    )
+                except Exception:
+                    pass
+                raise
         self._audit(
             "promotion_intent.completed",
             "promotion_intent",
@@ -447,6 +508,20 @@ class EvolutionService:
         if not self.skill_file.is_relative_to(self.skill_root):
             raise ValueError("Skill write escaped the configured Skill root")
         self.skill_file.parent.mkdir(parents=True, exist_ok=True)
-        temporary = self.skill_file.with_suffix(".md.tmp")
-        temporary.write_text(content, encoding="utf-8")
-        os.replace(temporary, self.skill_file)
+        handle = tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            dir=self.skill_file.parent,
+            prefix=f".{self.skill_file.name}.",
+            suffix=".tmp",
+            delete=False,
+        )
+        temporary = Path(handle.name)
+        try:
+            with handle:
+                handle.write(content)
+                handle.flush()
+                os.fsync(handle.fileno())
+            os.replace(temporary, self.skill_file)
+        finally:
+            temporary.unlink(missing_ok=True)

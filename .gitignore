@@ -8,3 +8,8 @@ __pycache__/
 work/
 data/*.db
 data/*.db-*
+.idea/
+tmp/
+node_modules/
+dist/
+target/
