@@ -9,12 +9,11 @@ class LedgerAlertServiceTest {
 
     @Test
     void completing_the_last_missing_ledger_clears_the_alert() {
-        LedgerAlertService alerts = new LedgerAlertService(Set.of(LedgerCode.PURCHASE_ACCEPTANCE));
+        LedgerAlertService alerts = new LedgerAlertService();
 
-        assertThat(alerts.current().cleared()).isFalse();
-        alerts.complete(LedgerCode.PURCHASE_ACCEPTANCE);
+        assertThat(alerts.current(Set.of(LedgerCode.PURCHASE_ACCEPTANCE)).cleared()).isFalse();
 
-        assertThat(alerts.current().cleared()).isTrue();
-        assertThat(alerts.current().missingLedgerCodes()).isEmpty();
+        assertThat(alerts.current(Set.of()).cleared()).isTrue();
+        assertThat(alerts.current(Set.of()).missingLedgerCodes()).isEmpty();
     }
 }

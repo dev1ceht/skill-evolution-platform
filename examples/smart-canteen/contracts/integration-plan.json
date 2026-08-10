@@ -30,7 +30,7 @@
     "candidate replay and provenance audit"
   ],
   "assumptions": [
-    "The demo uses in-memory adapters and one seeded menu instead of production MySQL and Redis.",
+    "The demo persists one seeded menu, inventory, receipt idempotency and ledger state in MySQL; Redis and RabbitMQ are provisioned but not yet connected to business ports.",
     "Bright-kitchen devices, WeChat, SSO and external procurement platforms are represented as future ports.",
     "All quantities are normalized server-side to g, ml or count."
   ]

@@ -77,4 +77,16 @@ class SmartCanteenWorkflowHttpTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value(40000));
     }
+
+    @Test
+    void overlong_idempotency_key_is_rejected_at_the_public_boundary() throws Exception {
+        mvc.perform(post("/api/v1/inventory/receipts")
+                        .header("Idempotency-Key", "x".repeat(129))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"materialId":"FLOUR","quantity":1.0,"unit":"kg"}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(40000));
+    }
 }

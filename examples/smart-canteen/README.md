@@ -9,18 +9,36 @@
 ## 项目结构
 
 - `contracts/`：OpenAPI 3.0 契约、API IR、接口任务计划和自动生成的 TypeScript 客户端/契约测试。
-- `backend/`：Java 17 + Spring Boot 3，领域规则与 HTTP 适配分层，使用内存适配器便于演示。
+- `backend/`：Java 17 + Spring Boot 3，领域规则、事务边界与 JDBC 持久化适配分层，Flyway 管理数据库版本。
 - `frontend/`：Vue 3 + TypeScript + Vite + Axios，包含 loading、empty、error 和审批交互状态。
+- `infra/`：MySQL、Redis、RabbitMQ 各自的 Dockerfile，以及统一的 Compose 编排、健康检查与本地数据卷。
 - `replay/`：由真实生成缺陷形成的候选、离线判定和提升证据。
 
-生产设计中的 MySQL、Redis、消息队列、统一认证、明厨亮灶设备和外部采购平台没有伪造实现；它们应在后续作为端口接入。
+MySQL 已接入当前纵向业务切片；Redis 与 RabbitMQ 已提供可复现的本地中间件环境，但尚未伪造缓存或异步消费逻辑。统一认证、明厨亮灶设备和外部采购平台仍应在后续作为真实端口接入。
 
 ## 启动项目
 
-后端需要 Java 17 和 Maven：
+先启动中间件。需要 Docker Desktop 或兼容的 Docker Engine；每个中间件都由仓库内 Dockerfile 构建：
+
+```powershell
+cd examples/smart-canteen/infra
+Copy-Item .env.example .env
+# 修改 .env 中的 replace-with-* 密码后再启动
+docker compose up -d --build
+docker compose ps
+```
+
+也可以运行 `./verify-stack.ps1`，它会从三个 Dockerfile 构建镜像，并等待 MySQL、Redis、RabbitMQ 全部通过健康检查；任何服务未就绪都会以非零状态退出。
+
+端口只绑定在本机回环地址。MySQL 为 `127.0.0.1:3306`，Redis 为 `127.0.0.1:6379`，RabbitMQ AMQP/管理台为 `127.0.0.1:5672/15672`；均可在 `.env` 中调整。
+
+后端需要 Java 17 和 Maven。后端环境变量与 `infra/.env` 是两个显式边界；如果修改了 Compose 的端口、数据库名或用户，必须同步修改以下三项：
 
 ```powershell
 cd examples/smart-canteen/backend
+$env:SMART_CANTEEN_DB_URL='jdbc:mysql://localhost:3306/smart_canteen?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai'
+$env:SMART_CANTEEN_DB_USERNAME='smart_canteen'
+$env:SMART_CANTEEN_DB_PASSWORD='<与 infra/.env 中 MYSQL_PASSWORD 一致>'
 mvn spring-boot:run
 ```
 
@@ -33,6 +51,8 @@ npm run dev
 ```
 
 浏览器打开 `http://localhost:5173`，依次操作“提交审批”“审批通过”“生成采购计划”“模拟入库”“完成采购验收台账”。Vite 会把 `/api` 代理到 `http://localhost:8080`。
+
+停止中间件使用 `docker compose down`。数据默认保留在命名卷中；只有明确需要清空本地业务数据时才使用 `docker compose down -v`。
 
 ## 在真实项目中显式调用 Skill
 
@@ -80,6 +100,8 @@ mvn test
 cd ../frontend
 npm test
 npm run build
+cd ../infra
+docker compose --env-file .env.example config --quiet
 ```
 
 首个真实回放见 [`replay/path-parameter-feedback.json`](replay/path-parameter-feedback.json)，其修复前证据固化在 [`replay/baseline-generator-failure.json`](replay/baseline-generator-failure.json)：初版生成器不能解析参数 `$ref`，也不能正确处理 `{menuId}` 和 `Idempotency-Key`。修复必须同时通过生成器单测、自动契约测试、TypeScript 编译和候选离线判定，之后规则才写入 `SKILL.md`。

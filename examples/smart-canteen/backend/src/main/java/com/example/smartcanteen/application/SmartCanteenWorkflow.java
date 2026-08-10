@@ -1,50 +1,46 @@
 package com.example.smartcanteen.application;
 
+import com.example.smartcanteen.application.port.SmartCanteenStore;
+import com.example.smartcanteen.application.port.SmartCanteenStore.ReceiptCommand;
+import com.example.smartcanteen.application.port.SmartCanteenStore.StoredReceipt;
 import com.example.smartcanteen.domain.BaseQuantity;
-import com.example.smartcanteen.domain.IngredientRequirement;
 import com.example.smartcanteen.domain.LedgerAlert;
 import com.example.smartcanteen.domain.LedgerAlertService;
 import com.example.smartcanteen.domain.LedgerCode;
 import com.example.smartcanteen.domain.Menu;
+import com.example.smartcanteen.domain.MenuStatus;
 import com.example.smartcanteen.domain.ProcurementItem;
 import com.example.smartcanteen.domain.ProcurementService;
 import com.example.smartcanteen.domain.UnitConverter;
 import java.math.BigDecimal;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class SmartCanteenWorkflow {
 
-    private final Map<String, Menu> menus = new ConcurrentHashMap<>();
-    private final Map<String, BigDecimal> inventory = new ConcurrentHashMap<>();
-    private final Map<String, List<IngredientRequirement>> recipes = new HashMap<>();
-    private final Map<String, ReceiptResult> processedReceipts = new ConcurrentHashMap<>();
+    private final SmartCanteenStore store;
     private final UnitConverter unitConverter = new UnitConverter();
     private final ProcurementService procurementService = new ProcurementService(unitConverter);
-    private final LedgerAlertService ledgerAlerts =
-            new LedgerAlertService(Set.of(LedgerCode.PURCHASE_ACCEPTANCE));
+    private final LedgerAlertService ledgerAlerts = new LedgerAlertService();
 
-    public SmartCanteenWorkflow() {
-        menus.put("MENU-001", new Menu("MENU-001"));
-        recipes.put("MENU-001", List.of(
-                new IngredientRequirement("FLOUR", new BigDecimal("2"), "kg"),
-                new IngredientRequirement("EGG", new BigDecimal("12"), "count")));
-        inventory.put("FLOUR", new BigDecimal("500"));
-        inventory.put("EGG", new BigDecimal("20"));
+    public SmartCanteenWorkflow(SmartCanteenStore store) {
+        this.store = store;
     }
 
-    public synchronized Menu submitMenu(String menuId) {
+    @Transactional
+    public Menu submitMenu(String menuId) {
+        requireIdentifier("menuId", menuId, 64);
         Menu menu = requireMenu(menuId);
         menu.submit();
+        store.saveMenu(menu);
         return menu;
     }
 
-    public synchronized Menu decideMenu(String menuId, String decision, String comment) {
+    @Transactional
+    public Menu decideMenu(String menuId, String decision, String comment) {
+        requireIdentifier("menuId", menuId, 64);
         Menu menu = requireMenu(menuId);
         if ("APPROVE".equalsIgnoreCase(decision)) {
             menu.approve(comment);
@@ -53,51 +49,65 @@ public class SmartCanteenWorkflow {
         } else {
             throw new IllegalArgumentException("Unsupported approval decision: " + decision);
         }
+        store.saveMenu(menu);
         return menu;
     }
 
-    public synchronized List<ProcurementItem> generateProcurement(String menuId) {
+    @Transactional(readOnly = true)
+    public List<ProcurementItem> generateProcurement(String menuId) {
+        requireIdentifier("menuId", menuId, 64);
         Menu menu = requireMenu(menuId);
-        if (!"APPROVED".equals(menu.status().name())) {
+        if (menu.status() != MenuStatus.APPROVED) {
             throw new IllegalStateException("Only approved menus can generate procurement plans");
         }
         return procurementService.calculateShortages(
-                recipes.getOrDefault(menuId, List.of()), Map.copyOf(inventory));
+                store.findRecipe(menuId), store.inventorySnapshot());
     }
 
-    public synchronized ReceiptResult receive(
+    @Transactional
+    public ReceiptResult receive(
             String idempotencyKey,
             String materialId,
             BigDecimal quantity,
             String unit) {
-        if (idempotencyKey == null || idempotencyKey.isBlank()) {
-            throw new IllegalArgumentException("Idempotency-Key is required");
-        }
-        ReceiptResult previous = processedReceipts.get(idempotencyKey);
-        if (previous != null) {
-            return previous;
-        }
+        requireIdentifier("Idempotency-Key", idempotencyKey, 128);
+        requireIdentifier("materialId", materialId, 64);
+        requireIdentifier("unit", unit, 16);
         BaseQuantity received = unitConverter.convert(quantity, unit);
-        BigDecimal updated = inventory.merge(materialId, received.quantity(), BigDecimal::add);
-        ReceiptResult result = new ReceiptResult(materialId, updated, received.unit());
-        processedReceipts.put(idempotencyKey, result);
-        return result;
+        StoredReceipt stored = store.receiveOnce(new ReceiptCommand(
+                idempotencyKey,
+                materialId,
+                quantity,
+                unit,
+                received.quantity(),
+                received.unit()));
+        return new ReceiptResult(
+                stored.materialId(), stored.quantityBase(), stored.baseUnit());
     }
 
+    @Transactional
     public LedgerAlert completeLedger(String ledgerCode) {
-        return ledgerAlerts.complete(LedgerCode.from(ledgerCode));
+        store.completeLedger(LedgerCode.from(ledgerCode));
+        return ledgerAlerts.current(store.missingLedgers());
     }
 
+    @Transactional(readOnly = true)
     public LedgerAlert currentLedgerAlert() {
-        return ledgerAlerts.current();
+        return ledgerAlerts.current(store.missingLedgers());
     }
 
     private Menu requireMenu(String menuId) {
-        Menu menu = menus.get(menuId);
-        if (menu == null) {
-            throw new IllegalArgumentException("Unknown menu: " + menuId);
+        return store.findMenu(menuId)
+                .orElseThrow(() -> new IllegalArgumentException("Unknown menu: " + menuId));
+    }
+
+    private static void requireIdentifier(String label, String value, int maxLength) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(label + " is required");
         }
-        return menu;
+        if (value.length() > maxLength) {
+            throw new IllegalArgumentException(label + " exceeds " + maxLength + " characters");
+        }
     }
 
     public record ReceiptResult(String materialId, BigDecimal quantityBase, String baseUnit) {
