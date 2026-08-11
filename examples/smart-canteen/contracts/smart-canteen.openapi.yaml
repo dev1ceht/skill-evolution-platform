@@ -87,6 +87,81 @@ paths:
                 $ref: '#/components/schemas/ReceiptResponse'
         '400':
           $ref: '#/components/responses/BusinessError'
+  /api/v1/ledger-cycles:
+    post:
+      operationId: startLedgerCycle
+      tags: [ledger]
+      description: 同一学校、食堂和周期编号重复提交相同周期定义会返回已有状态；要求集合或日期不同会返回业务错误。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LedgerCycleRequest'
+      responses:
+        '200':
+          description: 台账周期和当前预警状态
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LedgerAlertResponse'
+        '400':
+          $ref: '#/components/responses/BusinessError'
+  /api/v1/ledger-cycles/{cycleId}/records:
+    post:
+      operationId: completeScopedLedgerRecord
+      tags: [ledger]
+      description: 按学校、食堂、周期和台账编码幂等完成；重复完成已完成台账不会产生额外业务副作用。
+      parameters:
+        - name: cycleId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScopedLedgerRecord'
+      responses:
+        '200':
+          description: 完成台账后的当前预警状态
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LedgerAlertResponse'
+        '400':
+          $ref: '#/components/responses/BusinessError'
+  /api/v1/ledger-cycles/{cycleId}/alerts/current:
+    get:
+      operationId: getScopedLedgerAlert
+      tags: [ledger]
+      parameters:
+        - name: cycleId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: schoolId
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: canteenId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 指定学校食堂周期的当前预警状态
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LedgerAlertResponse'
+        '400':
+          $ref: '#/components/responses/BusinessError'
   /api/v1/ledger-records:
     post:
       operationId: completeLedgerRecord
@@ -212,11 +287,53 @@ components:
       properties:
         ledgerCode:
           type: string
-          enum: [PURCHASE_ACCEPTANCE]
+          enum: [PERSONNEL_MORNING_CHECK, FACILITY_DISINFECTION, FOOD_PROCESSING, SAMPLE_RETENTION, ACCOMPANYING_MEAL_EVALUATION, PURCHASE_ACCEPTANCE]
+    LedgerCycleRequest:
+      type: object
+      required: [schoolId, canteenId, cycleId, ledgerCodes]
+      properties:
+        schoolId:
+          type: string
+        canteenId:
+          type: string
+        cycleId:
+          type: string
+        ledgerCodes:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            enum: [PERSONNEL_MORNING_CHECK, FACILITY_DISINFECTION, FOOD_PROCESSING, SAMPLE_RETENTION, ACCOMPANYING_MEAL_EVALUATION, PURCHASE_ACCEPTANCE]
+        periodStart:
+          type: string
+          format: date
+        periodEnd:
+          type: string
+          format: date
+    ScopedLedgerRecord:
+      type: object
+      required: [schoolId, canteenId, ledgerCode]
+      properties:
+        schoolId:
+          type: string
+        canteenId:
+          type: string
+        ledgerCode:
+          type: string
+          enum: [PERSONNEL_MORNING_CHECK, FACILITY_DISINFECTION, FOOD_PROCESSING, SAMPLE_RETENTION, ACCOMPANYING_MEAL_EVALUATION, PURCHASE_ACCEPTANCE]
     LedgerAlert:
       type: object
-      required: [cleared, missingLedgerCodes]
+      required: [schoolId, canteenId, cycleId, status, cleared, missingLedgerCodes]
       properties:
+        schoolId:
+          type: string
+        canteenId:
+          type: string
+        cycleId:
+          type: string
+        status:
+          type: string
+          enum: [OPEN, CLEARED]
         cleared:
           type: boolean
         missingLedgerCodes:

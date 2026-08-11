@@ -1,0 +1,50 @@
+{
+  "phase": "phase-1-ledger-backend",
+  "objective": "将全局台账完成标记改造成按学校、食堂、周期隔离且可恢复的后端模块",
+  "scope": {
+    "included": [
+      "requirements catalog and backend Skill",
+      "scoped ledger cycle domain and application port",
+      "Flyway V2 migration for school/canteen/cycle/requirement/alert tables",
+      "REST v1 cycle start, record completion and current alert query",
+      "idempotent completion and conflict detection",
+      "OpenAPI and generated TypeScript contract",
+      "domain, HTTP, H2 restart and MySQL concurrency tests"
+    ],
+    "deferred": [
+      "RBAC and unified authentication",
+      "Redis cache invalidation",
+      "RabbitMQ event publication",
+      "device, district platform and procurement third-party adapters",
+      "full menu/recipe/procurement/statistics module expansion"
+    ]
+  },
+  "module": {
+    "public_port": "com.example.smartcanteen.application.port.LedgerMonitoring",
+    "persistence_port": "com.example.smartcanteen.application.port.LedgerStore",
+    "adapter": "com.example.smartcanteen.infrastructure.JdbcLedgerStore",
+    "transaction_boundary": "LedgerMonitoringService write operations",
+    "scope_key": ["schoolId", "canteenId", "cycleId"],
+    "database_identity": "复合主键 (school_id, canteen_id, cycle_id)，允许不同学校/食堂复用相同周期编号",
+    "master_data_bootstrap": "本阶段适配器为测试/切片自动补齐学校和食堂；正式系统由基础资料模块提供目录端口"
+  },
+  "state_machine": {
+    "cycle": ["OPEN", "CLEARED"],
+    "completion": "PENDING -> COMPLETED; repeated COMPLETED completion is a no-op",
+    "alert": "OPEN while missingLedgerCodes is non-empty, otherwise CLEARED"
+  },
+  "database_migration": {
+    "file": "examples/smart-canteen/backend/src/main/resources/db/migration/V2__add_scoped_ledger_cycles.sql",
+    "from": "V1",
+    "to": "V2",
+    "supports": ["H2 MySQL mode", "MySQL 8"]
+  },
+  "verification": [
+    "LedgerAlertServiceTest",
+    "LedgerCycleHttpTest",
+    "SmartCanteenWorkflowHttpTest",
+    "LedgerCyclePersistenceRestartTest",
+    "SmartCanteenPersistenceRestartTest",
+    "SmartCanteenMySqlIntegrationTest"
+  ]
+}

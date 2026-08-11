@@ -72,7 +72,7 @@ def test_smart_canteen_feedback_is_replayed_before_skill_promotion(tmp_path: Pat
         "72d57ad5f2e84baebbd87fdef5be96ff9e93d81d"
     )
     assert provenance["contractHash"] == (
-        "5eb59f4ae74171f6c55785b56928146135932ffd5cc61f5c01a2d8f987a16cb3"
+        "e12bcf88be7dac5a8183c3338a480a9618997e4df652c6a2f40a1557fa8fd02a"
     )
     assert set(provenance["candidateEvidence"]) == {
         "generatorSourceHash",

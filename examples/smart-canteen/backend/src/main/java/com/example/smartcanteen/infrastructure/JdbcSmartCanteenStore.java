@@ -3,7 +3,6 @@ package com.example.smartcanteen.infrastructure;
 import com.example.smartcanteen.application.port.SmartCanteenStore;
 import com.example.smartcanteen.application.port.SmartCanteenStore.ReceiptCommand;
 import com.example.smartcanteen.domain.IngredientRequirement;
-import com.example.smartcanteen.domain.LedgerCode;
 import com.example.smartcanteen.domain.Menu;
 import com.example.smartcanteen.domain.MenuStatus;
 import java.math.BigDecimal;
@@ -11,8 +10,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -217,23 +214,4 @@ public class JdbcSmartCanteenStore implements SmartCanteenStore {
         }
     }
 
-    @Override
-    public Set<LedgerCode> missingLedgers() {
-        return jdbc.queryForList(
-                        "SELECT ledger_code FROM ledger_requirements WHERE completed = FALSE",
-                        String.class)
-                .stream()
-                .map(LedgerCode::from)
-                .collect(Collectors.toUnmodifiableSet());
-    }
-
-    @Override
-    public void completeLedger(LedgerCode ledgerCode) {
-        int changed = jdbc.update(
-                "UPDATE ledger_requirements SET completed = TRUE WHERE ledger_code = ?",
-                ledgerCode.name());
-        if (changed != 1) {
-            throw new IllegalArgumentException("Unknown ledger requirement: " + ledgerCode);
-        }
-    }
 }

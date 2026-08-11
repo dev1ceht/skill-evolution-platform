@@ -1,7 +1,7 @@
 {
   "title": "Smart Canteen Workflow API",
   "version": "1.0.0",
-  "documentHash": "5eb59f4ae74171f6c55785b56928146135932ffd5cc61f5c01a2d8f987a16cb3",
+  "documentHash": "e12bcf88be7dac5a8183c3338a480a9618997e4df652c6a2f40a1557fa8fd02a",
   "schemas": {
     "Menu": {
       "type": "object",
@@ -160,6 +160,81 @@
         "ledgerCode": {
           "type": "string",
           "enum": [
+            "PERSONNEL_MORNING_CHECK",
+            "FACILITY_DISINFECTION",
+            "FOOD_PROCESSING",
+            "SAMPLE_RETENTION",
+            "ACCOMPANYING_MEAL_EVALUATION",
+            "PURCHASE_ACCEPTANCE"
+          ]
+        }
+      }
+    },
+    "LedgerCycleRequest": {
+      "type": "object",
+      "required": [
+        "schoolId",
+        "canteenId",
+        "cycleId",
+        "ledgerCodes"
+      ],
+      "properties": {
+        "schoolId": {
+          "type": "string"
+        },
+        "canteenId": {
+          "type": "string"
+        },
+        "cycleId": {
+          "type": "string"
+        },
+        "ledgerCodes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "enum": [
+              "PERSONNEL_MORNING_CHECK",
+              "FACILITY_DISINFECTION",
+              "FOOD_PROCESSING",
+              "SAMPLE_RETENTION",
+              "ACCOMPANYING_MEAL_EVALUATION",
+              "PURCHASE_ACCEPTANCE"
+            ]
+          }
+        },
+        "periodStart": {
+          "type": "string",
+          "format": "date"
+        },
+        "periodEnd": {
+          "type": "string",
+          "format": "date"
+        }
+      }
+    },
+    "ScopedLedgerRecord": {
+      "type": "object",
+      "required": [
+        "schoolId",
+        "canteenId",
+        "ledgerCode"
+      ],
+      "properties": {
+        "schoolId": {
+          "type": "string"
+        },
+        "canteenId": {
+          "type": "string"
+        },
+        "ledgerCode": {
+          "type": "string",
+          "enum": [
+            "PERSONNEL_MORNING_CHECK",
+            "FACILITY_DISINFECTION",
+            "FOOD_PROCESSING",
+            "SAMPLE_RETENTION",
+            "ACCOMPANYING_MEAL_EVALUATION",
             "PURCHASE_ACCEPTANCE"
           ]
         }
@@ -168,10 +243,30 @@
     "LedgerAlert": {
       "type": "object",
       "required": [
+        "schoolId",
+        "canteenId",
+        "cycleId",
+        "status",
         "cleared",
         "missingLedgerCodes"
       ],
       "properties": {
+        "schoolId": {
+          "type": "string"
+        },
+        "canteenId": {
+          "type": "string"
+        },
+        "cycleId": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "OPEN",
+            "CLEARED"
+          ]
+        },
         "cleared": {
           "type": "boolean"
         },
@@ -323,7 +418,7 @@
         }
       },
       "provenance": {
-        "documentHash": "5eb59f4ae74171f6c55785b56928146135932ffd5cc61f5c01a2d8f987a16cb3",
+        "documentHash": "e12bcf88be7dac5a8183c3338a480a9618997e4df652c6a2f40a1557fa8fd02a",
         "pointer": "/paths/~1api~1v1~1inventory~1receipts/post"
       }
     },
@@ -349,8 +444,147 @@
         }
       },
       "provenance": {
-        "documentHash": "5eb59f4ae74171f6c55785b56928146135932ffd5cc61f5c01a2d8f987a16cb3",
+        "documentHash": "e12bcf88be7dac5a8183c3338a480a9618997e4df652c6a2f40a1557fa8fd02a",
         "pointer": "/paths/~1api~1v1~1ledger-alerts~1current/get"
+      }
+    },
+    {
+      "operationId": "startLedgerCycle",
+      "method": "POST",
+      "path": "/api/v1/ledger-cycles",
+      "tags": [
+        "ledger"
+      ],
+      "parameters": [],
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/LedgerCycleRequest"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "台账周期和当前预警状态",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LedgerAlertResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "$ref": "#/components/responses/BusinessError"
+        }
+      },
+      "provenance": {
+        "documentHash": "e12bcf88be7dac5a8183c3338a480a9618997e4df652c6a2f40a1557fa8fd02a",
+        "pointer": "/paths/~1api~1v1~1ledger-cycles/post"
+      }
+    },
+    {
+      "operationId": "getScopedLedgerAlert",
+      "method": "GET",
+      "path": "/api/v1/ledger-cycles/{cycleId}/alerts/current",
+      "tags": [
+        "ledger"
+      ],
+      "parameters": [
+        {
+          "name": "cycleId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "schoolId",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "canteenId",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "requestBody": null,
+      "responses": {
+        "200": {
+          "description": "指定学校食堂周期的当前预警状态",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LedgerAlertResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "$ref": "#/components/responses/BusinessError"
+        }
+      },
+      "provenance": {
+        "documentHash": "e12bcf88be7dac5a8183c3338a480a9618997e4df652c6a2f40a1557fa8fd02a",
+        "pointer": "/paths/~1api~1v1~1ledger-cycles~1{cycleId}~1alerts~1current/get"
+      }
+    },
+    {
+      "operationId": "completeScopedLedgerRecord",
+      "method": "POST",
+      "path": "/api/v1/ledger-cycles/{cycleId}/records",
+      "tags": [
+        "ledger"
+      ],
+      "parameters": [
+        {
+          "name": "cycleId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ScopedLedgerRecord"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "完成台账后的当前预警状态",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LedgerAlertResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "$ref": "#/components/responses/BusinessError"
+        }
+      },
+      "provenance": {
+        "documentHash": "e12bcf88be7dac5a8183c3338a480a9618997e4df652c6a2f40a1557fa8fd02a",
+        "pointer": "/paths/~1api~1v1~1ledger-cycles~1{cycleId}~1records/post"
       }
     },
     {
@@ -387,7 +621,7 @@
         }
       },
       "provenance": {
-        "documentHash": "5eb59f4ae74171f6c55785b56928146135932ffd5cc61f5c01a2d8f987a16cb3",
+        "documentHash": "e12bcf88be7dac5a8183c3338a480a9618997e4df652c6a2f40a1557fa8fd02a",
         "pointer": "/paths/~1api~1v1~1ledger-records/post"
       }
     },
@@ -434,7 +668,7 @@
         }
       },
       "provenance": {
-        "documentHash": "5eb59f4ae74171f6c55785b56928146135932ffd5cc61f5c01a2d8f987a16cb3",
+        "documentHash": "e12bcf88be7dac5a8183c3338a480a9618997e4df652c6a2f40a1557fa8fd02a",
         "pointer": "/paths/~1api~1v1~1menu-approvals~1{menuId}~1decision/post"
       }
     },
@@ -472,7 +706,7 @@
         }
       },
       "provenance": {
-        "documentHash": "5eb59f4ae74171f6c55785b56928146135932ffd5cc61f5c01a2d8f987a16cb3",
+        "documentHash": "e12bcf88be7dac5a8183c3338a480a9618997e4df652c6a2f40a1557fa8fd02a",
         "pointer": "/paths/~1api~1v1~1menus~1{menuId}~1submit/post"
       }
     },
@@ -510,7 +744,7 @@
         }
       },
       "provenance": {
-        "documentHash": "5eb59f4ae74171f6c55785b56928146135932ffd5cc61f5c01a2d8f987a16cb3",
+        "documentHash": "e12bcf88be7dac5a8183c3338a480a9618997e4df652c6a2f40a1557fa8fd02a",
         "pointer": "/paths/~1api~1v1~1procurement-plans~1generate/post"
       }
     }

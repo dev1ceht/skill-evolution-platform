@@ -43,7 +43,26 @@ export type LedgerRecord = {
   ledgerCode: string;
 };
 
+export type LedgerCycleRequest = {
+  schoolId: string;
+  canteenId: string;
+  cycleId: string;
+  ledgerCodes: Array<string>;
+  periodStart?: string;
+  periodEnd?: string;
+};
+
+export type ScopedLedgerRecord = {
+  schoolId: string;
+  canteenId: string;
+  ledgerCode: string;
+};
+
 export type LedgerAlert = {
+  schoolId: string;
+  canteenId: string;
+  cycleId: string;
+  status: string;
   cleared: boolean;
   missingLedgerCodes: Array<string>;
 };
@@ -93,6 +112,40 @@ export async function getCurrentLedgerAlert(): Promise<LedgerAlertResponse> {
   const path = "/api/v1/ledger-alerts/current";
   const url = new URL(path, window.location.origin);
   const response = await fetch(url, { method: 'GET' });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<LedgerAlertResponse>;
+}
+
+export async function startLedgerCycle(body: LedgerCycleRequest): Promise<LedgerAlertResponse> {
+  const path = "/api/v1/ledger-cycles";
+  const url = new URL(path, window.location.origin);
+  const headers: Record<string, string> = {};
+  headers["Content-Type"] = "application/json";
+  const response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body) });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<LedgerAlertResponse>;
+}
+
+export async function getScopedLedgerAlert(cycleId: string, schoolId: string, canteenId: string): Promise<LedgerAlertResponse> {
+  const encodedCycleId = encodeURIComponent(String(cycleId));
+  let path = "/api/v1/ledger-cycles/{cycleId}/alerts/current";
+  path = path.replace("{cycleId}", encodedCycleId);
+  const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
+  const response = await fetch(url, { method: 'GET' });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<LedgerAlertResponse>;
+}
+
+export async function completeScopedLedgerRecord(cycleId: string, body: ScopedLedgerRecord): Promise<LedgerAlertResponse> {
+  const encodedCycleId = encodeURIComponent(String(cycleId));
+  let path = "/api/v1/ledger-cycles/{cycleId}/records";
+  path = path.replace("{cycleId}", encodedCycleId);
+  const url = new URL(path, window.location.origin);
+  const headers: Record<string, string> = {};
+  headers["Content-Type"] = "application/json";
+  const response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body) });
   if (!response.ok) throw new Error(`API request failed: ${response.status}`);
   return response.json() as Promise<LedgerAlertResponse>;
 }

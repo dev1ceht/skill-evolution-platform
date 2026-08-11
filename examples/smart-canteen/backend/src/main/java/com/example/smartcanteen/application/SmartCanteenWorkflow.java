@@ -1,12 +1,15 @@
 package com.example.smartcanteen.application;
 
+import com.example.smartcanteen.application.port.LedgerMonitoring;
 import com.example.smartcanteen.application.port.SmartCanteenStore;
 import com.example.smartcanteen.application.port.SmartCanteenStore.ReceiptCommand;
 import com.example.smartcanteen.application.port.SmartCanteenStore.StoredReceipt;
 import com.example.smartcanteen.domain.BaseQuantity;
 import com.example.smartcanteen.domain.LedgerAlert;
-import com.example.smartcanteen.domain.LedgerAlertService;
 import com.example.smartcanteen.domain.LedgerCode;
+import com.example.smartcanteen.domain.LedgerCycleRequest;
+import com.example.smartcanteen.domain.LedgerRecordCommand;
+import com.example.smartcanteen.domain.LedgerScope;
 import com.example.smartcanteen.domain.Menu;
 import com.example.smartcanteen.domain.MenuStatus;
 import com.example.smartcanteen.domain.ProcurementItem;
@@ -24,10 +27,15 @@ public class SmartCanteenWorkflow {
     private final SmartCanteenStore store;
     private final UnitConverter unitConverter = new UnitConverter();
     private final ProcurementService procurementService = new ProcurementService(unitConverter);
-    private final LedgerAlertService ledgerAlerts = new LedgerAlertService();
+    // Compatibility scope for the original unscoped endpoints. V2 seeds it
+    // from the V1 ledger requirements; new callers must provide an explicit scope.
+    private static final LedgerScope DEFAULT_LEDGER_SCOPE =
+            new LedgerScope("SCHOOL-001", "CANTEEN-001", "CYCLE-001");
+    private final LedgerMonitoring ledgerMonitoring;
 
-    public SmartCanteenWorkflow(SmartCanteenStore store) {
+    public SmartCanteenWorkflow(SmartCanteenStore store, LedgerMonitoring ledgerMonitoring) {
         this.store = store;
+        this.ledgerMonitoring = ledgerMonitoring;
     }
 
     @Transactional
@@ -88,13 +96,29 @@ public class SmartCanteenWorkflow {
 
     @Transactional
     public LedgerAlert completeLedger(String ledgerCode) {
-        store.completeLedger(LedgerCode.from(ledgerCode));
-        return ledgerAlerts.current(store.missingLedgers());
+        return completeLedger(new LedgerRecordCommand(
+                DEFAULT_LEDGER_SCOPE,
+                LedgerCode.from(ledgerCode)));
+    }
+
+    @Transactional
+    public LedgerAlert completeLedger(LedgerRecordCommand command) {
+        return ledgerMonitoring.completeLedger(command);
     }
 
     @Transactional(readOnly = true)
     public LedgerAlert currentLedgerAlert() {
-        return ledgerAlerts.current(store.missingLedgers());
+        return currentLedgerAlert(DEFAULT_LEDGER_SCOPE);
+    }
+
+    @Transactional(readOnly = true)
+    public LedgerAlert currentLedgerAlert(LedgerScope scope) {
+        return ledgerMonitoring.current(scope);
+    }
+
+    @Transactional
+    public LedgerAlert startLedgerCycle(LedgerCycleRequest request) {
+        return ledgerMonitoring.startCycle(request);
     }
 
     private Menu requireMenu(String menuId) {

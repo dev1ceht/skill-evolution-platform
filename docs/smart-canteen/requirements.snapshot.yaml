@@ -1,0 +1,33 @@
+schema_version: "1.0"
+snapshot_id: "phase-1-ledger-backend-2026-08-11"
+captured_at: "2026-08-11T21:55:00+08:00"
+source_documents:
+  - id: overview-design
+    path: "智慧食堂项目概要设计文档.pdf"
+    sha256: "200A5F09EAB0D1D4ADBA11396E3925E41DADF54E9A9ECA84BA01FBA522F12473"
+  - id: phase2-design
+    path: "智慧食堂二期-系统设计.pdf"
+    sha256: "6209C740D106924F4FB17B546407E82CFB753075EDB51636CA61726161692376"
+requirements:
+  - id: ARCH-001
+    status: approved
+    selected_for_phase: true
+    phase_result: partial-ledger-module-only
+  - id: API-001
+    status: approved
+    selected_for_phase: true
+  - id: LEDGER-001
+    status: approved
+    selected_for_phase: true
+  - id: LEDGER-002
+    status: approved
+    selected_for_phase: true
+  - id: LEDGER-003
+    status: approved
+    selected_for_phase: true
+  - id: DATA-001
+    status: approved
+    selected_for_phase: true
+  - id: TEST-001
+    status: approved
+    selected_for_phase: true

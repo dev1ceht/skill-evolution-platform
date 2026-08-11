@@ -1,0 +1,94 @@
+schema_version: "1.0"
+project: smart-canteen-backend
+source_documents:
+  - id: overview-design
+    path: "智慧食堂项目概要设计文档.pdf"
+    scope: "一期总体架构、领域模块、接口规范、数据库、安全与运维"
+  - id: phase2-design
+    path: "智慧食堂二期-系统设计.pdf"
+    scope: "第三方接入、预警、单位、设备、采购、食谱与评价扩展"
+
+requirements:
+  - id: ARCH-001
+    category: architecture
+    source:
+      document: overview-design
+      section: "2.3 逻辑架构"
+    statement: "以模块化单体承载共享服务层、核心业务层和基础支撑层，模块之间通过明确的业务接口交互。"
+    acceptance:
+      - "菜单、采购、库存、台账和预警逻辑可以独立测试。"
+      - "外部系统接入不直接进入领域对象。"
+    phase_note: "第一阶段先完成台账/预警模块的独立边界；菜单、采购和库存仍属于下一阶段拆分范围。"
+    status: approved
+
+  - id: API-001
+    category: api
+    source:
+      document: overview-design
+      section: "5.1 接口设计原则"
+    statement: "后端接口使用版本化 REST 路径、统一响应封装、统一错误处理、参数校验和幂等语义。"
+    acceptance:
+      - "业务接口位于 /api/v1 下。"
+      - "成功和失败响应都包含 code、message 和 data 约定。"
+      - "需要幂等的写操作显式声明幂等键或业务幂等规则。"
+    status: approved
+
+  - id: LEDGER-001
+    category: ledger
+    source:
+      document: phase2-design
+      section: "3.2.18 台账预警"
+    statement: "每个学校食堂在一个台账周期内拥有一组待完成台账要求和一条当前预警记录。"
+    acceptance:
+      - "台账周期按 school_id、canteen_id 和 cycle_id 隔离。"
+      - "预警记录可以展示当前周期所有未完成台账。"
+      - "不同学校或食堂的数据不能互相影响。"
+    status: approved
+
+  - id: LEDGER-002
+    category: ledger
+    source:
+      document: phase2-design
+      section: "3.2.18.2 主要业务流程"
+    statement: "完成一项台账后，从当前周期预警记录中移除该项；全部完成后清除当前预警。"
+    acceptance:
+      - "完成非最后一项后预警仍为 OPEN，并只保留剩余缺项。"
+      - "完成最后一项后预警状态为 CLEARED，缺项为空。"
+      - "查询当前预警得到与最后一次完成操作一致的结果。"
+    status: approved
+
+  - id: LEDGER-003
+    category: ledger
+    source:
+      document: phase2-design
+      section: "3.2.18.1 功能描述"
+    statement: "台账完成操作必须可重试，重复提交不能重复产生业务副作用。"
+    acceptance:
+      - "同一周期重复完成已完成台账返回相同状态。"
+      - "未知台账编码被拒绝。"
+      - "数据库事务中断不会留下半完成的预警状态。"
+    status: approved
+
+  - id: DATA-001
+    category: persistence
+    source:
+      document: overview-design
+      section: "4.1 数据库选型"
+    statement: "核心业务数据使用 MySQL 持久化，数据库结构通过 Flyway 版本迁移管理。"
+    acceptance:
+      - "空库可以从头执行全部迁移。"
+      - "应用重启后周期、完成记录和预警状态保持不变。"
+      - "迁移脚本兼容 MySQL 与项目测试使用的 H2 MySQL 模式。"
+    status: approved
+
+  - id: TEST-001
+    category: verification
+    source:
+      document: overview-design
+      section: "6.7 部署验证"
+    statement: "后端改动必须通过领域、HTTP、持久化重启和并发验证，并保留可追溯证据。"
+    acceptance:
+      - "台账周期公开接口有 HTTP 回归测试。"
+      - "H2 文件库重启测试验证状态恢复。"
+      - "MySQL 验收测试覆盖重复提交和并发完成。"
+    status: approved

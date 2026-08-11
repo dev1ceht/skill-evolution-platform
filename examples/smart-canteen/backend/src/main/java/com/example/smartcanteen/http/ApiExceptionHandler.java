@@ -1,6 +1,7 @@
 package com.example.smartcanteen.http;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -23,5 +24,13 @@ public class ApiExceptionHandler {
                 .map(error -> error.getField() + " " + error.getDefaultMessage())
                 .orElse("Invalid request");
         return ApiResponse.error(message);
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ApiResponse<Void> handleMissingRequestParameter(
+            MissingServletRequestParameterException exception) {
+        return ApiResponse.error(
+                exception.getParameterName() + " " + exception.getMessage());
     }
 }

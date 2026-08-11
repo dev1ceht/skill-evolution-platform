@@ -5,8 +5,14 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.example.smartcanteen.SmartCanteenApplication;
 import com.example.smartcanteen.application.SmartCanteenWorkflow.ReceiptResult;
+import com.example.smartcanteen.domain.LedgerAlert;
+import com.example.smartcanteen.domain.LedgerCode;
+import com.example.smartcanteen.domain.LedgerCycleRequest;
+import com.example.smartcanteen.domain.LedgerRecordCommand;
+import com.example.smartcanteen.domain.LedgerScope;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutorService;
@@ -62,6 +68,26 @@ class SmartCanteenMySqlIntegrationTest {
                             "kg")
                     .quantityBase())
                     .isEqualByComparingTo("2500");
+
+            LedgerScope ledgerScope = new LedgerScope(
+                    "SCHOOL-001", "CANTEEN-001", "CYCLE-MYSQL-PHASE1");
+            LedgerCycleRequest ledgerCycle = new LedgerCycleRequest(
+                    ledgerScope,
+                    Set.of(LedgerCode.PURCHASE_ACCEPTANCE, LedgerCode.SAMPLE_RETENTION));
+            List<LedgerAlert> sameCycleStarts = runConcurrently(
+                    () -> workflow.startLedgerCycle(ledgerCycle),
+                    () -> workflow.startLedgerCycle(ledgerCycle));
+            assertThat(sameCycleStarts).allSatisfy(alert -> assertThat(alert.cleared()).isFalse());
+            List<LedgerAlert> sameLedgerResults = runConcurrently(
+                    () -> workflow.completeLedger(new LedgerRecordCommand(
+                            ledgerScope, LedgerCode.PURCHASE_ACCEPTANCE)),
+                    () -> workflow.completeLedger(new LedgerRecordCommand(
+                            ledgerScope, LedgerCode.PURCHASE_ACCEPTANCE)));
+            assertThat(sameLedgerResults)
+                    .allSatisfy(alert -> assertThat(alert.missingLedgerCodes())
+                            .containsExactly("SAMPLE_RETENTION"));
+            assertThat(workflow.completeLedger(new LedgerRecordCommand(
+                    ledgerScope, LedgerCode.SAMPLE_RETENTION)).cleared()).isTrue();
             workflow.completeLedger("PURCHASE_ACCEPTANCE");
         }
 
@@ -70,6 +96,8 @@ class SmartCanteenMySqlIntegrationTest {
 
             assertThat(workflow.generateProcurement("MENU-001")).isEmpty();
             assertThat(workflow.currentLedgerAlert().cleared()).isTrue();
+            assertThat(workflow.currentLedgerAlert(new LedgerScope(
+                    "SCHOOL-001", "CANTEEN-001", "CYCLE-MYSQL-PHASE1")).cleared()).isTrue();
             assertThat(workflow.receive(
                             "mysql-concurrent-same-key",
                             "FLOUR",
@@ -98,8 +126,8 @@ class SmartCanteenMySqlIntegrationTest {
         }
     }
 
-    private List<ReceiptResult> runConcurrently(
-            Callable<ReceiptResult> first, Callable<ReceiptResult> second) throws Exception {
+    private <T> List<T> runConcurrently(
+            Callable<T> first, Callable<T> second) throws Exception {
         AtomicInteger workerNumber = new AtomicInteger();
         ExecutorService executor = Executors.newFixedThreadPool(2, operation -> {
             Thread worker = new Thread(
@@ -108,8 +136,8 @@ class SmartCanteenMySqlIntegrationTest {
             return worker;
         });
         CyclicBarrier startTogether = new CyclicBarrier(2);
-        Future<ReceiptResult> firstResult = null;
-        Future<ReceiptResult> secondResult = null;
+        Future<T> firstResult = null;
+        Future<T> secondResult = null;
         try {
             firstResult = executor.submit(afterBarrier(startTogether, first));
             secondResult = executor.submit(afterBarrier(startTogether, second));
@@ -130,8 +158,8 @@ class SmartCanteenMySqlIntegrationTest {
         }
     }
 
-    private Callable<ReceiptResult> afterBarrier(
-            CyclicBarrier barrier, Callable<ReceiptResult> operation) {
+    private <T> Callable<T> afterBarrier(
+            CyclicBarrier barrier, Callable<T> operation) {
         return () -> {
             barrier.await(10, TimeUnit.SECONDS);
             return operation.call();

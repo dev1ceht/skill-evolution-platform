@@ -16,6 +16,21 @@
 
 MySQL 已接入当前纵向业务切片；Redis 与 RabbitMQ 已提供可复现的本地中间件环境，但尚未伪造缓存或异步消费逻辑。统一认证、明厨亮灶设备和外部采购平台仍应在后续作为真实端口接入。
 
+## 第一阶段：后端台账模块
+
+第一阶段已经把原来的“全局台账完成标记”改成可持久化的后端模块，核心数据按
+`schoolId + canteenId + cycleId` 隔离。后端现在提供三类周期接口：
+
+```text
+POST /api/v1/ledger-cycles
+POST /api/v1/ledger-cycles/{cycleId}/records
+GET  /api/v1/ledger-cycles/{cycleId}/alerts/current
+```
+
+输入周期和待完成的 `ledgerCodes` 后，系统返回当前缺项；重复完成同一项是幂等的，完成最后一项后返回 `status=CLEARED` 和空缺项列表。数据库由 Flyway `V2__add_scoped_ledger_cycles.sql` 建立学校、食堂、周期、周期要求和预警状态表，应用重启后状态仍可恢复。
+
+本阶段的需求目录、实施计划、验证记录和需求追溯在 [`docs/smart-canteen/`](../../docs/smart-canteen/)；后端 Skill 在 [`skills/smart-canteen-backend/`](../../skills/smart-canteen-backend/)。认证/RBAC、Redis、RabbitMQ、设备及第三方平台接入明确留到后续阶段。
+
 ## 启动项目
 
 先启动中间件。需要 Docker Desktop 或兼容的 Docker Engine；每个中间件都由仓库内 Dockerfile 构建：

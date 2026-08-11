@@ -26,6 +26,28 @@ describe("Smart Canteen Workflow API contract", () => {
     expect(new URL(requestUrl).pathname).toBe("/api/v1/ledger-alerts/current");
     expect(options.method).toBe("GET");
   });
+  it("startLedgerCycle sends POST /api/v1/ledger-cycles", async () => {
+    await client.startLedgerCycle({} as never);
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/ledger-cycles");
+    expect(options.method).toBe("POST");
+    expect(options.headers["Content-Type"]).toBe("application/json");
+    expect(JSON.parse(options.body)).toEqual({});
+  });
+  it("getScopedLedgerAlert sends GET /api/v1/ledger-cycles/{cycleId}/alerts/current", async () => {
+    await client.getScopedLedgerAlert('fixture', 'fixture', 'fixture');
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/ledger-cycles/fixture/alerts/current");
+    expect(options.method).toBe("GET");
+  });
+  it("completeScopedLedgerRecord sends POST /api/v1/ledger-cycles/{cycleId}/records", async () => {
+    await client.completeScopedLedgerRecord('fixture', {} as never);
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/ledger-cycles/fixture/records");
+    expect(options.method).toBe("POST");
+    expect(options.headers["Content-Type"]).toBe("application/json");
+    expect(JSON.parse(options.body)).toEqual({});
+  });
   it("completeLedgerRecord sends POST /api/v1/ledger-records", async () => {
     await client.completeLedgerRecord({} as never);
     const [requestUrl, options] = fetchMock.mock.calls[0];
