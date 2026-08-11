@@ -1,7 +1,8 @@
 package com.example.smartcanteen.infrastructure;
 
 import com.example.smartcanteen.application.port.SmartCanteenStore;
-import com.example.smartcanteen.application.port.SmartCanteenStore.ReceiptCommand;
+import com.example.smartcanteen.application.port.InventoryStore.ReceiptCommand;
+import com.example.smartcanteen.application.port.InventoryStore.StoredReceipt;
 import com.example.smartcanteen.domain.IngredientRequirement;
 import com.example.smartcanteen.domain.Menu;
 import com.example.smartcanteen.domain.MenuStatus;

@@ -31,6 +31,18 @@ GET  /api/v1/ledger-cycles/{cycleId}/alerts/current
 
 本阶段的需求目录、实施计划、验证记录和需求追溯在 [`docs/smart-canteen/`](../../docs/smart-canteen/)；后端 Skill 在 [`skills/smart-canteen-backend/`](../../skills/smart-canteen-backend/)。认证/RBAC、Redis、RabbitMQ、设备及第三方平台接入明确留到后续阶段。
 
+## 第二阶段：核心业务模块化
+
+第二阶段保留原有 REST 接口不变，但把后端规则拆成三个可独立测试的模块：
+
+```text
+MenuApproval        → 菜单提交 / 审批决定
+ProcurementPlanning → 审批状态校验 / 采购缺口计算
+InventoryReceiving  → 单位换算 / 入库幂等
+```
+
+三个模块通过 `MenuStore`、`RecipeStore`、`InventoryStore` 持久化端口接入 JDBC；`SmartCanteenWorkflow` 只作为兼容门面。第二阶段计划、追溯和验证记录见 [`phase2-plan.json`](../../docs/smart-canteen/phase2-plan.json)、[`phase2-traceability.md`](../../docs/smart-canteen/phase2-traceability.md) 和 [`phase2-verification.json`](../../docs/smart-canteen/phase2-verification.json)。
+
 ## 启动项目
 
 先启动中间件。需要 Docker Desktop 或兼容的 Docker Engine；每个中间件都由仓库内 Dockerfile 构建：

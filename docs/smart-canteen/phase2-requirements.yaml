@@ -1,0 +1,51 @@
+schema_version: "1.0"
+project: smart-canteen-backend
+phase: phase-2-core-module-seams
+source_documents:
+  - id: overview-design
+    path: "智慧食堂项目概要设计文档.pdf"
+    scope: "一期逻辑架构、领域模块和接口分层"
+  - id: phase2-design
+    path: "智慧食堂二期-系统设计.pdf"
+    scope: "采购、食谱、单位和业务模块扩展"
+requirements:
+  - id: ARCH-002
+    category: architecture
+    source:
+      document: overview-design
+      section: "2.3 逻辑架构"
+    statement: "菜单审批、采购规划和库存入库分别通过小型后端模块接口提供用例。"
+    acceptance:
+      - "每个模块有独立的公共接口和可替换的持久化端口。"
+      - "模块测试不需要启动 HTTP 或数据库。"
+    status: approved
+  - id: ARCH-003
+    category: architecture
+    source:
+      document: overview-design
+      section: "2.4 部署架构"
+    statement: "基础设施适配器不进入领域规则；原有工作流只能作为兼容门面。"
+    acceptance:
+      - "JDBC 适配器通过 MenuStore、RecipeStore 和 InventoryStore 满足模块端口。"
+      - "SmartCanteenWorkflow 不再持有菜单、采购和库存领域规则。"
+    status: approved
+  - id: API-002
+    category: api
+    source:
+      document: overview-design
+      section: "5.1 接口设计原则"
+    statement: "模块化重构不改变既有 REST v1 路径、响应 envelope 和幂等行为。"
+    acceptance:
+      - "菜单审批、采购计划和入库 HTTP 回归测试继续通过。"
+      - "库存 Idempotency-Key 仍由库存模块解释。"
+    status: approved
+  - id: TEST-002
+    category: verification
+    source:
+      document: overview-design
+      section: "6.7 部署验证"
+    statement: "核心业务模块必须能在公开模块接口上独立验证，并保留 HTTP 兼容回归。"
+    acceptance:
+      - "MenuApproval、ProcurementPlanning、InventoryReceiving 各有模块测试。"
+      - "Spring Boot 全量测试通过。"
+    status: approved

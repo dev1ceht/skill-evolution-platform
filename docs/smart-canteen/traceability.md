@@ -2,7 +2,7 @@
 
 | 需求 | 实现 | 接口/迁移 | 验证 | 状态 |
 | --- | --- | --- | --- | --- |
-| ARCH-001 | `LedgerMonitoring` 公共端口、`LedgerStore` 持久化端口、`JdbcLedgerStore` 适配器 | 模块化单体内的应用/领域/基础设施分层 | `LedgerAlertServiceTest`、HTTP 测试 | 部分实现：台账/预警已独立，菜单/采购/库存留到下一阶段 |
+| ARCH-001 | `LedgerMonitoring` 公共端口、`LedgerStore` 持久化端口、`JdbcLedgerStore` 适配器 | 模块化单体内的应用/领域/基础设施分层 | 第一阶段 `LedgerAlertServiceTest`、HTTP 测试；第二阶段模块测试见 `phase2-traceability.md` | 核心模块接缝已补齐；数据作用域迁移仍后续 |
 | API-001 | 统一 `ApiResponse`、参数校验、业务异常处理 | `POST /api/v1/ledger-cycles`、`POST /api/v1/ledger-cycles/{cycleId}/records`、`GET /api/v1/ledger-cycles/{cycleId}/alerts/current` | `LedgerCycleHttpTest` | 已实现 |
 | LEDGER-001 | `LedgerScope`、`LedgerCycleRequest`、`LedgerState` | 复合键 `(school_id, canteen_id, cycle_id)` 贯穿周期、要求和预警表 | 作用域隔离 HTTP 测试（同一 cycleId 可跨作用域并存） | 已实现 |
 | LEDGER-002 | 缺项快照与 `OPEN/CLEARED` 计算 | V2 迁移中的周期要求和预警状态 | 周期完成 HTTP 测试、重启测试 | 已实现 |

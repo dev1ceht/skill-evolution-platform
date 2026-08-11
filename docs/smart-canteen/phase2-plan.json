@@ -1,0 +1,36 @@
+{
+  "phase": "phase-2-core-module-seams",
+  "objective": "把菜单审批、采购规划和库存入库从 SmartCanteenWorkflow 的规则实现中拆成可独立验证的后端模块",
+  "included": [
+    "MenuApproval public module and MenuStore persistence seam",
+    "ProcurementPlanning public module with RecipeStore and InventoryStore read seams",
+    "InventoryReceiving public module with idempotent InventoryStore write seam",
+    "SmartCanteenStore compatibility aggregate implemented by the JDBC adapter",
+    "Spring domain-service dependency injection for UnitConverter and ProcurementService",
+    "HTTP compatibility regression and module-level public-interface tests"
+  ],
+  "deferred": [
+    "scope-aware menu/recipe/inventory database migration",
+    "RBAC and unified authentication",
+    "Redis cache invalidation",
+    "RabbitMQ events",
+    "device, district platform and procurement third-party adapters"
+  ],
+  "interfaces": {
+    "menu": "com.example.smartcanteen.application.port.MenuApproval",
+    "procurement": "com.example.smartcanteen.application.port.ProcurementPlanning",
+    "inventory": "com.example.smartcanteen.application.port.InventoryReceiving",
+    "persistence": [
+      "com.example.smartcanteen.application.port.MenuStore",
+      "com.example.smartcanteen.application.port.RecipeStore",
+      "com.example.smartcanteen.application.port.InventoryStore"
+    ],
+    "compatibility_facade": "com.example.smartcanteen.application.SmartCanteenWorkflow"
+  },
+  "invariants": [
+    "Only an approved menu can generate a procurement plan",
+    "Inventory conversion happens before InventoryStore.receiveOnce",
+    "InventoryStore owns receipt idempotence and duplicate-key behavior",
+    "HTTP paths and {code,message,data} envelopes remain unchanged"
+  ]
+}
