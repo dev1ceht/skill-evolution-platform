@@ -1,8 +1,8 @@
 {
   "plan": "four-phase-alignment",
   "captured_at": "2026-08-12T17:00:30+08:00",
-  "source_commit": "4beef55",
-  "source_state": "phase-2/phase-3 repair commit; user PDFs are excluded",
+  "source_commit": "d1a3927",
+  "source_state": "phase-2/phase-3 repair plus final boundary-validation test commit; user PDFs are excluded",
   "inputs": [
     "docs/smart-canteen/four-phase-alignment.json",
     "docs/smart-canteen/four-phase-alignment.md",
@@ -30,7 +30,7 @@
     {
       "command": "mvn --batch-mode test",
       "result": "passed",
-      "evidence": "31 tests, 0 failures, 0 errors, 1 environment-gated MySQL test skipped"
+      "evidence": "33 tests, 0 failures, 0 errors, 1 environment-gated MySQL test skipped"
     },
     {
       "command": "python -m pytest -q -p no:cacheprovider --basetemp=tmp/pytest-phase2-3-repair",

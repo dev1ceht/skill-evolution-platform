@@ -75,7 +75,7 @@ def test_smart_canteen_feedback_is_replayed_before_skill_promotion(tmp_path: Pat
         "e12bcf88be7dac5a8183c3338a480a9618997e4df652c6a2f40a1557fa8fd02a"
     )
     assert provenance["replaySourceCommit"] == (
-        "4beef55"
+        "d1a3927"
     )
     assert provenance["replayContractHash"] == (
         "1f9ff90b3f88f32300f9c8dccd0d643e39afc75556397b13e48a56d655efe3b3"
