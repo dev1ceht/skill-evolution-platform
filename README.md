@@ -5,6 +5,19 @@
 - **前后端接口自动化对接 Skill**：OpenAPI → API IR → 页面任务 → TypeScript client → 契约测试与版本 Diff。
 - **Skill 在线自进化系统**：pending window → 候选抽取 → add/merge/discard → replay → 提升/回滚。
 
+## 项目 Skills
+
+仓库内 Skill 按研发阶段组合使用：
+
+| 阶段 | Skill | 主要产出 |
+| --- | --- | --- |
+| 需求与切片 | [`smart-canteen-requirements-slicing`](skills/smart-canteen-requirements-slicing/SKILL.md) | 可追溯需求、included/deferred、阶段计划与验收条件 |
+| 后端实现 | [`smart-canteen-backend`](skills/smart-canteen-backend/SKILL.md) | 领域规则、端口、Flyway、OpenAPI 与后端测试 |
+| 前端对接 | [`frontend-api-integration`](skills/frontend-api-integration/SKILL.md) | API IR、任务计划、TypeScript client、契约测试与版本 Diff |
+| 安全审查 | [`smart-canteen-secure-integration`](skills/smart-canteen-secure-integration/SKILL.md) | 信任边界、租户隔离、外部接入控制与滥用测试 |
+| 验收发布 | [`smart-canteen-verification`](skills/smart-canteen-verification/SKILL.md) | 分层测试、fresh evidence、追溯与发布门禁 |
+| 反馈演化 | [`skill-evolution-governance`](skills/skill-evolution-governance/SKILL.md) | candidate/replay/promotion/rollback 的治理证据 |
+
 ## 快速运行
 
 ```powershell

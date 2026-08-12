@@ -1,0 +1,4 @@
+interface:
+  display_name: "Smart Canteen Secure Integration"
+  short_description: "Secure tenant data and external integrations"
+  default_prompt: "Use $smart-canteen-secure-integration to threat-model and review this smart-canteen integration before implementation."
