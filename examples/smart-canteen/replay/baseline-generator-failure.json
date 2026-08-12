@@ -4,7 +4,7 @@
   "contract": "../contracts/smart-canteen.openapi.yaml",
   "contractHash": "e12bcf88be7dac5a8183c3338a480a9618997e4df652c6a2f40a1557fa8fd02a",
   "replaySource": {
-    "sourceCommit": "60e703ecaa6680b0707e8c1be3a3025b156d7f46",
+    "sourceCommit": "4beef55",
     "contractHash": "1f9ff90b3f88f32300f9c8dccd0d643e39afc75556397b13e48a56d655efe3b3"
   },
   "capturedStage": "generate-typescript-client",

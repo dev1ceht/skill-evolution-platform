@@ -1,8 +1,8 @@
 {
   "plan": "four-phase-alignment",
   "captured_at": "2026-08-12T17:00:30+08:00",
-  "source_commit": "60e703ecaa6680b0707e8c1be3a3025b156d7f46",
-  "source_state": "working tree containing the phase-2 recipe-import repair and phase-3 procurement verification; user PDFs are excluded",
+  "source_commit": "4beef55",
+  "source_state": "phase-2/phase-3 repair commit; user PDFs are excluded",
   "inputs": [
     "docs/smart-canteen/four-phase-alignment.json",
     "docs/smart-canteen/four-phase-alignment.md",
