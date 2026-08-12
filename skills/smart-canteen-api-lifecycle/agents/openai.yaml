@@ -1,0 +1,4 @@
+interface:
+  display_name: "Smart Canteen API Lifecycle"
+  short_description: "Manage API compatibility, versions, and deprecation"
+  default_prompt: "Use $smart-canteen-api-lifecycle to classify this contract change and produce a compatible migration and deprecation plan."

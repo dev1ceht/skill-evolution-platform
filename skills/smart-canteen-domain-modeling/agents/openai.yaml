@@ -1,0 +1,4 @@
+interface:
+  display_name: "Smart Canteen Domain Modeling"
+  short_description: "Model canteen domains, invariants, and module seams"
+  default_prompt: "Use $smart-canteen-domain-modeling to refine this business concept into stable domain terms, invariants, and module boundaries."

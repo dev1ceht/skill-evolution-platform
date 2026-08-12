@@ -12,10 +12,15 @@
 | 阶段 | Skill | 主要产出 |
 | --- | --- | --- |
 | 需求与切片 | [`smart-canteen-requirements-slicing`](skills/smart-canteen-requirements-slicing/SKILL.md) | 可追溯需求、included/deferred、阶段计划与验收条件 |
+| 领域设计 | [`smart-canteen-domain-modeling`](skills/smart-canteen-domain-modeling/SKILL.md) | 统一语言、聚合、不变量、模块接口与 ADR |
 | 后端实现 | [`smart-canteen-backend`](skills/smart-canteen-backend/SKILL.md) | 领域规则、端口、Flyway、OpenAPI 与后端测试 |
+| 数据迁移 | [`smart-canteen-data-migration`](skills/smart-canteen-data-migration/SKILL.md) | Flyway、数据回填、租户约束、兼容发布与恢复方案 |
+| API 治理 | [`smart-canteen-api-lifecycle`](skills/smart-canteen-api-lifecycle/SKILL.md) | 兼容性分类、版本迁移、弃用计划与消费者门禁 |
 | 前端对接 | [`frontend-api-integration`](skills/frontend-api-integration/SKILL.md) | API IR、任务计划、TypeScript client、契约测试与版本 Diff |
 | 安全审查 | [`smart-canteen-secure-integration`](skills/smart-canteen-secure-integration/SKILL.md) | 信任边界、租户隔离、外部接入控制与滥用测试 |
+| 可观测与故障 | [`smart-canteen-observability-incident`](skills/smart-canteen-observability-incident/SKILL.md) | 日志/指标/追踪、告警、事故时间线与恢复证明 |
 | 验收发布 | [`smart-canteen-verification`](skills/smart-canteen-verification/SKILL.md) | 分层测试、fresh evidence、追溯与发布门禁 |
+| 提效评估 | [`skill-evolution-benchmarking`](skills/skill-evolution-benchmarking/SKILL.md) | 成对基准、来源哈希、指标与声明可信度 |
 | 反馈演化 | [`skill-evolution-governance`](skills/skill-evolution-governance/SKILL.md) | candidate/replay/promotion/rollback 的治理证据 |
 
 ## 快速运行
