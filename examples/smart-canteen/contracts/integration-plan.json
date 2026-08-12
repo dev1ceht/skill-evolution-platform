@@ -25,6 +25,12 @@
       "operations": ["getCurrentLedgerAlert", "completeLedgerRecord"],
       "states": ["loading", "empty", "ready", "submitting", "business-error"],
       "dependencies": ["ProcurementWorkbenchPage:receipt-completed"]
+    },
+    {
+      "page": "AlertCenterPage",
+      "operations": ["reportAlert", "disposeAlert", "queryAlerts"],
+      "states": ["loading", "empty", "ready", "submitting", "business-error"],
+      "dependencies": ["LedgerAlertPage:ledger-warning", "BrightKitchenAdapter:warning", "MorningInspectionAdapter:warning"]
     }
   ],
   "verification": [
@@ -37,7 +43,8 @@
   ],
   "assumptions": [
     "The demo persists one seeded menu, inventory, receipt idempotency and ledger state in MySQL; Redis and RabbitMQ are provisioned but not yet connected to business ports.",
-    "Bright-kitchen devices, WeChat, SSO and external procurement platforms are represented as future ports.",
+    "Bright-kitchen, morning-inspection and district-platform network clients are represented as replaceable ports; credentials and vendor contracts are required before implementing adapters.",
+    "The alert center accepts a normalized report and owns idempotent ingestion, disposal and query; source adapters remain outside this phase-4 slice.",
     "All quantities are normalized server-side to g, ml or count."
   ]
 }

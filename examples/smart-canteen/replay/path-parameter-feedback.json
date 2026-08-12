@@ -5,7 +5,7 @@
     "contract": "../contracts/smart-canteen.openapi.yaml",
     "baselineArtifact": "baseline-generator-failure.json",
     "baselineSourceCommit": "72d57ad5f2e84baebbd87fdef5be96ff9e93d81d",
-    "contractHash": "5eb59f4ae74171f6c55785b56928146135932ffd5cc61f5c01a2d8f987a16cb3",
+    "contractHash": "f7482a9b8f86899ee7f183c460d9580a62dad257758848c6e85bf6dba2596f7e",
     "page": "MenuApprovalPage",
     "observedAt": "OpenAPI -> API IR -> TypeScript client"
   },

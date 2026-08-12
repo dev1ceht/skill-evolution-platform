@@ -3,6 +3,9 @@ package com.example.smartcanteen.http;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -32,5 +35,15 @@ public class ApiExceptionHandler {
             MissingServletRequestParameterException exception) {
         return ApiResponse.error(
                 exception.getParameterName() + " " + exception.getMessage());
+    }
+
+    @ExceptionHandler({
+            HttpMessageNotReadableException.class,
+            MethodArgumentTypeMismatchException.class,
+            HttpMediaTypeNotSupportedException.class
+    })
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ApiResponse<Void> handleMalformedRequest(Exception exception) {
+        return ApiResponse.error("Malformed request: " + exception.getMessage());
     }
 }

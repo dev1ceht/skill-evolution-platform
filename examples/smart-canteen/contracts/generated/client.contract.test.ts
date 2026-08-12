@@ -11,6 +11,50 @@ describe("Smart Canteen Workflow API contract", () => {
     fetchMock.mockReset();
     fetchMock.mockResolvedValue({ ok: true, json: async () => ({}) });
   });
+  it("reportExternalAlert sends POST /alarmApi/warn/report", async () => {
+    await client.reportExternalAlert({} as never);
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/alarmApi/warn/report");
+    expect(options.method).toBe("POST");
+    expect(options.headers["Content-Type"]).toBe("application/json");
+    expect(JSON.parse(options.body)).toEqual({});
+  });
+  it("disposeExternalAlert sends POST /alarmApi/warnResult/report", async () => {
+    await client.disposeExternalAlert({} as never);
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/alarmApi/warnResult/report");
+    expect(options.method).toBe("POST");
+    expect(options.headers["Content-Type"]).toBe("application/json");
+    expect(JSON.parse(options.body)).toEqual({});
+  });
+  it("queryExternalAlerts sends GET /alarmWarn/school/queryPage", async () => {
+    await client.queryExternalAlerts(undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined);
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/alarmWarn/school/queryPage");
+    expect(options.method).toBe("GET");
+  });
+  it("queryAlerts sends GET /api/v1/alerts", async () => {
+    await client.queryAlerts(undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined);
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/alerts");
+    expect(options.method).toBe("GET");
+  });
+  it("reportAlert sends POST /api/v1/alerts", async () => {
+    await client.reportAlert({} as never);
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/alerts");
+    expect(options.method).toBe("POST");
+    expect(options.headers["Content-Type"]).toBe("application/json");
+    expect(JSON.parse(options.body)).toEqual({});
+  });
+  it("disposeAlert sends POST /api/v1/alerts/{warnId}/disposal", async () => {
+    await client.disposeAlert('fixture', {} as never);
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/alerts/fixture/disposal");
+    expect(options.method).toBe("POST");
+    expect(options.headers["Content-Type"]).toBe("application/json");
+    expect(JSON.parse(options.body)).toEqual({});
+  });
   it("receiveInventory sends POST /api/v1/inventory/receipts", async () => {
     await client.receiveInventory('fixture', {} as never, undefined, undefined);
     const [requestUrl, options] = fetchMock.mock.calls[0];

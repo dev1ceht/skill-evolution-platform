@@ -1,0 +1,80 @@
+schema_version: "1.0"
+project: smart-canteen-backend
+phase: phase-4-alert-center-and-external-adapters
+source_documents:
+  - id: phase2-design
+    path: "智慧食堂二期-系统设计.pdf"
+    scope: "区县智慧食堂、明厨亮灶、晨检仪和预警中心接口设计"
+  - id: overview-design
+    path: "智慧食堂项目概要设计文档.pdf"
+    scope: "模块边界、接口分层、可替换适配器和验证原则"
+  - id: user-four-phase-plan
+    path: "user message"
+    scope: "第四阶段交付范围"
+requirements:
+  - id: ALERT-001
+    category: domain
+    source:
+      document: phase2-design
+      section: "3.2.4 预警中心设计 / warn/report"
+    statement: "系统接收区县平台、明厨亮灶和晨检仪归一化预警，并保存学校、设备、事件、发生时间、图片和内容。"
+    acceptance:
+      - "AlertReport 在领域边界校验 thirdWarnId、schoolId、发生时间、事件类型和内容。"
+      - "AlertCenter 提供接收、处置和查询公共接口，领域层不依赖 HTTP 或 JDBC。"
+      - "同一 source + thirdWarnId 的相同内容重复接收返回原记录。"
+    status: approved
+  - id: ALERT-002
+    category: idempotence
+    source:
+      document: phase2-design
+      section: "3.2.4 预警中心设计 / warnResult/report"
+    statement: "预警处置结果可重复提交，处理状态和处理人、时间、内容、附件可追踪。"
+    acceptance:
+      - "processStatus 只能是 0 或 1；处理完成时必须提供处理时间和处理人。"
+      - "相同处置结果重复提交不产生重复副作用；不同结果不能覆盖已处置记录。"
+      - "HTTP 成功和失败均使用 {code,message,data} 包络。"
+    status: approved
+  - id: DATA-004
+    category: persistence
+    source:
+      document: overview-design
+      section: "数据持久化与可恢复性"
+    statement: "预警中心记录必须跨应用重启保留，并按学校、来源和发生时间支持查询。"
+    acceptance:
+      - "Flyway V4 创建 alert_records，source + third_warn_id 唯一，查询索引覆盖 school_id 和发生时间。"
+      - "H2 重启或 Spring 上下文重建后仍可读取预警及处置状态。"
+      - "MySQL 验收在未提供环境时明确记录为环境门控，不伪造通过。"
+    status: approved
+  - id: ARCH-005
+    category: architecture
+    source:
+      document: overview-design
+      section: "模块化架构 / 外部系统适配边界"
+    statement: "区县平台、明厨亮灶和晨检仪通过可替换端口接入，外部网络细节不进入领域规则。"
+    acceptance:
+      - "提供 DistrictPlatformGateway、BrightKitchenGateway 和 MorningInspectionGateway 公共端口。"
+      - "当前阶段不实现无凭据的真实第三方网络客户端，不用假数据宣称已接通。"
+      - "AlertSourceAdapter 将外部事件转换为统一 AlertReport。"
+    status: approved
+  - id: API-004
+    category: api
+    source:
+      document: phase2-design
+      section: "3.2.4 预警中心设计 / external endpoint compatibility"
+    statement: "保留设计文档中的预警接收、处置和分页查询路径，同时提供 REST v1 规范路径。"
+    acceptance:
+      - "实现 /api/v1/alerts、/api/v1/alerts/{warnId}/disposal 和查询参数。"
+      - "兼容 /alarmApi/warn/report、/alarmApi/warnResult/report、/alarmWarn/school/queryPage。"
+      - "OpenAPI、API IR、TypeScript 生成客户端和契约测试保持同步。"
+    status: approved
+  - id: TEST-004
+    category: verification
+    source:
+      document: user-four-phase-plan
+      section: "第四阶段验收"
+    statement: "第四阶段首个纵向切片必须通过领域、HTTP、迁移、契约和前端生成物验证。"
+    acceptance:
+      - "AlertCenterModuleTest 覆盖重复接收、内容冲突、处置幂等和边界校验。"
+      - "AlertCenterHttpTest 覆盖 PDF 兼容路径、统一包络和分页查询。"
+      - "记录 Maven、Python、frontend、OpenAPI 生成和 provenance 结果。"
+    status: approved

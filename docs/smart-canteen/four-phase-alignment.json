@@ -33,11 +33,11 @@
       "verification": [
         "RecipeImportModuleTest",
         "RecipeImportHttpTest",
-        "generated 10-operation API IR/client/contract tests",
+        "generated API IR/client/contract tests",
         "frontend tests and production build"
       ],
       "commit": "4beef55",
-      "note": "Procurement, inventory and unit conversion are accepted as phase-3 behavior. Existing implementation seams remain for compatibility but are verified by phase-3 evidence."
+      "note": "Procurement, inventory and unit conversion are phase-3 behavior."
     },
     {
       "phase": 3,
@@ -64,14 +64,29 @@
       "phase": 4,
       "name": "external-platform-and-device-adapters",
       "goal": "District platform, kitchen transparency, morning-inspection devices and alert center",
-      "status": "not_started",
+      "status": "first-slice-complete",
+      "delivered": [
+        "normalized alert-center report and disposal domain model",
+        "idempotent alert ingestion, conflict detection and paginated query",
+        "Flyway V4 alert_records persistence and H2 migration verification",
+        "REST v1 alert endpoints plus design-document compatibility aliases",
+        "DistrictPlatformGateway, BrightKitchenGateway, MorningInspectionGateway and AlertSourceAdapter ports",
+        "OpenAPI/API IR/generated client and frontend Axios adapter synchronization"
+      ],
+      "verification": [
+        "AlertCenterModuleTest",
+        "AlertCenterHttpTest",
+        "Flyway V4 H2 migration",
+        "generated 16-operation API IR/client/contract tests"
+      ],
       "deferred": [
-        "district/county platform adapter",
-        "明厨亮灶 device adapter",
+        "district/county platform network adapter",
+        "bright-kitchen device and stream adapter",
         "morning-inspection instrument adapter",
-        "central alert-center integration",
+        "vendor alert-center integration and notification routing",
         "RBAC, Redis and RabbitMQ integration where required by those adapters"
-      ]
+      ],
+      "commit": "pending"
     }
   ]
 }

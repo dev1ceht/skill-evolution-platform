@@ -10,6 +10,12 @@ import type {
   ProcurementPlanResponse,
   Receipt,
   ReceiptResponse,
+  AlertRecord,
+  AlertResponse,
+  AlertPage,
+  AlertPageResponse,
+  AlertReportRequest,
+  AlertDisposalRequest,
 } from './generated/client';
 
 interface ApiEnvelope<T> {
@@ -64,6 +70,19 @@ export interface SmartCanteenApiPort {
     scope?: CanteenScope,
   ): Promise<Receipt>;
   completeLedgerRecord(ledgerCode: string): Promise<LedgerAlert>;
+  reportAlert?(request: AlertReportRequest): Promise<AlertRecord>;
+  disposeAlert?(warnId: string, request: AlertDisposalRequest): Promise<AlertRecord>;
+  queryAlerts?(filters?: {
+    schoolId?: string;
+    canteenId?: string;
+    source?: string;
+    status?: string;
+    deviceName?: string;
+    startDate?: string;
+    endDate?: string;
+    pageNum?: number;
+    pageSize?: number;
+  }): Promise<AlertPage>;
 }
 
 export class SmartCanteenApi implements SmartCanteenApiPort {
@@ -154,6 +173,37 @@ export class SmartCanteenApi implements SmartCanteenApiPort {
       '/api/v1/ledger-records',
       { ledgerCode },
     );
+    return unwrap(response);
+  }
+
+  async reportAlert(request: AlertReportRequest): Promise<AlertRecord> {
+    const response = await this.client.post<AlertResponse>('/api/v1/alerts', request);
+    return unwrap(response);
+  }
+
+  async disposeAlert(
+    warnId: string,
+    request: AlertDisposalRequest,
+  ): Promise<AlertRecord> {
+    const path = `/api/v1/alerts/${encodeURIComponent(warnId)}/disposal`;
+    const response = await this.client.post<AlertResponse>(path, request);
+    return unwrap(response);
+  }
+
+  async queryAlerts(filters: {
+    schoolId?: string;
+    canteenId?: string;
+    source?: string;
+    status?: string;
+    deviceName?: string;
+    startDate?: string;
+    endDate?: string;
+    pageNum?: number;
+    pageSize?: number;
+  } = {}): Promise<AlertPage> {
+    const response = await this.client.get<AlertPageResponse>('/api/v1/alerts', {
+      params: filters,
+    });
     return unwrap(response);
   }
 }

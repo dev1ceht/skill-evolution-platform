@@ -119,6 +119,142 @@ paths:
                 $ref: '#/components/schemas/ReceiptResponse'
         '400':
           $ref: '#/components/responses/BusinessError'
+  /api/v1/alerts:
+    post:
+      operationId: reportAlert
+      tags: [alert-center]
+      description: 接收区县平台、明厨亮灶或晨检仪归一化后的预警；相同 source 与 thirdWarnId 重复提交返回原记录，内容变化返回业务错误。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AlertReportRequest'
+      responses:
+        '200':
+          description: 预警记录
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertResponse'
+        '400':
+          $ref: '#/components/responses/BusinessError'
+    get:
+      operationId: queryAlerts
+      tags: [alert-center]
+      parameters:
+        - $ref: '#/components/parameters/SchoolId'
+        - $ref: '#/components/parameters/CanteenId'
+        - $ref: '#/components/parameters/AlertSource'
+        - $ref: '#/components/parameters/AlertStatus'
+        - $ref: '#/components/parameters/AlarmEventId'
+        - $ref: '#/components/parameters/DeviceName'
+        - $ref: '#/components/parameters/StartDateTime'
+        - $ref: '#/components/parameters/EndDateTime'
+        - $ref: '#/components/parameters/PageNum'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: 分页预警记录
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertPageResponse'
+        '400':
+          $ref: '#/components/responses/BusinessError'
+  /api/v1/alerts/{warnId}/disposal:
+    post:
+      operationId: disposeAlert
+      tags: [alert-center]
+      description: 处置预警；同一记录重复提交相同处置结果是幂等的，已处置记录不能被不同结果覆盖。
+      parameters:
+        - $ref: '#/components/parameters/WarnId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AlertDisposalRequest'
+      responses:
+        '200':
+          description: 更新后的预警记录
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertResponse'
+        '400':
+          $ref: '#/components/responses/BusinessError'
+  /alarmApi/warn/report:
+    post:
+      operationId: reportExternalAlert
+      tags: [alert-center-compatibility]
+      description: 设计文档规定的外部预警接收兼容入口；接受本地时间格式并允许非 AI 事件缺省 thirdWarnId，内部归一化后使用统一 ApiResponse 包络。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExternalAlertReportRequest'
+      responses:
+        '200':
+          description: 预警记录
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertResponse'
+        '400':
+          $ref: '#/components/responses/BusinessError'
+  /alarmApi/warnResult/report:
+    post:
+      operationId: disposeExternalAlert
+      tags: [alert-center-compatibility]
+      description: 设计文档规定的外部预警处置结果入口；processTime 支持 `yyyy-MM-dd HH:mm:ss`，内部使用统一 ApiResponse 包络。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExternalAlertDisposalRequest'
+      responses:
+        '200':
+          description: 更新后的预警记录
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertResponse'
+        '400':
+          $ref: '#/components/responses/BusinessError'
+  /alarmWarn/school/queryPage:
+    get:
+      operationId: queryExternalAlerts
+      tags: [alert-center-compatibility]
+      description: 设计文档规定的预警中心分页查询兼容入口。
+      parameters:
+        - $ref: '#/components/parameters/SchoolId'
+        - $ref: '#/components/parameters/CanteenId'
+        - $ref: '#/components/parameters/AlertSource'
+        - $ref: '#/components/parameters/AlertStatus'
+        - $ref: '#/components/parameters/AlarmEventId'
+        - name: warnStatus
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [UNPROCESSED, PROCESSED]
+        - $ref: '#/components/parameters/DeviceName'
+        - $ref: '#/components/parameters/StartDateTime'
+        - $ref: '#/components/parameters/EndDateTime'
+        - $ref: '#/components/parameters/PageNum'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: 分页预警记录
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertPageResponse'
+        '400':
+          $ref: '#/components/responses/BusinessError'
   /api/v1/ledger-cycles:
     post:
       operationId: startLedgerCycle
@@ -246,6 +382,70 @@ components:
       description: 食堂范围；必须与 schoolId 成对提供，省略时使用兼容默认范围。
       schema:
         type: string
+    AlertSource:
+      name: source
+      in: query
+      required: false
+      schema:
+        type: string
+        enum: [DISTRICT_PLATFORM, BRIGHT_KITCHEN, MORNING_INSPECTION, LEDGER]
+    AlertStatus:
+      name: status
+      in: query
+      required: false
+      schema:
+        type: string
+        enum: [UNPROCESSED, PROCESSED]
+    AlarmEventId:
+      name: alarmEventId
+      in: query
+      required: false
+      description: 警情类型 ID，例如未戴帽子、手温异常或食材价格预警。
+      schema:
+        type: string
+    DeviceName:
+      name: deviceName
+      in: query
+      required: false
+      schema:
+        type: string
+    StartDateTime:
+      name: startDate
+      in: query
+      required: false
+      schema:
+        type: string
+        format: date-time
+    EndDateTime:
+      name: endDate
+      in: query
+      required: false
+      schema:
+        type: string
+        format: date-time
+    PageNum:
+      name: pageNum
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    PageSize:
+      name: pageSize
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    WarnId:
+      name: warnId
+      in: path
+      required: true
+      schema:
+        type: string
   responses:
     BusinessError:
       description: 业务规则或参数校验失败
@@ -339,6 +539,231 @@ components:
         unit:
           type: string
           enum: [kg, g, L, ml, count]
+    AlertReportRequest:
+      type: object
+      required: [thirdWarnId, schoolId, warnHappenTime, alarmEventId, warnContent]
+      properties:
+        source:
+          type: string
+          enum: [DISTRICT_PLATFORM, BRIGHT_KITCHEN, MORNING_INSPECTION, LEDGER]
+          default: BRIGHT_KITCHEN
+        thirdWarnId:
+          type: string
+        schoolId:
+          type: string
+        schoolName:
+          type: string
+          nullable: true
+        areaCode:
+          type: string
+          nullable: true
+        deviceId:
+          type: string
+          nullable: true
+        deviceName:
+          type: string
+          nullable: true
+        canteenId:
+          type: string
+          nullable: true
+        warnHappenTime:
+          type: string
+          format: date-time
+        alarmEventId:
+          type: string
+        warnFullPic:
+          type: string
+          nullable: true
+        warnContent:
+          type: string
+    ExternalAlertReportRequest:
+      type: object
+      required: [schoolId, warnHappenTime, alarmEventId]
+      description: 设计文档外部入口的归一化输入；未提供 thirdWarnId 时由 source、学校、事件、时间和内容生成稳定 ID。
+      properties:
+        source:
+          type: string
+          enum: [DISTRICT_PLATFORM, BRIGHT_KITCHEN, MORNING_INSPECTION, LEDGER]
+        thirdWarnId:
+          type: string
+          nullable: true
+        schoolId:
+          type: string
+        schoolName:
+          type: string
+          nullable: true
+        areaCode:
+          type: string
+          nullable: true
+        deviceId:
+          type: string
+          nullable: true
+        deviceName:
+          type: string
+          nullable: true
+        canteenId:
+          type: string
+          nullable: true
+        warnHappenTime:
+          type: string
+          description: ISO-8601 或 yyyy-MM-dd HH:mm:ss
+        alarmEventId:
+          type: string
+        warnFullPic:
+          type: string
+          nullable: true
+        warnContent:
+          type: string
+          nullable: true
+    AlertDisposalRequest:
+      type: object
+      required: [processStatus]
+      properties:
+        source:
+          type: string
+          enum: [DISTRICT_PLATFORM, BRIGHT_KITCHEN, MORNING_INSPECTION, LEDGER]
+        thirdWarnId:
+          type: string
+          nullable: true
+        processStatus:
+          type: integer
+          enum: [0, 1]
+        processTime:
+          type: string
+          format: date-time
+          nullable: true
+        processUser:
+          type: string
+          nullable: true
+        processContent:
+          type: string
+          nullable: true
+        processFile:
+          type: string
+          nullable: true
+    ExternalAlertDisposalRequest:
+      type: object
+      required: [processStatus]
+      properties:
+        source:
+          type: string
+          enum: [DISTRICT_PLATFORM, BRIGHT_KITCHEN, MORNING_INSPECTION, LEDGER]
+        thirdWarnId:
+          type: string
+          nullable: true
+        warnId:
+          type: string
+          nullable: true
+        processStatus:
+          type: integer
+          enum: [0, 1]
+        processTime:
+          type: string
+          nullable: true
+          description: ISO-8601 或 yyyy-MM-dd HH:mm:ss
+        processUser:
+          type: string
+          nullable: true
+        processContent:
+          type: string
+          nullable: true
+        processFile:
+          type: string
+          nullable: true
+    AlertRecord:
+      type: object
+      required: [warnId, source, thirdWarnId, schoolId, warnHappenTime, alarmEventId, warnContent, status, processStatus, createdAt]
+      properties:
+        warnId:
+          type: string
+        source:
+          type: string
+          enum: [DISTRICT_PLATFORM, BRIGHT_KITCHEN, MORNING_INSPECTION, LEDGER]
+        thirdWarnId:
+          type: string
+        schoolId:
+          type: string
+        schoolName:
+          type: string
+          nullable: true
+        areaCode:
+          type: string
+          nullable: true
+        deviceId:
+          type: string
+          nullable: true
+        deviceName:
+          type: string
+          nullable: true
+        canteenId:
+          type: string
+          nullable: true
+        warnHappenTime:
+          type: string
+          format: date-time
+        alarmEventId:
+          type: string
+        warnFullPic:
+          type: string
+          nullable: true
+        warnContent:
+          type: string
+        status:
+          type: string
+          enum: [UNPROCESSED, PROCESSED]
+        processStatus:
+          type: integer
+          enum: [0, 1]
+        createdAt:
+          type: string
+          format: date-time
+        processTime:
+          type: string
+          format: date-time
+          nullable: true
+        processUser:
+          type: string
+          nullable: true
+        processContent:
+          type: string
+          nullable: true
+        processFile:
+          type: string
+          nullable: true
+    AlertPage:
+      type: object
+      required: [records, pageNum, pageSize, total]
+      properties:
+        records:
+          type: array
+          items:
+            $ref: '#/components/schemas/AlertRecord'
+        pageNum:
+          type: integer
+        pageSize:
+          type: integer
+        total:
+          type: integer
+    AlertResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/AlertRecord'
+    AlertPageResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/AlertPage'
     Receipt:
       type: object
       required: [materialId, quantityBase, baseUnit]
