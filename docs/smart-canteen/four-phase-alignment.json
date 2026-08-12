@@ -36,6 +36,7 @@
         "generated 10-operation API IR/client/contract tests",
         "frontend tests and production build"
       ],
+      "commit": "4beef55",
       "note": "Procurement, inventory and unit conversion are accepted as phase-3 behavior. Existing implementation seams remain for compatibility but are verified by phase-3 evidence."
     },
     {
@@ -57,7 +58,7 @@
         "ScopedInventoryReceivingModuleTest",
         "ScopedCoreWorkflowHttpTest"
       ],
-      "commit": "60e703ecaa6680b0707e8c1be3a3025b156d7f46"
+      "commit": "4beef55"
     },
     {
       "phase": 4,
