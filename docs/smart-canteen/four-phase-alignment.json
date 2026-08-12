@@ -86,7 +86,7 @@
         "vendor alert-center integration and notification routing",
         "RBAC, Redis and RabbitMQ integration where required by those adapters"
       ],
-      "commit": "pending"
+      "commit": "2633cef"
     }
   ]
 }

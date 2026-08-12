@@ -1,7 +1,7 @@
 {
   "phase": "phase-4-alert-center-and-external-adapters",
   "captured_at": "2026-08-12T18:00:00+08:00",
-  "source_commit": "working-tree-phase4-before-provenance-commit",
+  "source_commit": "2633cef",
   "source_state": "phase-4 alert-center vertical slice; user PDFs are excluded from versioned inputs",
   "inputs": [
     "docs/smart-canteen/phase4-requirements.yaml",
@@ -42,6 +42,6 @@
   "known_limits": [
     "MySQL acceptance remains environment-gated by SMART_CANTEEN_MYSQL_IT",
     "vendor network adapters are ports only until credentials and contracts are supplied",
-    "source_commit will be replaced with the final phase-4 commit before delivery"
+    "source_commit is the immutable phase-4 implementation commit; provenance metadata is finalized in a follow-up commit"
   ]
 }
