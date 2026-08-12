@@ -11,6 +11,7 @@ import com.example.smartcanteen.domain.LedgerRecordCommand;
 import com.example.smartcanteen.domain.LedgerScope;
 import com.example.smartcanteen.domain.Menu;
 import com.example.smartcanteen.domain.ProcurementItem;
+import com.example.smartcanteen.domain.CanteenScope;
 import java.math.BigDecimal;
 import java.util.List;
 import org.springframework.stereotype.Service;
@@ -42,17 +43,33 @@ public class SmartCanteenWorkflow {
 
     @Transactional
     public Menu submitMenu(String menuId) {
-        return menuApproval.submit(menuId);
+        return submitMenu(CanteenScope.DEFAULT, menuId);
+    }
+
+    @Transactional
+    public Menu submitMenu(CanteenScope scope, String menuId) {
+        return menuApproval.submit(scope, menuId);
     }
 
     @Transactional
     public Menu decideMenu(String menuId, String decision, String comment) {
-        return menuApproval.decide(menuId, decision, comment);
+        return decideMenu(CanteenScope.DEFAULT, menuId, decision, comment);
+    }
+
+    @Transactional
+    public Menu decideMenu(
+            CanteenScope scope, String menuId, String decision, String comment) {
+        return menuApproval.decide(scope, menuId, decision, comment);
     }
 
     @Transactional(readOnly = true)
     public List<ProcurementItem> generateProcurement(String menuId) {
-        return procurementPlanning.generate(menuId);
+        return generateProcurement(CanteenScope.DEFAULT, menuId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ProcurementItem> generateProcurement(CanteenScope scope, String menuId) {
+        return procurementPlanning.generate(scope, menuId);
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
@@ -61,7 +78,18 @@ public class SmartCanteenWorkflow {
             String materialId,
             BigDecimal quantity,
             String unit) {
+        return receive(CanteenScope.DEFAULT, idempotencyKey, materialId, quantity, unit);
+    }
+
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public ReceiptResult receive(
+            CanteenScope scope,
+            String idempotencyKey,
+            String materialId,
+            BigDecimal quantity,
+            String unit) {
         InventoryReceiving.ReceiptResult stored = inventoryReceiving.receive(
+                scope,
                 idempotencyKey, materialId, quantity, unit);
         return new ReceiptResult(
                 stored.materialId(), stored.quantityBase(), stored.baseUnit());

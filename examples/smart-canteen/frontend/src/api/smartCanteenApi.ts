@@ -16,6 +16,11 @@ interface ApiEnvelope<T> {
   data: T;
 }
 
+export interface CanteenScope {
+  schoolId: string;
+  canteenId: string;
+}
+
 export class ApiBusinessError extends Error {
   readonly code: number;
 
@@ -36,18 +41,20 @@ function unwrap<T>(response: AxiosResponse<ApiEnvelope<T>>): T {
 
 export interface SmartCanteenApiPort {
   getCurrentLedgerAlert(): Promise<LedgerAlert>;
-  submitMenu(menuId: string): Promise<Menu>;
+  submitMenu(menuId: string, scope?: CanteenScope): Promise<Menu>;
   decideMenuApproval(
     menuId: string,
     decision: 'APPROVE' | 'REJECT',
     comment: string,
+    scope?: CanteenScope,
   ): Promise<Menu>;
-  generateProcurementPlan(menuId: string): Promise<ProcurementPlan>;
+  generateProcurementPlan(menuId: string, scope?: CanteenScope): Promise<ProcurementPlan>;
   receiveInventory(
     idempotencyKey: string,
     materialId: string,
     quantity: number,
     unit: string,
+    scope?: CanteenScope,
   ): Promise<Receipt>;
   completeLedgerRecord(ledgerCode: string): Promise<LedgerAlert>;
 }
@@ -62,10 +69,11 @@ export class SmartCanteenApi implements SmartCanteenApiPort {
     return unwrap(response);
   }
 
-  async submitMenu(menuId: string): Promise<Menu> {
-    const response = await this.client.post<MenuResponse>(
-      `/api/v1/menus/${encodeURIComponent(menuId)}/submit`,
-    );
+  async submitMenu(menuId: string, scope?: CanteenScope): Promise<Menu> {
+    const path = `/api/v1/menus/${encodeURIComponent(menuId)}/submit`;
+    const response = scope
+      ? await this.client.post<MenuResponse>(path, undefined, { params: scope })
+      : await this.client.post<MenuResponse>(path);
     return unwrap(response);
   }
 
@@ -73,19 +81,30 @@ export class SmartCanteenApi implements SmartCanteenApiPort {
     menuId: string,
     decision: 'APPROVE' | 'REJECT',
     comment: string,
+    scope?: CanteenScope,
   ): Promise<Menu> {
-    const response = await this.client.post<MenuResponse>(
-      `/api/v1/menu-approvals/${encodeURIComponent(menuId)}/decision`,
-      { decision, comment },
-    );
+    const path = `/api/v1/menu-approvals/${encodeURIComponent(menuId)}/decision`;
+    const body = { decision, comment };
+    const response = scope
+      ? await this.client.post<MenuResponse>(path, body, { params: scope })
+      : await this.client.post<MenuResponse>(path, body);
     return unwrap(response);
   }
 
-  async generateProcurementPlan(menuId: string): Promise<ProcurementPlan> {
-    const response = await this.client.post<ProcurementPlanResponse>(
-      '/api/v1/procurement-plans/generate',
-      { menuId },
-    );
+  async generateProcurementPlan(
+    menuId: string,
+    scope?: CanteenScope,
+  ): Promise<ProcurementPlan> {
+    const response = scope
+      ? await this.client.post<ProcurementPlanResponse>(
+          '/api/v1/procurement-plans/generate',
+          { menuId },
+          { params: scope },
+        )
+      : await this.client.post<ProcurementPlanResponse>(
+          '/api/v1/procurement-plans/generate',
+          { menuId },
+        );
     return unwrap(response);
   }
 
@@ -94,11 +113,15 @@ export class SmartCanteenApi implements SmartCanteenApiPort {
     materialId: string,
     quantity: number,
     unit: string,
+    scope?: CanteenScope,
   ): Promise<Receipt> {
     const response = await this.client.post<ReceiptResponse>(
       '/api/v1/inventory/receipts',
       { materialId, quantity, unit },
-      { headers: { 'Idempotency-Key': idempotencyKey } },
+      {
+        headers: { 'Idempotency-Key': idempotencyKey },
+        ...(scope ? { params: scope } : {}),
+      },
     );
     return unwrap(response);
   }

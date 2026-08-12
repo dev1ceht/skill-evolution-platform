@@ -9,6 +9,7 @@ import com.example.smartcanteen.domain.LedgerRecordCommand;
 import com.example.smartcanteen.domain.LedgerScope;
 import com.example.smartcanteen.domain.Menu;
 import com.example.smartcanteen.domain.ProcurementItem;
+import com.example.smartcanteen.domain.CanteenScope;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
@@ -40,30 +41,46 @@ public class SmartCanteenController {
     }
 
     @PostMapping("/menus/{menuId}/submit")
-    public ApiResponse<MenuView> submit(@PathVariable String menuId) {
-        return ApiResponse.ok(MenuView.from(workflow.submitMenu(menuId)));
+    public ApiResponse<MenuView> submit(
+            @PathVariable String menuId,
+            @RequestParam(required = false) String schoolId,
+            @RequestParam(required = false) String canteenId) {
+        return ApiResponse.ok(MenuView.from(workflow.submitMenu(
+                scope(schoolId, canteenId), menuId)));
     }
 
     @PostMapping("/menu-approvals/{menuId}/decision")
     public ApiResponse<MenuView> decide(
             @PathVariable String menuId,
+            @RequestParam(required = false) String schoolId,
+            @RequestParam(required = false) String canteenId,
             @Valid @RequestBody ApprovalDecision request) {
         return ApiResponse.ok(MenuView.from(
-                workflow.decideMenu(menuId, request.decision(), request.comment())));
+                workflow.decideMenu(
+                        scope(schoolId, canteenId),
+                        menuId,
+                        request.decision(),
+                        request.comment())));
     }
 
     @PostMapping("/procurement-plans/generate")
     public ApiResponse<ProcurementPlanView> generate(
+            @RequestParam(required = false) String schoolId,
+            @RequestParam(required = false) String canteenId,
             @Valid @RequestBody GenerateProcurement request) {
         return ApiResponse.ok(new ProcurementPlanView(
-                request.menuId(), workflow.generateProcurement(request.menuId())));
+                request.menuId(), workflow.generateProcurement(
+                        scope(schoolId, canteenId), request.menuId())));
     }
 
     @PostMapping("/inventory/receipts")
     public ApiResponse<ReceiptResult> receive(
             @RequestHeader("Idempotency-Key") String idempotencyKey,
+            @RequestParam(required = false) String schoolId,
+            @RequestParam(required = false) String canteenId,
             @Valid @RequestBody InventoryReceipt request) {
         return ApiResponse.ok(workflow.receive(
+                scope(schoolId, canteenId),
                 idempotencyKey, request.materialId(), request.quantity(), request.unit()));
     }
 
@@ -149,5 +166,15 @@ public class SmartCanteenController {
             @NotBlank String schoolId,
             @NotBlank String canteenId,
             @NotBlank String ledgerCode) {
+    }
+
+    private static CanteenScope scope(String schoolId, String canteenId) {
+        if ((schoolId == null) != (canteenId == null)) {
+            throw new IllegalArgumentException(
+                    "schoolId and canteenId must be provided together");
+        }
+        return new CanteenScope(
+                schoolId == null ? CanteenScope.DEFAULT.schoolId() : schoolId,
+                canteenId == null ? CanteenScope.DEFAULT.canteenId() : canteenId);
     }
 }

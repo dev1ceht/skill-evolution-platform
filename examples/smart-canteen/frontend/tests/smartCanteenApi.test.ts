@@ -34,4 +34,26 @@ describe('SmartCanteenApi', () => {
       message: '台账查询失败',
     });
   });
+
+  it('passes an explicit school and canteen scope without changing the endpoint path', async () => {
+    const post = vi.fn().mockResolvedValue({
+      data: {
+        code: 0,
+        message: 'success',
+        data: { id: 'MENU-001', status: 'PENDING_APPROVAL' },
+      },
+    });
+    const api = new SmartCanteenApi({ post } as unknown as AxiosInstance);
+
+    await api.submitMenu('MENU-001', {
+      schoolId: 'SCHOOL-002',
+      canteenId: 'CANTEEN-002',
+    });
+
+    expect(post).toHaveBeenCalledWith(
+      '/api/v1/menus/MENU-001/submit',
+      undefined,
+      { params: { schoolId: 'SCHOOL-002', canteenId: 'CANTEEN-002' } },
+    );
+  });
 });

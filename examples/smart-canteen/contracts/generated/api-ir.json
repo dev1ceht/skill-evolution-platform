@@ -1,7 +1,7 @@
 {
   "title": "Smart Canteen Workflow API",
   "version": "1.0.0",
-  "documentHash": "e12bcf88be7dac5a8183c3338a480a9618997e4df652c6a2f40a1557fa8fd02a",
+  "documentHash": "1cc435b6cda4ec812ea48e2a76276e8225194481512b8186f6cb9ac342be2650",
   "schemas": {
     "Menu": {
       "type": "object",
@@ -390,6 +390,24 @@
           "schema": {
             "type": "string"
           }
+        },
+        {
+          "name": "schoolId",
+          "in": "query",
+          "required": false,
+          "description": "学校范围；必须与 canteenId 成对提供，省略时使用兼容默认范围。",
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "canteenId",
+          "in": "query",
+          "required": false,
+          "description": "食堂范围；必须与 schoolId 成对提供，省略时使用兼容默认范围。",
+          "schema": {
+            "type": "string"
+          }
         }
       ],
       "requestBody": {
@@ -418,7 +436,7 @@
         }
       },
       "provenance": {
-        "documentHash": "e12bcf88be7dac5a8183c3338a480a9618997e4df652c6a2f40a1557fa8fd02a",
+        "documentHash": "1cc435b6cda4ec812ea48e2a76276e8225194481512b8186f6cb9ac342be2650",
         "pointer": "/paths/~1api~1v1~1inventory~1receipts/post"
       }
     },
@@ -444,7 +462,7 @@
         }
       },
       "provenance": {
-        "documentHash": "e12bcf88be7dac5a8183c3338a480a9618997e4df652c6a2f40a1557fa8fd02a",
+        "documentHash": "1cc435b6cda4ec812ea48e2a76276e8225194481512b8186f6cb9ac342be2650",
         "pointer": "/paths/~1api~1v1~1ledger-alerts~1current/get"
       }
     },
@@ -482,7 +500,7 @@
         }
       },
       "provenance": {
-        "documentHash": "e12bcf88be7dac5a8183c3338a480a9618997e4df652c6a2f40a1557fa8fd02a",
+        "documentHash": "1cc435b6cda4ec812ea48e2a76276e8225194481512b8186f6cb9ac342be2650",
         "pointer": "/paths/~1api~1v1~1ledger-cycles/post"
       }
     },
@@ -536,7 +554,7 @@
         }
       },
       "provenance": {
-        "documentHash": "e12bcf88be7dac5a8183c3338a480a9618997e4df652c6a2f40a1557fa8fd02a",
+        "documentHash": "1cc435b6cda4ec812ea48e2a76276e8225194481512b8186f6cb9ac342be2650",
         "pointer": "/paths/~1api~1v1~1ledger-cycles~1{cycleId}~1alerts~1current/get"
       }
     },
@@ -583,7 +601,7 @@
         }
       },
       "provenance": {
-        "documentHash": "e12bcf88be7dac5a8183c3338a480a9618997e4df652c6a2f40a1557fa8fd02a",
+        "documentHash": "1cc435b6cda4ec812ea48e2a76276e8225194481512b8186f6cb9ac342be2650",
         "pointer": "/paths/~1api~1v1~1ledger-cycles~1{cycleId}~1records/post"
       }
     },
@@ -621,7 +639,7 @@
         }
       },
       "provenance": {
-        "documentHash": "e12bcf88be7dac5a8183c3338a480a9618997e4df652c6a2f40a1557fa8fd02a",
+        "documentHash": "1cc435b6cda4ec812ea48e2a76276e8225194481512b8186f6cb9ac342be2650",
         "pointer": "/paths/~1api~1v1~1ledger-records/post"
       }
     },
@@ -637,6 +655,24 @@
           "name": "menuId",
           "in": "path",
           "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "schoolId",
+          "in": "query",
+          "required": false,
+          "description": "学校范围；必须与 canteenId 成对提供，省略时使用兼容默认范围。",
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "canteenId",
+          "in": "query",
+          "required": false,
+          "description": "食堂范围；必须与 schoolId 成对提供，省略时使用兼容默认范围。",
           "schema": {
             "type": "string"
           }
@@ -668,7 +704,7 @@
         }
       },
       "provenance": {
-        "documentHash": "e12bcf88be7dac5a8183c3338a480a9618997e4df652c6a2f40a1557fa8fd02a",
+        "documentHash": "1cc435b6cda4ec812ea48e2a76276e8225194481512b8186f6cb9ac342be2650",
         "pointer": "/paths/~1api~1v1~1menu-approvals~1{menuId}~1decision/post"
       }
     },
@@ -684,6 +720,24 @@
           "name": "menuId",
           "in": "path",
           "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "schoolId",
+          "in": "query",
+          "required": false,
+          "description": "学校范围；必须与 canteenId 成对提供，省略时使用兼容默认范围。",
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "canteenId",
+          "in": "query",
+          "required": false,
+          "description": "食堂范围；必须与 schoolId 成对提供，省略时使用兼容默认范围。",
           "schema": {
             "type": "string"
           }
@@ -706,7 +760,7 @@
         }
       },
       "provenance": {
-        "documentHash": "e12bcf88be7dac5a8183c3338a480a9618997e4df652c6a2f40a1557fa8fd02a",
+        "documentHash": "1cc435b6cda4ec812ea48e2a76276e8225194481512b8186f6cb9ac342be2650",
         "pointer": "/paths/~1api~1v1~1menus~1{menuId}~1submit/post"
       }
     },
@@ -717,7 +771,26 @@
       "tags": [
         "procurement"
       ],
-      "parameters": [],
+      "parameters": [
+        {
+          "name": "schoolId",
+          "in": "query",
+          "required": false,
+          "description": "学校范围；必须与 canteenId 成对提供，省略时使用兼容默认范围。",
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "canteenId",
+          "in": "query",
+          "required": false,
+          "description": "食堂范围；必须与 schoolId 成对提供，省略时使用兼容默认范围。",
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
       "requestBody": {
         "required": true,
         "content": {
@@ -744,7 +817,7 @@
         }
       },
       "provenance": {
-        "documentHash": "e12bcf88be7dac5a8183c3338a480a9618997e4df652c6a2f40a1557fa8fd02a",
+        "documentHash": "1cc435b6cda4ec812ea48e2a76276e8225194481512b8186f6cb9ac342be2650",
         "pointer": "/paths/~1api~1v1~1procurement-plans~1generate/post"
       }
     }

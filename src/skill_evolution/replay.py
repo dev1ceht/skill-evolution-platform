@@ -11,7 +11,12 @@ from .evolution import DeterministicJudge
 
 
 class ContractReplayJudge:
-    """Offline judge that replays a real OpenAPI contract through code generation."""
+    """Offline judge that replays a real OpenAPI contract through code generation.
+
+    A replay artifact records the historical baseline contract separately from
+    the contract revision used for the current candidate replay. This lets an
+    API evolve without rewriting the original failure evidence.
+    """
 
     name = "contract-replay-v1"
 
@@ -43,11 +48,14 @@ class ContractReplayJudge:
     def provenance(self) -> dict[str, Any]:
         if self.baseline_artifact is None:
             return {"pageName": self.page_name}
+        replay_source = self.baseline_artifact.get("replaySource", {})
         provenance = {
             "pageName": self.page_name,
             "baselineArtifactVersion": self.baseline_artifact.get("artifactVersion"),
             "baselineSourceCommit": self.baseline_artifact.get("sourceCommit"),
-            "contractHash": self.baseline_artifact.get("contractHash"),
+            "baselineContractHash": self.baseline_artifact.get("contractHash"),
+            "replaySourceCommit": replay_source.get("sourceCommit"),
+            "replayContractHash": replay_source.get("contractHash"),
             "baselineFailure": self.baseline_artifact.get("failure"),
         }
         provenance["candidateEvidence"] = self.candidate_evidence
@@ -77,11 +85,20 @@ class ContractReplayJudge:
                     contract_tests.encode("utf-8")
                 ).hexdigest(),
             }
+            replay_source = (
+                self.baseline_artifact.get("replaySource", {})
+                if self.baseline_artifact
+                else {}
+            )
+            expected_contract_hash = replay_source.get(
+                "contractHash",
+                self.baseline_artifact.get("contractHash") if self.baseline_artifact else None,
+            )
             checks.update(
                 {
                     "contractGenerated": bool(operations),
                     "contractSourceMatched": self.baseline_artifact is None
-                    or result["documentHash"] == self.baseline_artifact.get("contractHash"),
+                    or result["documentHash"] == expected_contract_hash,
                     "parameterReferencesResolved": self._parameters_resolved(operations),
                     "pathParametersEncoded": self._paths_encoded(
                         operations, client, contract_tests

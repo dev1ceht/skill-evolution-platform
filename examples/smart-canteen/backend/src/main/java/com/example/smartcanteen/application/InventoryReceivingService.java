@@ -3,6 +3,7 @@ package com.example.smartcanteen.application;
 import com.example.smartcanteen.application.port.InventoryReceiving;
 import com.example.smartcanteen.application.port.InventoryStore;
 import com.example.smartcanteen.domain.BaseQuantity;
+import com.example.smartcanteen.domain.CanteenScope;
 import com.example.smartcanteen.domain.UnitConverter;
 import java.math.BigDecimal;
 import org.springframework.stereotype.Service;
@@ -27,11 +28,22 @@ public class InventoryReceivingService implements InventoryReceiving {
             String materialId,
             BigDecimal quantity,
             String unit) {
+        return receive(CanteenScope.DEFAULT, idempotencyKey, materialId, quantity, unit);
+    }
+
+    @Override
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public ReceiptResult receive(
+            CanteenScope scope,
+            String idempotencyKey,
+            String materialId,
+            BigDecimal quantity,
+            String unit) {
         requireIdentifier("Idempotency-Key", idempotencyKey, 128);
         requireIdentifier("materialId", materialId, 64);
         requireIdentifier("unit", unit, 16);
         BaseQuantity received = unitConverter.convert(quantity, unit);
-        InventoryStore.StoredReceipt stored = inventory.receiveOnce(new InventoryStore.ReceiptCommand(
+        InventoryStore.StoredReceipt stored = inventory.receiveOnce(scope, new InventoryStore.ReceiptCommand(
                 idempotencyKey,
                 materialId,
                 quantity,

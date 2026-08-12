@@ -2,6 +2,7 @@ package com.example.smartcanteen.application;
 
 import com.example.smartcanteen.application.port.MenuApproval;
 import com.example.smartcanteen.application.port.MenuStore;
+import com.example.smartcanteen.domain.CanteenScope;
 import com.example.smartcanteen.domain.Menu;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,18 +19,30 @@ public class MenuApprovalService implements MenuApproval {
     @Override
     @Transactional
     public Menu submit(String menuId) {
+        return submit(CanteenScope.DEFAULT, menuId);
+    }
+
+    @Override
+    @Transactional
+    public Menu submit(CanteenScope scope, String menuId) {
         requireIdentifier("menuId", menuId, 64);
-        Menu menu = requireMenu(menuId);
+        Menu menu = requireMenu(scope, menuId);
         menu.submit();
-        menus.saveMenu(menu);
+        menus.saveMenu(scope, menu);
         return menu;
     }
 
     @Override
     @Transactional
     public Menu decide(String menuId, String decision, String comment) {
+        return decide(CanteenScope.DEFAULT, menuId, decision, comment);
+    }
+
+    @Override
+    @Transactional
+    public Menu decide(CanteenScope scope, String menuId, String decision, String comment) {
         requireIdentifier("menuId", menuId, 64);
-        Menu menu = requireMenu(menuId);
+        Menu menu = requireMenu(scope, menuId);
         if ("APPROVE".equalsIgnoreCase(decision)) {
             menu.approve(comment);
         } else if ("REJECT".equalsIgnoreCase(decision)) {
@@ -37,12 +50,12 @@ public class MenuApprovalService implements MenuApproval {
         } else {
             throw new IllegalArgumentException("Unsupported approval decision: " + decision);
         }
-        menus.saveMenu(menu);
+        menus.saveMenu(scope, menu);
         return menu;
     }
 
-    private Menu requireMenu(String menuId) {
-        return menus.findMenu(menuId)
+    private Menu requireMenu(CanteenScope scope, String menuId) {
+        return menus.findMenu(scope, menuId)
                 .orElseThrow(() -> new IllegalArgumentException("Unknown menu: " + menuId));
     }
 

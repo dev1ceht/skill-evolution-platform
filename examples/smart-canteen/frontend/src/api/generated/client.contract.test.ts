@@ -12,7 +12,7 @@ describe("Smart Canteen Workflow API contract", () => {
     fetchMock.mockResolvedValue({ ok: true, json: async () => ({}) });
   });
   it("receiveInventory sends POST /api/v1/inventory/receipts", async () => {
-    await client.receiveInventory('fixture', {} as never);
+    await client.receiveInventory('fixture', {} as never, undefined, undefined);
     const [requestUrl, options] = fetchMock.mock.calls[0];
     expect(new URL(requestUrl).pathname).toBe("/api/v1/inventory/receipts");
     expect(options.method).toBe("POST");
@@ -57,7 +57,7 @@ describe("Smart Canteen Workflow API contract", () => {
     expect(JSON.parse(options.body)).toEqual({});
   });
   it("decideMenuApproval sends POST /api/v1/menu-approvals/{menuId}/decision", async () => {
-    await client.decideMenuApproval('fixture', {} as never);
+    await client.decideMenuApproval('fixture', {} as never, undefined, undefined);
     const [requestUrl, options] = fetchMock.mock.calls[0];
     expect(new URL(requestUrl).pathname).toBe("/api/v1/menu-approvals/fixture/decision");
     expect(options.method).toBe("POST");
@@ -65,13 +65,13 @@ describe("Smart Canteen Workflow API contract", () => {
     expect(JSON.parse(options.body)).toEqual({});
   });
   it("submitMenu sends POST /api/v1/menus/{menuId}/submit", async () => {
-    await client.submitMenu('fixture');
+    await client.submitMenu('fixture', undefined, undefined);
     const [requestUrl, options] = fetchMock.mock.calls[0];
     expect(new URL(requestUrl).pathname).toBe("/api/v1/menus/fixture/submit");
     expect(options.method).toBe("POST");
   });
   it("generateProcurementPlan sends POST /api/v1/procurement-plans/generate", async () => {
-    await client.generateProcurementPlan({} as never);
+    await client.generateProcurementPlan({} as never, undefined, undefined);
     const [requestUrl, options] = fetchMock.mock.calls[0];
     expect(new URL(requestUrl).pathname).toBe("/api/v1/procurement-plans/generate");
     expect(options.method).toBe("POST");

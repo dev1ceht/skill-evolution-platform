@@ -97,9 +97,11 @@ export type ErrorResponse = {
   data?: string;
 };
 
-export async function receiveInventory(idempotencyKey: string, body: InventoryReceipt): Promise<ReceiptResponse> {
+export async function receiveInventory(idempotencyKey: string, body: InventoryReceipt, schoolId?: string, canteenId?: string): Promise<ReceiptResponse> {
   const path = "/api/v1/inventory/receipts";
   const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
   const headers: Record<string, string> = {};
   headers["Idempotency-Key"] = String(idempotencyKey);
   headers["Content-Type"] = "application/json";
@@ -160,11 +162,13 @@ export async function completeLedgerRecord(body: LedgerRecord): Promise<LedgerAl
   return response.json() as Promise<LedgerAlertResponse>;
 }
 
-export async function decideMenuApproval(menuId: string, body: ApprovalDecision): Promise<MenuResponse> {
+export async function decideMenuApproval(menuId: string, body: ApprovalDecision, schoolId?: string, canteenId?: string): Promise<MenuResponse> {
   const encodedMenuId = encodeURIComponent(String(menuId));
   let path = "/api/v1/menu-approvals/{menuId}/decision";
   path = path.replace("{menuId}", encodedMenuId);
   const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
   const headers: Record<string, string> = {};
   headers["Content-Type"] = "application/json";
   const response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body) });
@@ -172,19 +176,23 @@ export async function decideMenuApproval(menuId: string, body: ApprovalDecision)
   return response.json() as Promise<MenuResponse>;
 }
 
-export async function submitMenu(menuId: string): Promise<MenuResponse> {
+export async function submitMenu(menuId: string, schoolId?: string, canteenId?: string): Promise<MenuResponse> {
   const encodedMenuId = encodeURIComponent(String(menuId));
   let path = "/api/v1/menus/{menuId}/submit";
   path = path.replace("{menuId}", encodedMenuId);
   const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
   const response = await fetch(url, { method: 'POST' });
   if (!response.ok) throw new Error(`API request failed: ${response.status}`);
   return response.json() as Promise<MenuResponse>;
 }
 
-export async function generateProcurementPlan(body: GenerateProcurementRequest): Promise<ProcurementPlanResponse> {
+export async function generateProcurementPlan(body: GenerateProcurementRequest, schoolId?: string, canteenId?: string): Promise<ProcurementPlanResponse> {
   const path = "/api/v1/procurement-plans/generate";
   const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
   const headers: Record<string, string> = {};
   headers["Content-Type"] = "application/json";
   const response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body) });

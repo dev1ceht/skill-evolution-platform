@@ -1,0 +1,51 @@
+{
+  "phase": "phase-3-canteen-scope",
+  "objective": "将菜单、食谱、库存和入库幂等数据迁移到 schoolId + canteenId 复合范围，同时保持既有 REST v1 调用兼容",
+  "included": [
+    "CanteenScope domain value object",
+    "Scoped menu approval, procurement planning and inventory receiving interfaces",
+    "Flyway V3 migration for scoped menus, recipes, inventory and receipts",
+    "Scoped JDBC queries and composite idempotency identity",
+    "Optional schoolId/canteenId query parameters on existing menu, procurement and inventory endpoints",
+    "OpenAPI/API IR/generated client synchronization",
+    "Cross-canteen module and HTTP regression tests"
+  ],
+  "deferred": [
+    "RBAC and unified authentication",
+    "Redis cache invalidation",
+    "RabbitMQ events",
+    "device, district platform and procurement third-party adapters",
+    "dynamic unit catalog and product master-data administration",
+    "production MySQL acceptance until credentials are supplied"
+  ],
+  "scope": {
+    "domain": "com.example.smartcanteen.domain.CanteenScope",
+    "default_compatibility": ["SCHOOL-001", "CANTEEN-001"],
+    "query_parameters": ["schoolId", "canteenId"]
+  },
+  "database": {
+    "migration": "examples/smart-canteen/backend/src/main/resources/db/migration/V3__scope_core_business_data.sql",
+    "composite_keys": [
+      "menus(school_id, canteen_id, id)",
+      "recipe_requirements(school_id, canteen_id, menu_id, material_id)",
+      "inventory(school_id, canteen_id, material_id)",
+      "inventory_receipts(school_id, canteen_id, idempotency_key)"
+    ]
+  },
+  "interfaces": {
+    "menu": "com.example.smartcanteen.application.port.MenuApproval",
+    "procurement": "com.example.smartcanteen.application.port.ProcurementPlanning",
+    "inventory": "com.example.smartcanteen.application.port.InventoryReceiving",
+    "persistence": [
+      "com.example.smartcanteen.application.port.MenuStore",
+      "com.example.smartcanteen.application.port.RecipeStore",
+      "com.example.smartcanteen.application.port.InventoryStore"
+    ]
+  },
+  "invariants": [
+    "Same menu ID in two canteens has independent approval state",
+    "Procurement planning reads recipe and inventory only from the requested canteen",
+    "The same idempotency key may succeed once per canteen scope",
+    "Omitted scope preserves the phase-2 default compatibility behavior"
+  ]
+}

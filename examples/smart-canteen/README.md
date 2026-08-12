@@ -43,6 +43,12 @@ InventoryReceiving  → 单位换算 / 入库幂等
 
 三个模块通过 `MenuStore`、`RecipeStore`、`InventoryStore` 持久化端口接入 JDBC；`SmartCanteenWorkflow` 只作为兼容门面。第二阶段计划、追溯和验证记录见 [`phase2-plan.json`](../../docs/smart-canteen/phase2-plan.json)、[`phase2-traceability.md`](../../docs/smart-canteen/phase2-traceability.md) 和 [`phase2-verification.json`](../../docs/smart-canteen/phase2-verification.json)。
 
+## 第三阶段：多食堂核心数据隔离
+
+第三阶段在不改变既有 REST v1 路径的前提下，为菜单、食谱、库存和入库幂等记录增加 `schoolId + canteenId` 复合范围。后端使用 `CanteenScope` 传递范围，Flyway V3 将既有默认数据迁移到 `SCHOOL-001/CANTEEN-001`；菜单审批、采购计划和库存入库接口支持可选 `schoolId`、`canteenId` 查询参数，省略时保持第二阶段默认兼容行为。
+
+计划、追溯和验证记录见 [`phase3-plan.json`](../../docs/smart-canteen/phase3-plan.json)、[`phase3-traceability.md`](../../docs/smart-canteen/phase3-traceability.md) 和 [`phase3-verification.json`](../../docs/smart-canteen/phase3-verification.json)。
+
 ## 启动项目
 
 先启动中间件。需要 Docker Desktop 或兼容的 Docker Engine；每个中间件都由仓库内 Dockerfile 构建：

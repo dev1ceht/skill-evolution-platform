@@ -12,6 +12,8 @@ paths:
       tags: [menu-approval]
       parameters:
         - $ref: '#/components/parameters/MenuId'
+        - $ref: '#/components/parameters/SchoolId'
+        - $ref: '#/components/parameters/CanteenId'
       responses:
         '200':
           description: 菜单已提交审批
@@ -27,6 +29,8 @@ paths:
       tags: [menu-approval]
       parameters:
         - $ref: '#/components/parameters/MenuId'
+        - $ref: '#/components/parameters/SchoolId'
+        - $ref: '#/components/parameters/CanteenId'
       requestBody:
         required: true
         content:
@@ -46,6 +50,9 @@ paths:
     post:
       operationId: generateProcurementPlan
       tags: [procurement]
+      parameters:
+        - $ref: '#/components/parameters/SchoolId'
+        - $ref: '#/components/parameters/CanteenId'
       requestBody:
         required: true
         content:
@@ -72,6 +79,8 @@ paths:
           description: 防止入库单重复提交
           schema:
             type: string
+        - $ref: '#/components/parameters/SchoolId'
+        - $ref: '#/components/parameters/CanteenId'
       requestBody:
         required: true
         content:
@@ -198,6 +207,20 @@ components:
       name: menuId
       in: path
       required: true
+      schema:
+        type: string
+    SchoolId:
+      name: schoolId
+      in: query
+      required: false
+      description: 学校范围；必须与 canteenId 成对提供，省略时使用兼容默认范围。
+      schema:
+        type: string
+    CanteenId:
+      name: canteenId
+      in: query
+      required: false
+      description: 食堂范围；必须与 schoolId 成对提供，省略时使用兼容默认范围。
       schema:
         type: string
   responses:
