@@ -68,6 +68,7 @@ public class RecipeImportService implements RecipeImport {
         if (quantity == null || quantity.signum() <= 0) {
             throw new IllegalArgumentException("Recipe quantity must be positive");
         }
+        requireIdentifier("unit", requirement.unit(), 16);
         units.convert(quantity, requirement.unit());
         return requirement;
     }

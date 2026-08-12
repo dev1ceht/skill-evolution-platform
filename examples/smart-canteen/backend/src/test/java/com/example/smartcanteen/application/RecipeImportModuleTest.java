@@ -66,6 +66,43 @@ class RecipeImportModuleTest {
                 .hasMessageContaining("DRAFT");
     }
 
+    @Test
+    void rejects_duplicate_materials_in_one_recipe() {
+        CanteenScope scope = new CanteenScope("SCHOOL-RECIPE", "CANTEEN-RECIPE");
+        Menu menu = new Menu("MENU-DUPLICATE");
+        InMemoryRecipeData data = new InMemoryRecipeData(scope, menu);
+        RecipeImport module = new RecipeImportService(
+                data,
+                data,
+                new com.example.smartcanteen.domain.UnitConverter());
+
+        assertThatThrownBy(() -> module.importRecipe(
+                scope,
+                menu.id(),
+                List.of(
+                        new IngredientRequirement("EGG", new BigDecimal("1"), "count"),
+                        new IngredientRequirement("EGG", new BigDecimal("2"), "count"))))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("duplicate material");
+    }
+
+    @Test
+    void rejects_blank_or_unsupported_units_at_the_module_boundary() {
+        CanteenScope scope = new CanteenScope("SCHOOL-RECIPE", "CANTEEN-RECIPE");
+        InMemoryRecipeData data = new InMemoryRecipeData(scope, new Menu("MENU-UNIT"));
+        RecipeImport module = new RecipeImportService(
+                data,
+                data,
+                new com.example.smartcanteen.domain.UnitConverter());
+
+        assertThatThrownBy(() -> module.importRecipe(
+                scope,
+                "MENU-UNIT",
+                List.of(new IngredientRequirement("EGG", new BigDecimal("1"), ""))))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("unit is required");
+    }
+
     private static final class InMemoryRecipeData implements MenuStore, RecipeStore {
 
         private final CanteenScope scope;
