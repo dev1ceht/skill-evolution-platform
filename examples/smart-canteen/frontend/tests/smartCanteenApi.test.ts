@@ -56,4 +56,31 @@ describe('SmartCanteenApi', () => {
       { params: { schoolId: 'SCHOOL-002', canteenId: 'CANTEEN-002' } },
     );
   });
+
+  it('imports a recipe through the scoped recipe endpoint', async () => {
+    const post = vi.fn().mockResolvedValue({
+      data: {
+        code: 0,
+        message: 'success',
+        data: {
+          menuId: 'MENU-001',
+          requirements: [{ materialId: 'FLOUR', quantity: 2, unit: 'kg' }],
+        },
+      },
+    });
+    const api = new SmartCanteenApi({ post } as unknown as AxiosInstance);
+
+    const recipe = await api.importMenuRecipe(
+      'MENU-001',
+      [{ materialId: 'FLOUR', quantity: 2, unit: 'kg' }],
+      { schoolId: 'SCHOOL-002', canteenId: 'CANTEEN-002' },
+    );
+
+    expect(post).toHaveBeenCalledWith(
+      '/api/v1/menus/MENU-001/recipe',
+      { requirements: [{ materialId: 'FLOUR', quantity: 2, unit: 'kg' }] },
+      { params: { schoolId: 'SCHOOL-002', canteenId: 'CANTEEN-002' } },
+    );
+    expect(recipe.requirements[0].materialId).toBe('FLOUR');
+  });
 });

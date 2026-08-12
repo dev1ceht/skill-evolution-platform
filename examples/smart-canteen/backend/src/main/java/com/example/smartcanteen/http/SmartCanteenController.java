@@ -1,12 +1,14 @@
 package com.example.smartcanteen.http;
 
 import com.example.smartcanteen.application.SmartCanteenWorkflow;
+import com.example.smartcanteen.application.port.RecipeImport;
 import com.example.smartcanteen.application.SmartCanteenWorkflow.ReceiptResult;
 import com.example.smartcanteen.domain.LedgerAlert;
 import com.example.smartcanteen.domain.LedgerCode;
 import com.example.smartcanteen.domain.LedgerCycleRequest;
 import com.example.smartcanteen.domain.LedgerRecordCommand;
 import com.example.smartcanteen.domain.LedgerScope;
+import com.example.smartcanteen.domain.IngredientRequirement;
 import com.example.smartcanteen.domain.Menu;
 import com.example.smartcanteen.domain.ProcurementItem;
 import com.example.smartcanteen.domain.CanteenScope;
@@ -60,7 +62,23 @@ public class SmartCanteenController {
                         scope(schoolId, canteenId),
                         menuId,
                         request.decision(),
-                        request.comment())));
+                request.comment())));
+    }
+
+    @PostMapping("/menus/{menuId}/recipe")
+    public ApiResponse<RecipeView> importRecipe(
+            @PathVariable String menuId,
+            @RequestParam(required = false) String schoolId,
+            @RequestParam(required = false) String canteenId,
+            @Valid @RequestBody RecipeImportRequest request) {
+        RecipeImport.RecipeResult result = workflow.importRecipe(
+                scope(schoolId, canteenId),
+                menuId,
+                request.requirements().stream()
+                        .map(item -> new IngredientRequirement(
+                                item.materialId(), item.quantity(), item.unit()))
+                        .toList());
+        return ApiResponse.ok(RecipeView.from(result));
     }
 
     @PostMapping("/procurement-plans/generate")
@@ -136,6 +154,28 @@ public class SmartCanteenController {
     }
 
     public record ApprovalDecision(@NotBlank String decision, @NotBlank String comment) {
+    }
+
+    public record RecipeImportRequest(
+            @NotEmpty List<@Valid RecipeRequirement> requirements) {
+    }
+
+    public record RecipeRequirement(
+            @NotBlank String materialId,
+            @NotNull @DecimalMin(value = "0.0", inclusive = false) BigDecimal quantity,
+            @NotBlank String unit) {
+    }
+
+    public record RecipeView(String menuId, List<RecipeRequirement> requirements) {
+
+        static RecipeView from(RecipeImport.RecipeResult result) {
+            return new RecipeView(
+                    result.menuId(),
+                    result.requirements().stream()
+                            .map(item -> new RecipeRequirement(
+                                    item.materialId(), item.quantity(), item.unit()))
+                            .toList());
+        }
     }
 
     public record GenerateProcurement(@NotBlank String menuId) {

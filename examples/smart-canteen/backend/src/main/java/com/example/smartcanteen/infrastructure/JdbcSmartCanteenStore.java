@@ -94,6 +94,31 @@ public class JdbcSmartCanteenStore implements SmartCanteenStore {
     }
 
     @Override
+    public void replaceRecipe(
+            CanteenScope scope,
+            String menuId,
+            List<IngredientRequirement> requirements) {
+        jdbc.update(
+                "DELETE FROM recipe_requirements "
+                        + "WHERE school_id = ? AND canteen_id = ? AND menu_id = ?",
+                scope.schoolId(),
+                scope.canteenId(),
+                menuId);
+        for (IngredientRequirement requirement : requirements) {
+            jdbc.update(
+                    "INSERT INTO recipe_requirements ("
+                            + "school_id, canteen_id, menu_id, material_id, quantity, unit"
+                            + ") VALUES (?, ?, ?, ?, ?, ?)",
+                    scope.schoolId(),
+                    scope.canteenId(),
+                    menuId,
+                    requirement.materialId(),
+                    requirement.quantity(),
+                    requirement.unit());
+        }
+    }
+
+    @Override
     public Map<String, BigDecimal> inventorySnapshot() {
         return inventorySnapshot(CanteenScope.DEFAULT);
     }

@@ -10,6 +10,7 @@ function apiStub(overrides: Partial<SmartCanteenApiPort> = {}): SmartCanteenApiP
       missingLedgerCodes: ['PURCHASE_ACCEPTANCE'],
     }),
     submitMenu: vi.fn().mockResolvedValue({ id: 'MENU-001', status: 'PENDING_APPROVAL' }),
+    importMenuRecipe: vi.fn().mockResolvedValue({ menuId: 'MENU-001', requirements: [] }),
     decideMenuApproval: vi.fn().mockResolvedValue({ id: 'MENU-001', status: 'APPROVED' }),
     generateProcurementPlan: vi.fn().mockResolvedValue({ menuId: 'MENU-001', items: [] }),
     receiveInventory: vi.fn().mockResolvedValue({

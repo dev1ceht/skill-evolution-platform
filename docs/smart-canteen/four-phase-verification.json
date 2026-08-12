@@ -1,0 +1,60 @@
+{
+  "plan": "four-phase-alignment",
+  "captured_at": "2026-08-12T17:00:30+08:00",
+  "source_commit": "60e703ecaa6680b0707e8c1be3a3025b156d7f46",
+  "source_state": "working tree containing the phase-2 recipe-import repair and phase-3 procurement verification; user PDFs are excluded",
+  "inputs": [
+    "docs/smart-canteen/four-phase-alignment.json",
+    "docs/smart-canteen/four-phase-alignment.md",
+    "examples/smart-canteen/contracts/smart-canteen.openapi.yaml"
+  ],
+  "environment": {
+    "java": "17.0.18",
+    "maven": "3.9.6",
+    "python": "3.13.9",
+    "node": "22.22.0",
+    "npm": "10.9.4",
+    "os": "Windows 11 amd64"
+  },
+  "commands": [
+    {
+      "command": "mvn --batch-mode -Dtest=RecipeImportModuleTest,RecipeImportHttpTest test",
+      "result": "passed",
+      "evidence": "4 tests, 0 failures, 0 errors; Flyway V3 applied in H2"
+    },
+    {
+      "command": "mvn --batch-mode -Dtest=ScopedCoreWorkflowHttpTest test",
+      "result": "passed",
+      "evidence": "3 tests, 0 failures, 0 errors; scoped procurement and base-unit shortage verified"
+    },
+    {
+      "command": "mvn --batch-mode test",
+      "result": "passed",
+      "evidence": "31 tests, 0 failures, 0 errors, 1 environment-gated MySQL test skipped"
+    },
+    {
+      "command": "python -m pytest -q -p no:cacheprovider --basetemp=tmp/pytest-phase2-3-repair",
+      "result": "passed",
+      "evidence": "24 tests passed"
+    },
+    {
+      "command": "npm test",
+      "result": "passed",
+      "evidence": "17 frontend tests passed"
+    },
+    {
+      "command": "npm run build",
+      "result": "passed",
+      "evidence": "vue-tsc and Vite production build completed"
+    },
+    {
+      "command": "PYTHONPATH=src python skills/frontend-api-integration/scripts/normalize_openapi.py examples/smart-canteen/contracts/smart-canteen.openapi.yaml -o examples/smart-canteen/contracts/generated/api-ir.json",
+      "result": "passed",
+      "evidence": "10 operations normalized; generated clients and contract tests refreshed"
+    }
+  ],
+  "known_limits": [
+    "MySQL acceptance remains environment-gated by SMART_CANTEEN_MYSQL_IT",
+    "Phase 4 external platform and device adapters are intentionally not implemented"
+  ]
+}

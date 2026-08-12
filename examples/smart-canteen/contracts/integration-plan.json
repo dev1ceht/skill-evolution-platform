@@ -6,6 +6,12 @@
       "page": "MenuApprovalPage",
       "operations": ["submitMenu", "decideMenuApproval"],
       "states": ["loading", "ready", "submitting", "success", "business-error"],
+      "dependencies": ["RecipeImportPage:imported"]
+    },
+    {
+      "page": "RecipeImportPage",
+      "operations": ["importMenuRecipe"],
+      "states": ["loading", "ready", "submitting", "success", "business-error"],
       "dependencies": []
     },
     {

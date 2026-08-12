@@ -64,6 +64,14 @@ describe("Smart Canteen Workflow API contract", () => {
     expect(options.headers["Content-Type"]).toBe("application/json");
     expect(JSON.parse(options.body)).toEqual({});
   });
+  it("importMenuRecipe sends POST /api/v1/menus/{menuId}/recipe", async () => {
+    await client.importMenuRecipe('fixture', {} as never, undefined, undefined);
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/menus/fixture/recipe");
+    expect(options.method).toBe("POST");
+    expect(options.headers["Content-Type"]).toBe("application/json");
+    expect(JSON.parse(options.body)).toEqual({});
+  });
   it("submitMenu sends POST /api/v1/menus/{menuId}/submit", async () => {
     await client.submitMenu('fixture', undefined, undefined);
     const [requestUrl, options] = fetchMock.mock.calls[0];

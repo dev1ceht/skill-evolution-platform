@@ -48,6 +48,28 @@ class ScopedCoreWorkflowHttpTest {
                 "INSERT INTO menus (school_id, canteen_id, id, status, version) "
                         + "VALUES (?, ?, ?, 'DRAFT', 0)",
                 "SCHOOL-HTTP-SCOPE", "CANTEEN-HTTP-SOUTH", "MENU-HTTP-SHARED");
+        jdbc.update(
+                "INSERT INTO recipe_requirements "
+                        + "(school_id, canteen_id, menu_id, material_id, quantity, unit) "
+                        + "VALUES (?, ?, ?, ?, ?, ?)",
+                "SCHOOL-HTTP-SCOPE", "CANTEEN-HTTP-NORTH", "MENU-HTTP-SHARED",
+                "FLOUR", "2", "kg");
+        jdbc.update(
+                "INSERT INTO recipe_requirements "
+                        + "(school_id, canteen_id, menu_id, material_id, quantity, unit) "
+                        + "VALUES (?, ?, ?, ?, ?, ?)",
+                "SCHOOL-HTTP-SCOPE", "CANTEEN-HTTP-SOUTH", "MENU-HTTP-SHARED",
+                "FLOUR", "1", "kg");
+        jdbc.update(
+                "INSERT INTO inventory "
+                        + "(school_id, canteen_id, material_id, quantity_base, base_unit) "
+                        + "VALUES (?, ?, ?, ?, ?)",
+                "SCHOOL-HTTP-SCOPE", "CANTEEN-HTTP-NORTH", "FLOUR", "500", "g");
+        jdbc.update(
+                "INSERT INTO inventory "
+                        + "(school_id, canteen_id, material_id, quantity_base, base_unit) "
+                        + "VALUES (?, ?, ?, ?, ?)",
+                "SCHOOL-HTTP-SCOPE", "CANTEEN-HTTP-SOUTH", "FLOUR", "1500", "g");
     }
 
     @Test
@@ -106,5 +128,44 @@ class ScopedCoreWorkflowHttpTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value(40000))
                 .andExpect(jsonPath("$.data").value(org.hamcrest.Matchers.nullValue()));
+    }
+
+    @Test
+    void procurement_reads_recipe_and_inventory_from_the_requested_canteen() throws Exception {
+        approve("CANTEEN-HTTP-NORTH", "north");
+        approve("CANTEEN-HTTP-SOUTH", "south");
+
+        mvc.perform(post("/api/v1/procurement-plans/generate")
+                        .queryParam("schoolId", "SCHOOL-HTTP-SCOPE")
+                        .queryParam("canteenId", "CANTEEN-HTTP-NORTH")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"menuId\":\"MENU-HTTP-SHARED\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.items", org.hamcrest.Matchers.hasSize(1)))
+                .andExpect(jsonPath("$.data.items[0].materialId").value("FLOUR"))
+                .andExpect(jsonPath("$.data.items[0].shortageBaseQuantity").value(1500))
+                .andExpect(jsonPath("$.data.items[0].baseUnit").value("g"));
+
+        mvc.perform(post("/api/v1/procurement-plans/generate")
+                        .queryParam("schoolId", "SCHOOL-HTTP-SCOPE")
+                        .queryParam("canteenId", "CANTEEN-HTTP-SOUTH")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"menuId\":\"MENU-HTTP-SHARED\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.items").isEmpty());
+    }
+
+    private void approve(String canteenId, String comment) throws Exception {
+        mvc.perform(post("/api/v1/menus/{menuId}/submit", "MENU-HTTP-SHARED")
+                        .queryParam("schoolId", "SCHOOL-HTTP-SCOPE")
+                        .queryParam("canteenId", canteenId))
+                .andExpect(status().isOk());
+        mvc.perform(post("/api/v1/menu-approvals/{menuId}/decision", "MENU-HTTP-SHARED")
+                        .queryParam("schoolId", "SCHOOL-HTTP-SCOPE")
+                        .queryParam("canteenId", canteenId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"decision\":\"APPROVE\",\"comment\":\""
+                                + comment + "\"}"))
+                .andExpect(status().isOk());
     }
 }

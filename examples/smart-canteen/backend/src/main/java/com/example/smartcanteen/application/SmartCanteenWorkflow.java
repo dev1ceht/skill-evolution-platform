@@ -4,12 +4,14 @@ import com.example.smartcanteen.application.port.LedgerMonitoring;
 import com.example.smartcanteen.application.port.InventoryReceiving;
 import com.example.smartcanteen.application.port.MenuApproval;
 import com.example.smartcanteen.application.port.ProcurementPlanning;
+import com.example.smartcanteen.application.port.RecipeImport;
 import com.example.smartcanteen.domain.LedgerAlert;
 import com.example.smartcanteen.domain.LedgerCode;
 import com.example.smartcanteen.domain.LedgerCycleRequest;
 import com.example.smartcanteen.domain.LedgerRecordCommand;
 import com.example.smartcanteen.domain.LedgerScope;
 import com.example.smartcanteen.domain.Menu;
+import com.example.smartcanteen.domain.IngredientRequirement;
 import com.example.smartcanteen.domain.ProcurementItem;
 import com.example.smartcanteen.domain.CanteenScope;
 import java.math.BigDecimal;
@@ -24,6 +26,7 @@ public class SmartCanteenWorkflow {
     private final MenuApproval menuApproval;
     private final ProcurementPlanning procurementPlanning;
     private final InventoryReceiving inventoryReceiving;
+    private final RecipeImport recipeImport;
     // Compatibility scope for the original unscoped endpoints. V2 seeds it
     // from the V1 ledger requirements; new callers must provide an explicit scope.
     private static final LedgerScope DEFAULT_LEDGER_SCOPE =
@@ -34,10 +37,12 @@ public class SmartCanteenWorkflow {
             MenuApproval menuApproval,
             ProcurementPlanning procurementPlanning,
             InventoryReceiving inventoryReceiving,
+            RecipeImport recipeImport,
             LedgerMonitoring ledgerMonitoring) {
         this.menuApproval = menuApproval;
         this.procurementPlanning = procurementPlanning;
         this.inventoryReceiving = inventoryReceiving;
+        this.recipeImport = recipeImport;
         this.ledgerMonitoring = ledgerMonitoring;
     }
 
@@ -60,6 +65,14 @@ public class SmartCanteenWorkflow {
     public Menu decideMenu(
             CanteenScope scope, String menuId, String decision, String comment) {
         return menuApproval.decide(scope, menuId, decision, comment);
+    }
+
+    @Transactional
+    public RecipeImport.RecipeResult importRecipe(
+            CanteenScope scope,
+            String menuId,
+            List<IngredientRequirement> requirements) {
+        return recipeImport.importRecipe(scope, menuId, requirements);
     }
 
     @Transactional(readOnly = true)

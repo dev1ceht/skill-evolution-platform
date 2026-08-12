@@ -1,0 +1,76 @@
+{
+  "version": "2026-08-12-corrected",
+  "source": "user-defined four-phase delivery plan",
+  "canonical": true,
+  "phases": [
+    {
+      "phase": 1,
+      "name": "ledger-cycle-alerts",
+      "goal": "Only the ledger-cycle alert slice",
+      "status": "complete",
+      "delivered": [
+        "structured requirements catalog",
+        "smart-canteen-backend Skill",
+        "LedgerMonitoring deep module extracted from SmartCanteenWorkflow",
+        "school, canteen, cycle, completion requirement and alert persistence",
+        "cycle creation, item completion, clear-on-last-item and idempotent retry",
+        "H2 restart and MySQL concurrency test paths",
+        "real frontend contract failure replay and Skill evolution evidence"
+      ],
+      "commit": "d4e00653cbd9305ed1fa0c00b50e3800add705d7"
+    },
+    {
+      "phase": 2,
+      "name": "menu-approval-and-recipe-import",
+      "goal": "Menu approval and recipe import only",
+      "status": "complete",
+      "delivered": [
+        "MenuApproval public module and REST approval flow",
+        "RecipeImport public module with draft-menu guard",
+        "recipe validation, duplicate-material rejection and replace semantics",
+        "scoped recipe persistence and recipe import REST/OpenAPI/frontend contract"
+      ],
+      "verification": [
+        "RecipeImportModuleTest",
+        "RecipeImportHttpTest",
+        "generated 10-operation API IR/client/contract tests",
+        "frontend tests and production build"
+      ],
+      "note": "Procurement, inventory and unit conversion are accepted as phase-3 behavior. Existing implementation seams remain for compatibility but are verified by phase-3 evidence."
+    },
+    {
+      "phase": 3,
+      "name": "procurement-inventory-and-units",
+      "goal": "Procurement planning, inventory receiving and unified base units",
+      "status": "complete",
+      "delivered": [
+        "approved-menu procurement shortage calculation",
+        "inventory receiving with Idempotency-Key",
+        "kg/L to g/ml base-unit conversion and unit consistency checks",
+        "recipe and inventory reads isolated by school and canteen",
+        "composite scoped persistence and cross-canteen HTTP verification"
+      ],
+      "verification": [
+        "ProcurementPlanningModuleTest",
+        "InventoryReceivingModuleTest",
+        "ScopedProcurementPlanningModuleTest",
+        "ScopedInventoryReceivingModuleTest",
+        "ScopedCoreWorkflowHttpTest"
+      ],
+      "commit": "60e703ecaa6680b0707e8c1be3a3025b156d7f46"
+    },
+    {
+      "phase": 4,
+      "name": "external-platform-and-device-adapters",
+      "goal": "District platform, kitchen transparency, morning-inspection devices and alert center",
+      "status": "not_started",
+      "deferred": [
+        "district/county platform adapter",
+        "明厨亮灶 device adapter",
+        "morning-inspection instrument adapter",
+        "central alert-center integration",
+        "RBAC, Redis and RabbitMQ integration where required by those adapters"
+      ]
+    }
+  ]
+}

@@ -15,6 +15,16 @@ export type GenerateProcurementRequest = {
   menuId: string;
 };
 
+export type RecipeImportRequest = {
+  requirements: Array<RecipeRequirement>;
+};
+
+export type RecipeRequirement = {
+  materialId: string;
+  quantity: number;
+  unit: string;
+};
+
 export type ProcurementItem = {
   materialId: string;
   requiredBaseQuantity: number;
@@ -77,6 +87,17 @@ export type ProcurementPlanResponse = {
   code: number;
   message: string;
   data: ProcurementPlan;
+};
+
+export type RecipeResponse = {
+  code: number;
+  message: string;
+  data: Recipe;
+};
+
+export type Recipe = {
+  menuId: string;
+  requirements: Array<RecipeRequirement>;
 };
 
 export type ReceiptResponse = {
@@ -174,6 +195,20 @@ export async function decideMenuApproval(menuId: string, body: ApprovalDecision,
   const response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body) });
   if (!response.ok) throw new Error(`API request failed: ${response.status}`);
   return response.json() as Promise<MenuResponse>;
+}
+
+export async function importMenuRecipe(menuId: string, body: RecipeImportRequest, schoolId?: string, canteenId?: string): Promise<RecipeResponse> {
+  const encodedMenuId = encodeURIComponent(String(menuId));
+  let path = "/api/v1/menus/{menuId}/recipe";
+  path = path.replace("{menuId}", encodedMenuId);
+  const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
+  const headers: Record<string, string> = {};
+  headers["Content-Type"] = "application/json";
+  const response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body) });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<RecipeResponse>;
 }
 
 export async function submitMenu(menuId: string, schoolId?: string, canteenId?: string): Promise<MenuResponse> {

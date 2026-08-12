@@ -4,6 +4,8 @@ import type {
   LedgerAlertResponse,
   Menu,
   MenuResponse,
+  Recipe,
+  RecipeResponse,
   ProcurementPlan,
   ProcurementPlanResponse,
   Receipt,
@@ -42,6 +44,11 @@ function unwrap<T>(response: AxiosResponse<ApiEnvelope<T>>): T {
 export interface SmartCanteenApiPort {
   getCurrentLedgerAlert(): Promise<LedgerAlert>;
   submitMenu(menuId: string, scope?: CanteenScope): Promise<Menu>;
+  importMenuRecipe(
+    menuId: string,
+    requirements: Array<{ materialId: string; quantity: number; unit: string }>,
+    scope?: CanteenScope,
+  ): Promise<Recipe>;
   decideMenuApproval(
     menuId: string,
     decision: 'APPROVE' | 'REJECT',
@@ -74,6 +81,22 @@ export class SmartCanteenApi implements SmartCanteenApiPort {
     const response = scope
       ? await this.client.post<MenuResponse>(path, undefined, { params: scope })
       : await this.client.post<MenuResponse>(path);
+    return unwrap(response);
+  }
+
+  async importMenuRecipe(
+    menuId: string,
+    requirements: Array<{ materialId: string; quantity: number; unit: string }>,
+    scope?: CanteenScope,
+  ): Promise<Recipe> {
+    const path = `/api/v1/menus/${encodeURIComponent(menuId)}/recipe`;
+    const response = scope
+      ? await this.client.post<RecipeResponse>(
+          path,
+          { requirements },
+          { params: scope },
+        )
+      : await this.client.post<RecipeResponse>(path, { requirements });
     return unwrap(response);
   }
 
