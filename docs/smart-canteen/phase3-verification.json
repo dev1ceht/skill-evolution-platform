@@ -1,8 +1,8 @@
 {
   "phase": "phase-3-canteen-scope",
   "captured_at": "2026-08-12T16:30:20+08:00",
-  "source_commit": "af410fa",
-  "source_state": "working tree containing phase-3 scope changes under review; user PDFs are excluded",
+  "source_commit": "60e703ecaa6680b0707e8c1be3a3025b156d7f46",
+  "source_state": "phase-3 implementation commit; verification metadata finalized in a follow-up provenance commit; user PDFs are excluded",
   "inputs": [
     "docs/smart-canteen/phase3-requirements.yaml",
     "docs/smart-canteen/phase3-plan.json",
@@ -49,6 +49,12 @@
       "evidence": "9 operations normalized; generated client and contract tests refreshed"
     }
   ],
+  "replay_provenance": {
+    "baseline_source_commit": "72d57ad5f2e84baebbd87fdef5be96ff9e93d81d",
+    "baseline_contract_hash": "e12bcf88be7dac5a8183c3338a480a9618997e4df652c6a2f40a1557fa8fd02a",
+    "replay_source_commit": "60e703ecaa6680b0707e8c1be3a3025b156d7f46",
+    "replay_contract_hash": "1cc435b6cda4ec812ea48e2a76276e8225194481512b8186f6cb9ac342be2650"
+  },
   "known_limits": [
     "MySQL acceptance remains environment-gated by SMART_CANTEEN_MYSQL_IT",
     "Dynamic unit catalog and product master-data administration are deferred"
