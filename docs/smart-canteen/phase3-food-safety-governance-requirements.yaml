@@ -1,0 +1,40 @@
+phase: phase-3-food-safety-governance
+requirements:
+  - id: P3-LEDGER-001
+    priority: P0
+    statement: 台账类型、频次、模板、必填字段、责任人和提醒窗口可按食堂配置，并按周期生成唯一台账周期。
+    acceptance:
+      - 同一配置和周期重复生成不会产生重复周期或重复预警。
+      - 提交一项台账只清除该项缺项，全部要求完成后才清除周期预警。
+      - 台账记录保留内容、照片引用、记录人和记录时间。
+  - id: P3-SAFETY-001
+    priority: P1
+    statement: 许可证、健康证、管理制度、供应商资质和厨余回收资质具备有效期、附件、审核状态和变更历史。
+    acceptance:
+      - 档案必须经过提交和审核才能作为有效合规档案。
+      - 审核、驳回和更新都能查询历史，不覆盖原记录。
+      - 临期和过期档案可以被扫描并生成统一预警。
+  - id: P3-ALERT-001
+    priority: P1
+    statement: 食品安全预警进入已有 AlertCenter，支持幂等查询和既有处置流程。
+    acceptance:
+      - 同一档案和有效期重复扫描只产生一个活动预警。
+      - 预警包含食堂范围、档案标识和到期日，能够追溯原档案。
+  - id: P3-GOVERNANCE-001
+    priority: P1
+    statement: 食堂风采、停餐报备和供应商投诉具备可审计的状态流转和查询入口。
+    acceptance:
+      - 非法状态转移被拒绝，合法转移记录操作者和时间。
+      - 已发布内容不能静默覆盖历史版本。
+  - id: P3-API-001
+    priority: P0
+    statement: 阶段3接口遵守统一响应封装、鉴权、食堂范围和 OpenAPI/API IR 约束。
+    acceptance:
+      - OpenAPI、生成客户端和前端 API 封装保持同步。
+      - 跨食堂读取和写入被拒绝或返回不存在，不能泄露其他范围数据。
+  - id: P3-TEST-001
+    priority: P0
+    statement: 阶段3每个业务切片具备模块、HTTP 和持久化重启验证。
+    acceptance:
+      - 幂等、并发版本冲突、状态机和预警重复扫描有自动化测试。
+      - 完成后执行后端定向测试、全量测试、前端测试和构建。

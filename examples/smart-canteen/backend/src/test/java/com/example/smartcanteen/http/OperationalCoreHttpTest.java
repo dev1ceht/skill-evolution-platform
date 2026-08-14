@@ -231,12 +231,13 @@ class OperationalCoreHttpTest {
     }
 
     private void createDailyMenuAndPublish() throws Exception {
+        String menuDate = LocalDate.now().toString();
         mvc.perform(post("/api/v1/daily-menus?" + SCOPE)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"menuDate":"2026-08-14","mealTime":"LUNCH",
+                                {"menuDate":"%s","mealTime":"LUNCH",
                                 "items":[{"dishId":"DISH-RICE","estimatedQuantity":100,"sortOrder":0}]}
-                                """))
+                                """.formatted(menuDate)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.status").value("DRAFT"));
         String menuId = jdbc.queryForObject(

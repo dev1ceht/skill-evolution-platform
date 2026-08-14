@@ -1,0 +1,49 @@
+{
+  "phase": "phase-3-food-safety-governance",
+  "captured_at": "2026-08-15T01:50:00+08:00",
+  "source_state": "working tree containing the phase 3 food-safety governance implementation",
+  "inputs": [
+    "docs/smart-canteen/phase3-food-safety-governance-plan.json",
+    "docs/smart-canteen/phase3-food-safety-governance-requirements.yaml",
+    "docs/smart-canteen/phase3-food-safety-governance-traceability.md",
+    "examples/smart-canteen/contracts/smart-canteen.openapi.yaml"
+  ],
+  "commands": [
+    {
+      "command": "mvn -q test",
+      "result": "passed",
+      "evidence": "69 tests, 0 failures, 0 errors, 1 environment-gated MySQL test skipped"
+    },
+    {
+      "command": "npm test -- --run",
+      "result": "passed",
+      "evidence": "125 frontend tests passed, including 106 generated contract tests"
+    },
+    {
+      "command": "npm run build",
+      "result": "passed",
+      "evidence": "vue-tsc and Vite production build completed"
+    },
+    {
+      "command": "python -m pytest -q -p no:cacheprovider --basetemp=tmp/pytest-all-stage3-rerun -k 'not project_skills'",
+      "result": "passed",
+      "evidence": "24 Python tests passed; the unrelated untracked skills/frontend-api-integration-workspace directory is excluded"
+    },
+    {
+      "command": "strict OpenAPI YAML parse and reference resolution",
+      "result": "passed",
+      "evidence": "89 paths, 106 operations, 179 schemas, 571 references, no duplicate keys or unresolved references"
+    }
+  ],
+  "implemented_slices": [
+    "P3-S1 configurable ledger configurations, deterministic cycles, required-field validation, partial missing-item clearing and AlertCenter synchronization",
+    "P3-S2 compliance records, submit/review/reject/update history, expiry scanning and idempotent COMPLIANCE alerts",
+    "P3-S3 showcase, meal suspension and supplier complaint state machines with auditable history",
+    "P3-S4 OpenAPI/API IR/generated client synchronization, Axios adapter and Vue governance workspace"
+  ],
+  "known_limits": [
+    "MySQL acceptance remains environment-gated by SMART_CANTEEN_MYSQL_IT",
+    "real SMS/WeChat, object storage, OCR, municipal reporting and external device adapters remain deferred by the phase boundary",
+    "the repository-wide project skill metadata test cannot run cleanly while the unrelated untracked skills/frontend-api-integration-workspace directory lacks SKILL.md"
+  ]
+}

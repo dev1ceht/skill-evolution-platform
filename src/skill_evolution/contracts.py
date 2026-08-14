@@ -253,10 +253,19 @@ def _render_interfaces(schemas: dict[str, Any]) -> list[str]:
     blocks: list[str] = []
     type_names = _unique_identifiers(list(schemas), type_names=True)
     for name, schema in schemas.items():
-        if not isinstance(schema, dict) or schema.get("type") != "object":
+        if not isinstance(schema, dict):
+            continue
+        type_name = type_names[name]
+        enum_values = schema.get("enum")
+        if isinstance(enum_values, list):
+            values = " | ".join(json.dumps(value, ensure_ascii=False) for value in enum_values)
+            blocks.append(f"export type {type_name} = {values};")
+            continue
+        if schema.get("type") != "object":
+            blocks.append(f"export type {type_name} = {_ts_type(schema, type_names)};")
             continue
         required = set(schema.get("required", []))
-        lines = [f"export type {type_names[name]} = {{"]
+        lines = [f"export type {type_name} = {{"]
         for field, field_schema in schema.get("properties", {}).items():
             optional = "" if field in required else "?"
             lines.append(
@@ -449,7 +458,10 @@ def generate_contract_tests(ir: dict[str, Any]) -> str:
                 else "undefined"
             )
         if body_schema and not body_required:
-            arguments.append("undefined")
+            # Exercise the optional body path with a concrete JSON object.  Passing
+            # undefined would make the generated client serialize an undefined body,
+            # which is not parseable by the contract assertion below.
+            arguments.append("{} as never")
         expected_path = operation["path"]
         for parameter in operation.get("parameters", []):
             if parameter.get("in") == "path":

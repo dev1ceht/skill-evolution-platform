@@ -5,6 +5,7 @@ import LoginPanel from './components/LoginPanel.vue';
 import OperationsOverview from './components/OperationsOverview.vue';
 import ProcurementPlanWorkspace from './components/ProcurementPlanWorkspace.vue';
 import PurchaseOrderWorkspace from './components/PurchaseOrderWorkspace.vue';
+import SafetyGovernanceWorkspace from './components/SafetyGovernanceWorkspace.vue';
 import WorkflowDashboard from './components/WorkflowDashboard.vue';
 import type { AuthSession, CanteenScope } from './api/smartCanteenApi';
 import { SmartCanteenApi } from './api/smartCanteenApi';
@@ -48,6 +49,7 @@ function scopeFromSession(value: AuthSession | null): CanteenScope {
     <ProcurementPlanWorkspace :api="api" :scope="scope" />
     <PurchaseOrderWorkspace :api="api" :scope="scope" />
     <WorkflowDashboard :api="api" :scope="scope" />
+    <SafetyGovernanceWorkspace :api="api" :scope="scope" />
   </main>
 </template>
 

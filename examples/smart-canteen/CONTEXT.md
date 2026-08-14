@@ -72,3 +72,12 @@ _Avoid_: Admin（Admin 不代表监管范围）
 ## 统一范围
 
 **Canteen Scope（食堂范围）**：由学校和食堂构成的最小运营数据归属边界。除明确的区域汇总查询外，所有食谱、采购、库存、台账、预警和溯源数据都必须绑定该范围。
+
+**Ledger Configuration（台账配置）**：按食堂定义台账代码、周期、模板、必填字段、责任人和提醒窗口的规则，不等同于某次填写结果。
+_Avoid_: Ledger Cycle（Ledger Cycle 是配置按日期生成的执行周期）
+
+**Compliance Record（合规档案）**：许可证、健康证、管理制度、供应商资质或厨余回收资质等可审核、可追溯的有效性记录。
+_Avoid_: Attachment（Attachment 只是档案证据引用，不是完整合规事实）
+
+**Governance Workflow（运营治理流程）**：食堂风采、停餐报备和供应商投诉等需要提交、审核、处理和留痕的运营状态流。
+_Avoid_: Status Flag（状态必须服从领域状态机，不能作为任意布尔标记）

@@ -39,6 +39,40 @@ import type {
   AlertPageResponse,
   AlertReportRequest,
   AlertDisposalRequest,
+  LedgerConfiguration,
+  LedgerConfigurationListResponse,
+  ConfiguredLedgerCycle,
+  ConfiguredLedgerCycleListResponse,
+  ConfiguredLedgerRecordRequest,
+  LedgerRecordResponse,
+  ComplianceCategory,
+  ComplianceRecordStatus,
+  ComplianceRecord,
+  ComplianceRecordPageResponse,
+  ComplianceRecordResponse,
+  ComplianceRecordRequest,
+  ComplianceReviewRequest,
+  ExpiryScanRequest,
+  AlertRecordListResponse,
+  CanteenShowcase,
+  CanteenShowcaseStatus,
+  CanteenShowcasePageResponse,
+  CanteenShowcaseResponse,
+  ShowcaseRequest,
+  ShowcaseReviewRequest,
+  MealSuspension,
+  MealSuspensionStatus,
+  MealSuspensionPageResponse,
+  MealSuspensionResponse,
+  MealSuspensionRequest,
+  MealReviewRequest,
+  SupplierComplaint,
+  SupplierComplaintStatus,
+  SupplierComplaintPageResponse,
+  SupplierComplaintResponse,
+  ComplaintRequest,
+  ComplaintReviewRequest,
+  ComplaintReplyRequest,
 } from './generated/client';
 
 interface ApiEnvelope<T> {
@@ -152,6 +186,108 @@ export interface SmartCanteenApiPort {
     scope: CanteenScope,
   ): Promise<import('./generated/client').PurchaseOrder>;
   cancelProcurementPlan?(planId: string, scope: CanteenScope): Promise<ProcurementPlanAggregate>;
+  listLedgerConfigurations?(scope: CanteenScope): Promise<LedgerConfiguration[]>;
+  ensureConfiguredLedgerCycles?(scope: CanteenScope, asOf?: string): Promise<ConfiguredLedgerCycle[]>;
+  completeConfiguredLedger?(
+    cycleId: string,
+    request: ConfiguredLedgerRecordRequest,
+    scope: CanteenScope,
+  ): Promise<import('./generated/client').LedgerRecordView>;
+  listComplianceRecords?(
+    scope: CanteenScope,
+    filters?: {
+      category?: ComplianceCategory;
+      status?: ComplianceRecordStatus;
+      expiringWithinDays?: number;
+    },
+  ): Promise<ComplianceRecord[]>;
+  createComplianceRecord?(
+    request: ComplianceRecordRequest,
+    scope: CanteenScope,
+  ): Promise<ComplianceRecord>;
+  submitComplianceRecord?(
+    recordId: string,
+    version: number,
+    scope: CanteenScope,
+  ): Promise<ComplianceRecord>;
+  reviewComplianceRecord?(
+    recordId: string,
+    request: ComplianceReviewRequest,
+    scope: CanteenScope,
+  ): Promise<ComplianceRecord>;
+  scanComplianceExpiry?(
+    scope: CanteenScope,
+    request?: ExpiryScanRequest,
+  ): Promise<AlertRecord[]>;
+  listCanteenShowcases?(
+    scope: CanteenScope,
+    status?: CanteenShowcaseStatus,
+  ): Promise<CanteenShowcase[]>;
+  createCanteenShowcase?(
+    request: ShowcaseRequest,
+    scope: CanteenScope,
+  ): Promise<CanteenShowcase>;
+  submitCanteenShowcase?(
+    showcaseId: string,
+    version: number,
+    scope: CanteenScope,
+  ): Promise<CanteenShowcase>;
+  reviewCanteenShowcase?(
+    showcaseId: string,
+    request: ShowcaseReviewRequest,
+    scope: CanteenScope,
+  ): Promise<CanteenShowcase>;
+  publishCanteenShowcase?(
+    showcaseId: string,
+    version: number,
+    scope: CanteenScope,
+  ): Promise<CanteenShowcase>;
+  listMealSuspensions?(
+    scope: CanteenScope,
+    filters?: { from?: string; to?: string; status?: MealSuspensionStatus },
+  ): Promise<MealSuspension[]>;
+  createMealSuspension?(
+    request: MealSuspensionRequest,
+    scope: CanteenScope,
+  ): Promise<MealSuspension>;
+  reviewMealSuspension?(
+    suspensionId: string,
+    request: MealReviewRequest,
+    scope: CanteenScope,
+  ): Promise<MealSuspension>;
+  cancelMealSuspension?(
+    suspensionId: string,
+    version: number,
+    scope: CanteenScope,
+  ): Promise<MealSuspension>;
+  listSupplierComplaints?(
+    scope: CanteenScope,
+    filters?: { status?: SupplierComplaintStatus; supplierId?: string },
+  ): Promise<SupplierComplaint[]>;
+  createSupplierComplaint?(
+    request: ComplaintRequest,
+    scope: CanteenScope,
+  ): Promise<SupplierComplaint>;
+  reviewSupplierComplaint?(
+    complaintId: string,
+    request: ComplaintReviewRequest,
+    scope: CanteenScope,
+  ): Promise<SupplierComplaint>;
+  processSupplierComplaint?(
+    complaintId: string,
+    version: number,
+    scope: CanteenScope,
+  ): Promise<SupplierComplaint>;
+  replySupplierComplaint?(
+    complaintId: string,
+    request: ComplaintReplyRequest,
+    scope: CanteenScope,
+  ): Promise<SupplierComplaint>;
+  closeSupplierComplaint?(
+    complaintId: string,
+    version: number,
+    scope: CanteenScope,
+  ): Promise<SupplierComplaint>;
 }
 
 export class SmartCanteenApi implements SmartCanteenApiPort {
@@ -348,6 +484,290 @@ export class SmartCanteenApi implements SmartCanteenApiPort {
       `/api/v1/procurement-plans/${encodeURIComponent(planId)}/purchase-orders`,
       request,
       { headers: { 'Idempotency-Key': idempotencyKey }, params: scope },
+    );
+    return unwrap(response);
+  }
+
+  async listLedgerConfigurations(scope: CanteenScope): Promise<LedgerConfiguration[]> {
+    const response = await this.client.get<LedgerConfigurationListResponse>(
+      '/api/v1/ledger-configurations',
+      { params: scope },
+    );
+    return unwrap(response);
+  }
+
+  async ensureConfiguredLedgerCycles(
+    scope: CanteenScope,
+    asOf?: string,
+  ): Promise<ConfiguredLedgerCycle[]> {
+    const response = await this.client.post<ConfiguredLedgerCycleListResponse>(
+      '/api/v1/ledger-cycles/configured/current',
+      undefined,
+      { params: { ...scope, ...(asOf ? { asOf } : {}) } },
+    );
+    return unwrap(response);
+  }
+
+  async completeConfiguredLedger(
+    cycleId: string,
+    request: ConfiguredLedgerRecordRequest,
+    scope: CanteenScope,
+  ): Promise<import('./generated/client').LedgerRecordView> {
+    const response = await this.client.post<LedgerRecordResponse>(
+      `/api/v1/ledger-cycles/configured/${encodeURIComponent(cycleId)}/records`,
+      request,
+      { params: scope },
+    );
+    return unwrap(response);
+  }
+
+  async listComplianceRecords(
+    scope: CanteenScope,
+    filters: {
+      category?: ComplianceCategory;
+      status?: ComplianceRecordStatus;
+      expiringWithinDays?: number;
+    } = {},
+  ): Promise<ComplianceRecord[]> {
+    const response = await this.client.get<ComplianceRecordPageResponse>(
+      '/api/v1/compliance-records',
+      { params: { ...scope, page: 1, size: 100, ...filters } },
+    );
+    return unwrap(response).records;
+  }
+
+  async createComplianceRecord(
+    request: ComplianceRecordRequest,
+    scope: CanteenScope,
+  ): Promise<ComplianceRecord> {
+    const response = await this.client.post<ComplianceRecordResponse>(
+      '/api/v1/compliance-records',
+      request,
+      { params: scope },
+    );
+    return unwrap(response);
+  }
+
+  async submitComplianceRecord(
+    recordId: string,
+    version: number,
+    scope: CanteenScope,
+  ): Promise<ComplianceRecord> {
+    const response = await this.client.post<ComplianceRecordResponse>(
+      `/api/v1/compliance-records/${encodeURIComponent(recordId)}/submit`,
+      { version },
+      { params: scope },
+    );
+    return unwrap(response);
+  }
+
+  async reviewComplianceRecord(
+    recordId: string,
+    request: ComplianceReviewRequest,
+    scope: CanteenScope,
+  ): Promise<ComplianceRecord> {
+    const response = await this.client.post<ComplianceRecordResponse>(
+      `/api/v1/compliance-records/${encodeURIComponent(recordId)}/review`,
+      request,
+      { params: scope },
+    );
+    return unwrap(response);
+  }
+
+  async scanComplianceExpiry(
+    scope: CanteenScope,
+    request?: ExpiryScanRequest,
+  ): Promise<AlertRecord[]> {
+    const response = await this.client.post<AlertRecordListResponse>(
+      '/api/v1/compliance-records/expiry-scan',
+      request,
+      { params: scope },
+    );
+    return unwrap(response);
+  }
+
+  async listCanteenShowcases(
+    scope: CanteenScope,
+    status?: CanteenShowcaseStatus,
+  ): Promise<CanteenShowcase[]> {
+    const response = await this.client.get<CanteenShowcasePageResponse>(
+      '/api/v1/canteen-showcases',
+      { params: { ...scope, page: 1, size: 100, ...(status ? { status } : {}) } },
+    );
+    return unwrap(response).records;
+  }
+
+  async createCanteenShowcase(
+    request: ShowcaseRequest,
+    scope: CanteenScope,
+  ): Promise<CanteenShowcase> {
+    const response = await this.client.post<CanteenShowcaseResponse>(
+      '/api/v1/canteen-showcases',
+      request,
+      { params: scope },
+    );
+    return unwrap(response);
+  }
+
+  async submitCanteenShowcase(
+    showcaseId: string,
+    version: number,
+    scope: CanteenScope,
+  ): Promise<CanteenShowcase> {
+    const response = await this.client.post<CanteenShowcaseResponse>(
+      `/api/v1/canteen-showcases/${encodeURIComponent(showcaseId)}/submit`,
+      { version },
+      { params: scope },
+    );
+    return unwrap(response);
+  }
+
+  async reviewCanteenShowcase(
+    showcaseId: string,
+    request: ShowcaseReviewRequest,
+    scope: CanteenScope,
+  ): Promise<CanteenShowcase> {
+    const response = await this.client.post<CanteenShowcaseResponse>(
+      `/api/v1/canteen-showcases/${encodeURIComponent(showcaseId)}/review`,
+      request,
+      { params: scope },
+    );
+    return unwrap(response);
+  }
+
+  async publishCanteenShowcase(
+    showcaseId: string,
+    version: number,
+    scope: CanteenScope,
+  ): Promise<CanteenShowcase> {
+    const response = await this.client.post<CanteenShowcaseResponse>(
+      `/api/v1/canteen-showcases/${encodeURIComponent(showcaseId)}/publish`,
+      { version },
+      { params: scope },
+    );
+    return unwrap(response);
+  }
+
+  async listMealSuspensions(
+    scope: CanteenScope,
+    filters: { from?: string; to?: string; status?: MealSuspensionStatus } = {},
+  ): Promise<MealSuspension[]> {
+    const response = await this.client.get<MealSuspensionPageResponse>(
+      '/api/v1/meal-suspensions',
+      { params: { ...scope, page: 1, size: 100, ...filters } },
+    );
+    return unwrap(response).records;
+  }
+
+  async createMealSuspension(
+    request: MealSuspensionRequest,
+    scope: CanteenScope,
+  ): Promise<MealSuspension> {
+    const response = await this.client.post<MealSuspensionResponse>(
+      '/api/v1/meal-suspensions',
+      request,
+      { params: scope },
+    );
+    return unwrap(response);
+  }
+
+  async reviewMealSuspension(
+    suspensionId: string,
+    request: MealReviewRequest,
+    scope: CanteenScope,
+  ): Promise<MealSuspension> {
+    const response = await this.client.post<MealSuspensionResponse>(
+      `/api/v1/meal-suspensions/${encodeURIComponent(suspensionId)}/review`,
+      request,
+      { params: scope },
+    );
+    return unwrap(response);
+  }
+
+  async cancelMealSuspension(
+    suspensionId: string,
+    version: number,
+    scope: CanteenScope,
+  ): Promise<MealSuspension> {
+    const response = await this.client.post<MealSuspensionResponse>(
+      `/api/v1/meal-suspensions/${encodeURIComponent(suspensionId)}/cancel`,
+      { version },
+      { params: scope },
+    );
+    return unwrap(response);
+  }
+
+  async listSupplierComplaints(
+    scope: CanteenScope,
+    filters: { status?: SupplierComplaintStatus; supplierId?: string } = {},
+  ): Promise<SupplierComplaint[]> {
+    const response = await this.client.get<SupplierComplaintPageResponse>(
+      '/api/v1/supplier-complaints',
+      { params: { ...scope, page: 1, size: 100, ...filters } },
+    );
+    return unwrap(response).records;
+  }
+
+  async createSupplierComplaint(
+    request: ComplaintRequest,
+    scope: CanteenScope,
+  ): Promise<SupplierComplaint> {
+    const response = await this.client.post<SupplierComplaintResponse>(
+      '/api/v1/supplier-complaints',
+      request,
+      { params: scope },
+    );
+    return unwrap(response);
+  }
+
+  async reviewSupplierComplaint(
+    complaintId: string,
+    request: ComplaintReviewRequest,
+    scope: CanteenScope,
+  ): Promise<SupplierComplaint> {
+    const response = await this.client.post<SupplierComplaintResponse>(
+      `/api/v1/supplier-complaints/${encodeURIComponent(complaintId)}/review`,
+      request,
+      { params: scope },
+    );
+    return unwrap(response);
+  }
+
+  async processSupplierComplaint(
+    complaintId: string,
+    version: number,
+    scope: CanteenScope,
+  ): Promise<SupplierComplaint> {
+    const response = await this.client.post<SupplierComplaintResponse>(
+      `/api/v1/supplier-complaints/${encodeURIComponent(complaintId)}/process`,
+      { version },
+      { params: scope },
+    );
+    return unwrap(response);
+  }
+
+  async replySupplierComplaint(
+    complaintId: string,
+    request: ComplaintReplyRequest,
+    scope: CanteenScope,
+  ): Promise<SupplierComplaint> {
+    const response = await this.client.post<SupplierComplaintResponse>(
+      `/api/v1/supplier-complaints/${encodeURIComponent(complaintId)}/reply`,
+      request,
+      { params: scope },
+    );
+    return unwrap(response);
+  }
+
+  async closeSupplierComplaint(
+    complaintId: string,
+    version: number,
+    scope: CanteenScope,
+  ): Promise<SupplierComplaint> {
+    const response = await this.client.post<SupplierComplaintResponse>(
+      `/api/v1/supplier-complaints/${encodeURIComponent(complaintId)}/close`,
+      { version },
+      { params: scope },
     );
     return unwrap(response);
   }

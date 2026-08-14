@@ -179,4 +179,37 @@ describe('SmartCanteenApi', () => {
       { headers: { 'Idempotency-Key': 'RECEIPT-KEY-1' }, params: scope },
     );
   });
+
+  it('maps phase 3 governance queues and expiry scanning with the active scope', async () => {
+    const get = vi.fn().mockResolvedValue({
+      data: {
+        code: 0,
+        message: 'success',
+        data: { total: 0, pages: 0, current: 1, size: 100, records: [] },
+      },
+    });
+    const post = vi.fn().mockResolvedValue({
+      data: { code: 0, message: 'success', data: [] },
+    });
+    const api = new SmartCanteenApi({ get, post } as unknown as AxiosInstance);
+    const scope = { schoolId: 'SCHOOL-P3-API', canteenId: 'CANTEEN-P3-API' };
+
+    await api.listComplianceRecords(scope);
+    await api.listCanteenShowcases(scope);
+    await api.listMealSuspensions(scope);
+    await api.listSupplierComplaints(scope);
+    await api.scanComplianceExpiry(scope, { windowDays: 30 });
+
+    expect(get).toHaveBeenNthCalledWith(1, '/api/v1/compliance-records', {
+      params: { ...scope, page: 1, size: 100 },
+    });
+    expect(get).toHaveBeenNthCalledWith(2, '/api/v1/canteen-showcases', {
+      params: { ...scope, page: 1, size: 100 },
+    });
+    expect(post).toHaveBeenCalledWith(
+      '/api/v1/compliance-records/expiry-scan',
+      { windowDays: 30 },
+      { params: scope },
+    );
+  });
 });

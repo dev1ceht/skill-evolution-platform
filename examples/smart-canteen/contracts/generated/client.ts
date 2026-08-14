@@ -969,6 +969,364 @@ export type LedgerAlertResponse = {
   data: LedgerAlert;
 };
 
+export type LedgerFrequency = "DAILY" | "WEEKLY" | "MONTHLY" | "CUSTOM";
+
+export type LedgerConfigurationStatus = "ACTIVE" | "DISABLED";
+
+export type LedgerConfiguration = {
+  id: string;
+  code: string;
+  name: string;
+  frequency: LedgerFrequency;
+  periodDays?: number;
+  requiredFields: Array<string>;
+  template?: Record<string, unknown>;
+  responsibleRole?: string;
+  reminderDays: number;
+  status: LedgerConfigurationStatus;
+  version: number;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type LedgerConfigurationRequest = {
+  configurationId?: string;
+  code: string;
+  name: string;
+  frequency: LedgerFrequency;
+  periodDays?: number;
+  requiredFields: Array<string>;
+  template?: Record<string, unknown>;
+  responsibleRole?: string;
+  reminderDays?: number;
+  status?: LedgerConfigurationStatus;
+  version?: number;
+};
+
+export type ConfiguredLedgerCycle = {
+  cycleId: string;
+  configurationId: string;
+  ledgerCode: string;
+  periodStart: string;
+  periodEnd: string;
+  status: string;
+  missingLedgerCodes: Array<string>;
+};
+
+export type ConfiguredLedgerRecordRequest = {
+  recordId?: string;
+  ledgerCode: string;
+  recordTime?: string;
+  recorderId?: string;
+  content?: Record<string, unknown>;
+  photos?: Array<string>;
+  remark?: string;
+};
+
+export type LedgerConfigurationResponse = {
+  code: number;
+  message: string;
+  data: LedgerConfiguration;
+};
+
+export type LedgerConfigurationListResponse = {
+  code: number;
+  message: string;
+  data: Array<LedgerConfiguration>;
+};
+
+export type ConfiguredLedgerCycleListResponse = {
+  code: number;
+  message: string;
+  data: Array<ConfiguredLedgerCycle>;
+};
+
+export type ComplianceCategory = "LICENSE" | "HEALTH_CERTIFICATE" | "MANAGEMENT_DOCUMENT" | "SUPPLIER_QUALIFICATION" | "WASTE_RECYCLER_QUALIFICATION";
+
+export type ComplianceRecordStatus = "DRAFT" | "SUBMITTED" | "APPROVED" | "REJECTED";
+
+export type ComplianceRecord = {
+  id: string;
+  category: ComplianceCategory;
+  subjectType: string;
+  subjectId: string;
+  subjectName: string;
+  title: string;
+  credentialNo?: string;
+  validFrom: string;
+  validTo: string;
+  attachmentRefs: Array<string>;
+  status: ComplianceRecordStatus;
+  reviewRemark?: string;
+  version: number;
+  createdAt?: string;
+  updatedAt?: string;
+  submittedAt?: string;
+  reviewedAt?: string;
+  reviewedBy?: string;
+};
+
+export type ComplianceRecordRequest = {
+  recordId?: string;
+  category: ComplianceCategory;
+  subjectType: string;
+  subjectId: string;
+  subjectName: string;
+  title: string;
+  credentialNo?: string;
+  validFrom: string;
+  validTo: string;
+  attachmentRefs?: Array<string>;
+  status?: ComplianceRecordStatus;
+  reviewRemark?: string;
+  version?: number;
+};
+
+export type ComplianceReviewRequest = {
+  version: number;
+  status: string;
+  reviewRemark: string;
+};
+
+export type VersionRequest = {
+  version: number;
+};
+
+export type ExpiryScanRequest = {
+  asOf?: string;
+  windowDays?: number;
+};
+
+export type ComplianceRecordResponse = {
+  code: number;
+  message: string;
+  data: ComplianceRecord;
+};
+
+export type PageViewComplianceRecord = {
+  total: number;
+  pages: number;
+  current: number;
+  size: number;
+  records: Array<ComplianceRecord>;
+};
+
+export type ComplianceRecordPageResponse = {
+  code: number;
+  message: string;
+  data: PageViewComplianceRecord;
+};
+
+export type ComplianceHistory = {
+  historyId: string;
+  recordId: string;
+  action: string;
+  status: ComplianceRecordStatus;
+  snapshot: Record<string, unknown>;
+  actorId: string;
+  occurredAt: string;
+};
+
+export type ComplianceHistoryListResponse = {
+  code: number;
+  message: string;
+  data: Array<ComplianceHistory>;
+};
+
+export type AlertRecordListResponse = {
+  code: number;
+  message: string;
+  data: Array<AlertRecord>;
+};
+
+export type CanteenShowcaseStatus = "DRAFT" | "SUBMITTED" | "APPROVED" | "REJECTED" | "PUBLISHED" | "REVOKED";
+
+export type CanteenShowcase = {
+  id: string;
+  title: string;
+  content: string;
+  photos: Array<string>;
+  status: CanteenShowcaseStatus;
+  previousVersionId?: string;
+  version: number;
+  createdAt?: string;
+  updatedAt?: string;
+  reviewRemark?: string;
+  reviewedAt?: string;
+  reviewedBy?: string;
+  publishedAt?: string;
+};
+
+export type ShowcaseRequest = {
+  showcaseId?: string;
+  title: string;
+  content: string;
+  photos?: Array<string>;
+  status?: CanteenShowcaseStatus;
+  previousVersionId?: string;
+  version?: number;
+};
+
+export type ShowcaseReviewRequest = {
+  version: number;
+  status: string;
+  reviewRemark: string;
+};
+
+export type CanteenShowcaseResponse = {
+  code: number;
+  message: string;
+  data: CanteenShowcase;
+};
+
+export type PageViewCanteenShowcase = {
+  total: number;
+  pages: number;
+  current: number;
+  size: number;
+  records: Array<CanteenShowcase>;
+};
+
+export type CanteenShowcasePageResponse = {
+  code: number;
+  message: string;
+  data: PageViewCanteenShowcase;
+};
+
+export type MealSuspensionStatus = "SUBMITTED" | "APPROVED" | "REJECTED" | "CANCELLED";
+
+export type MealPeriod = "BREAKFAST" | "LUNCH" | "DINNER" | "SNACK";
+
+export type MealSuspension = {
+  id: string;
+  mealDate: string;
+  mealPeriod: MealPeriod;
+  reason: string;
+  status: MealSuspensionStatus;
+  reviewRemark?: string;
+  version: number;
+  createdAt?: string;
+  updatedAt?: string;
+  reviewedAt?: string;
+  reviewedBy?: string;
+};
+
+export type MealSuspensionRequest = {
+  suspensionId?: string;
+  mealDate: string;
+  mealPeriod: MealPeriod;
+  reason: string;
+};
+
+export type MealReviewRequest = {
+  version: number;
+  status: string;
+  reviewRemark: string;
+};
+
+export type MealSuspensionResponse = {
+  code: number;
+  message: string;
+  data: MealSuspension;
+};
+
+export type PageViewMealSuspension = {
+  total: number;
+  pages: number;
+  current: number;
+  size: number;
+  records: Array<MealSuspension>;
+};
+
+export type MealSuspensionPageResponse = {
+  code: number;
+  message: string;
+  data: PageViewMealSuspension;
+};
+
+export type MealSuspensionStatsResponse = {
+  code: number;
+  message: string;
+  data: Record<string, unknown>;
+};
+
+export type SupplierComplaintStatus = "SUBMITTED" | "ACCEPTED" | "PROCESSING" | "REPLIED" | "CLOSED" | "REJECTED";
+
+export type SupplierComplaint = {
+  id: string;
+  supplierId: string;
+  subject: string;
+  description: string;
+  attachmentRefs: Array<string>;
+  deadline?: string;
+  status: SupplierComplaintStatus;
+  reply?: string;
+  version: number;
+  createdBy: string;
+  assignedTo?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  acceptedAt?: string;
+  closedAt?: string;
+};
+
+export type ComplaintRequest = {
+  complaintId?: string;
+  supplierId: string;
+  subject: string;
+  description: string;
+  attachmentRefs?: Array<string>;
+  deadline?: string;
+};
+
+export type ComplaintReviewRequest = {
+  version: number;
+  status: string;
+  note?: string;
+};
+
+export type ComplaintReplyRequest = {
+  version: number;
+  reply: string;
+};
+
+export type SupplierComplaintResponse = {
+  code: number;
+  message: string;
+  data: SupplierComplaint;
+};
+
+export type PageViewSupplierComplaint = {
+  total: number;
+  pages: number;
+  current: number;
+  size: number;
+  records: Array<SupplierComplaint>;
+};
+
+export type SupplierComplaintPageResponse = {
+  code: number;
+  message: string;
+  data: PageViewSupplierComplaint;
+};
+
+export type GovernanceHistory = {
+  historyId: string;
+  entityType: string;
+  entityId: string;
+  action: string;
+  status: string;
+  snapshot: Record<string, unknown>;
+  actorId: string;
+  occurredAt: string;
+};
+
+export type GovernanceHistoryListResponse = {
+  code: number;
+  message: string;
+  data: Array<GovernanceHistory>;
+};
+
 export type ErrorResponse = {
   code: number;
   message: string;
@@ -1101,6 +1459,139 @@ export async function refreshToken(body: RefreshTokenRequest): Promise<AuthToken
   return response.json() as Promise<AuthTokensResponse>;
 }
 
+export async function listCanteenShowcases(schoolId: string, canteenId: string, status?: CanteenShowcaseStatus, page?: number, size?: number): Promise<CanteenShowcasePageResponse> {
+  const path = "/api/v1/canteen-showcases";
+  const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
+  if (status !== undefined) url.searchParams.set("status", String(status));
+  if (page !== undefined) url.searchParams.set("page", String(page));
+  if (size !== undefined) url.searchParams.set("size", String(size));
+  const response = await fetch(url, { method: 'GET' });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<CanteenShowcasePageResponse>;
+}
+
+export async function createCanteenShowcase(schoolId: string, canteenId: string, body: ShowcaseRequest): Promise<CanteenShowcaseResponse> {
+  const path = "/api/v1/canteen-showcases";
+  const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
+  const headers: Record<string, string> = {};
+  headers["Content-Type"] = "application/json";
+  const response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body) });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<CanteenShowcaseResponse>;
+}
+
+export async function getCanteenShowcase(showcaseId: string, schoolId: string, canteenId: string): Promise<CanteenShowcaseResponse> {
+  const encodedShowcaseId = encodeURIComponent(String(showcaseId));
+  let path = "/api/v1/canteen-showcases/{showcaseId}";
+  path = path.replace("{showcaseId}", encodedShowcaseId);
+  const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
+  const response = await fetch(url, { method: 'GET' });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<CanteenShowcaseResponse>;
+}
+
+export async function updateCanteenShowcase(showcaseId: string, schoolId: string, canteenId: string, body: ShowcaseRequest): Promise<CanteenShowcaseResponse> {
+  const encodedShowcaseId = encodeURIComponent(String(showcaseId));
+  let path = "/api/v1/canteen-showcases/{showcaseId}";
+  path = path.replace("{showcaseId}", encodedShowcaseId);
+  const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
+  const headers: Record<string, string> = {};
+  headers["Content-Type"] = "application/json";
+  const response = await fetch(url, { method: 'PUT', headers: headers, body: JSON.stringify(body) });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<CanteenShowcaseResponse>;
+}
+
+export async function listCanteenShowcaseHistory(showcaseId: string, schoolId: string, canteenId: string): Promise<GovernanceHistoryListResponse> {
+  const encodedShowcaseId = encodeURIComponent(String(showcaseId));
+  let path = "/api/v1/canteen-showcases/{showcaseId}/history";
+  path = path.replace("{showcaseId}", encodedShowcaseId);
+  const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
+  const response = await fetch(url, { method: 'GET' });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<GovernanceHistoryListResponse>;
+}
+
+export async function publishCanteenShowcase(showcaseId: string, schoolId: string, canteenId: string, body: VersionRequest): Promise<CanteenShowcaseResponse> {
+  const encodedShowcaseId = encodeURIComponent(String(showcaseId));
+  let path = "/api/v1/canteen-showcases/{showcaseId}/publish";
+  path = path.replace("{showcaseId}", encodedShowcaseId);
+  const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
+  const headers: Record<string, string> = {};
+  headers["Content-Type"] = "application/json";
+  const response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body) });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<CanteenShowcaseResponse>;
+}
+
+export async function reviewCanteenShowcase(showcaseId: string, schoolId: string, canteenId: string, body: ShowcaseReviewRequest): Promise<CanteenShowcaseResponse> {
+  const encodedShowcaseId = encodeURIComponent(String(showcaseId));
+  let path = "/api/v1/canteen-showcases/{showcaseId}/review";
+  path = path.replace("{showcaseId}", encodedShowcaseId);
+  const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
+  const headers: Record<string, string> = {};
+  headers["Content-Type"] = "application/json";
+  const response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body) });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<CanteenShowcaseResponse>;
+}
+
+export async function revokeCanteenShowcase(showcaseId: string, schoolId: string, canteenId: string, body: VersionRequest): Promise<CanteenShowcaseResponse> {
+  const encodedShowcaseId = encodeURIComponent(String(showcaseId));
+  let path = "/api/v1/canteen-showcases/{showcaseId}/revoke";
+  path = path.replace("{showcaseId}", encodedShowcaseId);
+  const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
+  const headers: Record<string, string> = {};
+  headers["Content-Type"] = "application/json";
+  const response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body) });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<CanteenShowcaseResponse>;
+}
+
+export async function submitCanteenShowcase(showcaseId: string, schoolId: string, canteenId: string, body: VersionRequest): Promise<CanteenShowcaseResponse> {
+  const encodedShowcaseId = encodeURIComponent(String(showcaseId));
+  let path = "/api/v1/canteen-showcases/{showcaseId}/submit";
+  path = path.replace("{showcaseId}", encodedShowcaseId);
+  const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
+  const headers: Record<string, string> = {};
+  headers["Content-Type"] = "application/json";
+  const response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body) });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<CanteenShowcaseResponse>;
+}
+
+export async function createCanteenShowcaseVersion(showcaseId: string, schoolId: string, canteenId: string, body: ShowcaseRequest): Promise<CanteenShowcaseResponse> {
+  const encodedShowcaseId = encodeURIComponent(String(showcaseId));
+  let path = "/api/v1/canteen-showcases/{showcaseId}/versions";
+  path = path.replace("{showcaseId}", encodedShowcaseId);
+  const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
+  const headers: Record<string, string> = {};
+  headers["Content-Type"] = "application/json";
+  const response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body) });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<CanteenShowcaseResponse>;
+}
+
 export async function listCanteens(schoolId?: string, keyword?: string, includeInactive?: boolean): Promise<CanteenListResponse> {
   const path = "/api/v1/canteens";
   const url = new URL(path, window.location.origin);
@@ -1144,6 +1635,111 @@ export async function updateCanteenStatus(canteenId: string, body: FoundationSta
   const response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body) });
   if (!response.ok) throw new Error(`API request failed: ${response.status}`);
   return response.json() as Promise<CanteenResponse>;
+}
+
+export async function listComplianceRecords(schoolId: string, canteenId: string, category?: ComplianceCategory, status?: ComplianceRecordStatus, expiringWithinDays?: number, page?: number, size?: number): Promise<ComplianceRecordPageResponse> {
+  const path = "/api/v1/compliance-records";
+  const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
+  if (category !== undefined) url.searchParams.set("category", String(category));
+  if (status !== undefined) url.searchParams.set("status", String(status));
+  if (expiringWithinDays !== undefined) url.searchParams.set("expiringWithinDays", String(expiringWithinDays));
+  if (page !== undefined) url.searchParams.set("page", String(page));
+  if (size !== undefined) url.searchParams.set("size", String(size));
+  const response = await fetch(url, { method: 'GET' });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<ComplianceRecordPageResponse>;
+}
+
+export async function createComplianceRecord(schoolId: string, canteenId: string, body: ComplianceRecordRequest): Promise<ComplianceRecordResponse> {
+  const path = "/api/v1/compliance-records";
+  const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
+  const headers: Record<string, string> = {};
+  headers["Content-Type"] = "application/json";
+  const response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body) });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<ComplianceRecordResponse>;
+}
+
+export async function scanComplianceExpiry(schoolId: string, canteenId: string, body?: ExpiryScanRequest): Promise<AlertRecordListResponse> {
+  const path = "/api/v1/compliance-records/expiry-scan";
+  const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
+  const headers: Record<string, string> = {};
+  headers["Content-Type"] = "application/json";
+  const response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body) });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<AlertRecordListResponse>;
+}
+
+export async function getComplianceRecord(recordId: string, schoolId: string, canteenId: string): Promise<ComplianceRecordResponse> {
+  const encodedRecordId = encodeURIComponent(String(recordId));
+  let path = "/api/v1/compliance-records/{recordId}";
+  path = path.replace("{recordId}", encodedRecordId);
+  const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
+  const response = await fetch(url, { method: 'GET' });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<ComplianceRecordResponse>;
+}
+
+export async function updateComplianceRecord(recordId: string, schoolId: string, canteenId: string, body: ComplianceRecordRequest): Promise<ComplianceRecordResponse> {
+  const encodedRecordId = encodeURIComponent(String(recordId));
+  let path = "/api/v1/compliance-records/{recordId}";
+  path = path.replace("{recordId}", encodedRecordId);
+  const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
+  const headers: Record<string, string> = {};
+  headers["Content-Type"] = "application/json";
+  const response = await fetch(url, { method: 'PUT', headers: headers, body: JSON.stringify(body) });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<ComplianceRecordResponse>;
+}
+
+export async function listComplianceHistory(recordId: string, schoolId: string, canteenId: string): Promise<ComplianceHistoryListResponse> {
+  const encodedRecordId = encodeURIComponent(String(recordId));
+  let path = "/api/v1/compliance-records/{recordId}/history";
+  path = path.replace("{recordId}", encodedRecordId);
+  const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
+  const response = await fetch(url, { method: 'GET' });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<ComplianceHistoryListResponse>;
+}
+
+export async function reviewComplianceRecord(recordId: string, schoolId: string, canteenId: string, body: ComplianceReviewRequest): Promise<ComplianceRecordResponse> {
+  const encodedRecordId = encodeURIComponent(String(recordId));
+  let path = "/api/v1/compliance-records/{recordId}/review";
+  path = path.replace("{recordId}", encodedRecordId);
+  const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
+  const headers: Record<string, string> = {};
+  headers["Content-Type"] = "application/json";
+  const response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body) });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<ComplianceRecordResponse>;
+}
+
+export async function submitComplianceRecord(recordId: string, schoolId: string, canteenId: string, body: VersionRequest): Promise<ComplianceRecordResponse> {
+  const encodedRecordId = encodeURIComponent(String(recordId));
+  let path = "/api/v1/compliance-records/{recordId}/submit";
+  path = path.replace("{recordId}", encodedRecordId);
+  const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
+  const headers: Record<string, string> = {};
+  headers["Content-Type"] = "application/json";
+  const response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body) });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<ComplianceRecordResponse>;
 }
 
 export async function listDailyMenus(schoolId: string, canteenId: string, startDate?: string, endDate?: string, page?: number, size?: number): Promise<DailyMenuPageResponse> {
@@ -1346,6 +1942,43 @@ export async function getCurrentLedgerAlert(): Promise<LedgerAlertResponse> {
   return response.json() as Promise<LedgerAlertResponse>;
 }
 
+export async function listLedgerConfigurations(schoolId: string, canteenId: string, includeDisabled?: boolean): Promise<LedgerConfigurationListResponse> {
+  const path = "/api/v1/ledger-configurations";
+  const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
+  if (includeDisabled !== undefined) url.searchParams.set("includeDisabled", String(includeDisabled));
+  const response = await fetch(url, { method: 'GET' });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<LedgerConfigurationListResponse>;
+}
+
+export async function createLedgerConfiguration(schoolId: string, canteenId: string, body: LedgerConfigurationRequest): Promise<LedgerConfigurationResponse> {
+  const path = "/api/v1/ledger-configurations";
+  const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
+  const headers: Record<string, string> = {};
+  headers["Content-Type"] = "application/json";
+  const response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body) });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<LedgerConfigurationResponse>;
+}
+
+export async function updateLedgerConfiguration(configurationId: string, schoolId: string, canteenId: string, body: LedgerConfigurationRequest): Promise<LedgerConfigurationResponse> {
+  const encodedConfigurationId = encodeURIComponent(String(configurationId));
+  let path = "/api/v1/ledger-configurations/{configurationId}";
+  path = path.replace("{configurationId}", encodedConfigurationId);
+  const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
+  const headers: Record<string, string> = {};
+  headers["Content-Type"] = "application/json";
+  const response = await fetch(url, { method: 'PUT', headers: headers, body: JSON.stringify(body) });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<LedgerConfigurationResponse>;
+}
+
 export async function startLedgerCycle(body: LedgerCycleRequest): Promise<LedgerAlertResponse> {
   const path = "/api/v1/ledger-cycles";
   const url = new URL(path, window.location.origin);
@@ -1354,6 +1987,31 @@ export async function startLedgerCycle(body: LedgerCycleRequest): Promise<Ledger
   const response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body) });
   if (!response.ok) throw new Error(`API request failed: ${response.status}`);
   return response.json() as Promise<LedgerAlertResponse>;
+}
+
+export async function ensureConfiguredLedgerCycles(schoolId: string, canteenId: string, asOf?: string): Promise<ConfiguredLedgerCycleListResponse> {
+  const path = "/api/v1/ledger-cycles/configured/current";
+  const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
+  if (asOf !== undefined) url.searchParams.set("asOf", String(asOf));
+  const response = await fetch(url, { method: 'POST' });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<ConfiguredLedgerCycleListResponse>;
+}
+
+export async function completeConfiguredLedger(cycleId: string, schoolId: string, canteenId: string, body: ConfiguredLedgerRecordRequest): Promise<LedgerRecordResponse> {
+  const encodedCycleId = encodeURIComponent(String(cycleId));
+  let path = "/api/v1/ledger-cycles/configured/{cycleId}/records";
+  path = path.replace("{cycleId}", encodedCycleId);
+  const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
+  const headers: Record<string, string> = {};
+  headers["Content-Type"] = "application/json";
+  const response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body) });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<LedgerRecordResponse>;
 }
 
 export async function getScopedLedgerAlert(cycleId: string, schoolId: string, canteenId: string): Promise<LedgerAlertResponse> {
@@ -1429,6 +2087,85 @@ export async function getOperationalLedgerStats(schoolId: string, canteenId: str
   const response = await fetch(url, { method: 'GET' });
   if (!response.ok) throw new Error(`API request failed: ${response.status}`);
   return response.json() as Promise<LedgerStatsResponse>;
+}
+
+export async function listMealSuspensions(schoolId: string, canteenId: string, fromParameter?: string, to?: string, status?: MealSuspensionStatus, page?: number, size?: number): Promise<MealSuspensionPageResponse> {
+  const path = "/api/v1/meal-suspensions";
+  const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
+  if (fromParameter !== undefined) url.searchParams.set("from", String(fromParameter));
+  if (to !== undefined) url.searchParams.set("to", String(to));
+  if (status !== undefined) url.searchParams.set("status", String(status));
+  if (page !== undefined) url.searchParams.set("page", String(page));
+  if (size !== undefined) url.searchParams.set("size", String(size));
+  const response = await fetch(url, { method: 'GET' });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<MealSuspensionPageResponse>;
+}
+
+export async function createMealSuspension(schoolId: string, canteenId: string, body: MealSuspensionRequest): Promise<MealSuspensionResponse> {
+  const path = "/api/v1/meal-suspensions";
+  const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
+  const headers: Record<string, string> = {};
+  headers["Content-Type"] = "application/json";
+  const response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body) });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<MealSuspensionResponse>;
+}
+
+export async function getMealSuspensionStats(schoolId: string, canteenId: string, fromParameter?: string, to?: string): Promise<MealSuspensionStatsResponse> {
+  const path = "/api/v1/meal-suspensions/stats";
+  const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
+  if (fromParameter !== undefined) url.searchParams.set("from", String(fromParameter));
+  if (to !== undefined) url.searchParams.set("to", String(to));
+  const response = await fetch(url, { method: 'GET' });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<MealSuspensionStatsResponse>;
+}
+
+export async function cancelMealSuspension(suspensionId: string, schoolId: string, canteenId: string, body: VersionRequest): Promise<MealSuspensionResponse> {
+  const encodedSuspensionId = encodeURIComponent(String(suspensionId));
+  let path = "/api/v1/meal-suspensions/{suspensionId}/cancel";
+  path = path.replace("{suspensionId}", encodedSuspensionId);
+  const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
+  const headers: Record<string, string> = {};
+  headers["Content-Type"] = "application/json";
+  const response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body) });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<MealSuspensionResponse>;
+}
+
+export async function listMealSuspensionHistory(suspensionId: string, schoolId: string, canteenId: string): Promise<GovernanceHistoryListResponse> {
+  const encodedSuspensionId = encodeURIComponent(String(suspensionId));
+  let path = "/api/v1/meal-suspensions/{suspensionId}/history";
+  path = path.replace("{suspensionId}", encodedSuspensionId);
+  const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
+  const response = await fetch(url, { method: 'GET' });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<GovernanceHistoryListResponse>;
+}
+
+export async function reviewMealSuspension(suspensionId: string, schoolId: string, canteenId: string, body: MealReviewRequest): Promise<MealSuspensionResponse> {
+  const encodedSuspensionId = encodeURIComponent(String(suspensionId));
+  let path = "/api/v1/meal-suspensions/{suspensionId}/review";
+  path = path.replace("{suspensionId}", encodedSuspensionId);
+  const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
+  const headers: Record<string, string> = {};
+  headers["Content-Type"] = "application/json";
+  const response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body) });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<MealSuspensionResponse>;
 }
 
 export async function decideMenuApproval(menuId: string, body: ApprovalDecision, schoolId?: string, canteenId?: string): Promise<MenuResponse> {
@@ -1699,6 +2436,112 @@ export async function updateSchoolStatus(schoolId: string, body: FoundationStatu
   const response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body) });
   if (!response.ok) throw new Error(`API request failed: ${response.status}`);
   return response.json() as Promise<SchoolResponse>;
+}
+
+export async function listSupplierComplaints(schoolId: string, canteenId: string, status?: SupplierComplaintStatus, supplierId?: string, page?: number, size?: number): Promise<SupplierComplaintPageResponse> {
+  const path = "/api/v1/supplier-complaints";
+  const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
+  if (status !== undefined) url.searchParams.set("status", String(status));
+  if (supplierId !== undefined) url.searchParams.set("supplierId", String(supplierId));
+  if (page !== undefined) url.searchParams.set("page", String(page));
+  if (size !== undefined) url.searchParams.set("size", String(size));
+  const response = await fetch(url, { method: 'GET' });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<SupplierComplaintPageResponse>;
+}
+
+export async function createSupplierComplaint(schoolId: string, canteenId: string, body: ComplaintRequest): Promise<SupplierComplaintResponse> {
+  const path = "/api/v1/supplier-complaints";
+  const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
+  const headers: Record<string, string> = {};
+  headers["Content-Type"] = "application/json";
+  const response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body) });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<SupplierComplaintResponse>;
+}
+
+export async function getSupplierComplaint(complaintId: string, schoolId: string, canteenId: string): Promise<SupplierComplaintResponse> {
+  const encodedComplaintId = encodeURIComponent(String(complaintId));
+  let path = "/api/v1/supplier-complaints/{complaintId}";
+  path = path.replace("{complaintId}", encodedComplaintId);
+  const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
+  const response = await fetch(url, { method: 'GET' });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<SupplierComplaintResponse>;
+}
+
+export async function closeSupplierComplaint(complaintId: string, schoolId: string, canteenId: string, body: VersionRequest): Promise<SupplierComplaintResponse> {
+  const encodedComplaintId = encodeURIComponent(String(complaintId));
+  let path = "/api/v1/supplier-complaints/{complaintId}/close";
+  path = path.replace("{complaintId}", encodedComplaintId);
+  const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
+  const headers: Record<string, string> = {};
+  headers["Content-Type"] = "application/json";
+  const response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body) });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<SupplierComplaintResponse>;
+}
+
+export async function listSupplierComplaintHistory(complaintId: string, schoolId: string, canteenId: string): Promise<GovernanceHistoryListResponse> {
+  const encodedComplaintId = encodeURIComponent(String(complaintId));
+  let path = "/api/v1/supplier-complaints/{complaintId}/history";
+  path = path.replace("{complaintId}", encodedComplaintId);
+  const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
+  const response = await fetch(url, { method: 'GET' });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<GovernanceHistoryListResponse>;
+}
+
+export async function processSupplierComplaint(complaintId: string, schoolId: string, canteenId: string, body: VersionRequest): Promise<SupplierComplaintResponse> {
+  const encodedComplaintId = encodeURIComponent(String(complaintId));
+  let path = "/api/v1/supplier-complaints/{complaintId}/process";
+  path = path.replace("{complaintId}", encodedComplaintId);
+  const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
+  const headers: Record<string, string> = {};
+  headers["Content-Type"] = "application/json";
+  const response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body) });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<SupplierComplaintResponse>;
+}
+
+export async function replySupplierComplaint(complaintId: string, schoolId: string, canteenId: string, body: ComplaintReplyRequest): Promise<SupplierComplaintResponse> {
+  const encodedComplaintId = encodeURIComponent(String(complaintId));
+  let path = "/api/v1/supplier-complaints/{complaintId}/reply";
+  path = path.replace("{complaintId}", encodedComplaintId);
+  const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
+  const headers: Record<string, string> = {};
+  headers["Content-Type"] = "application/json";
+  const response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body) });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<SupplierComplaintResponse>;
+}
+
+export async function reviewSupplierComplaint(complaintId: string, schoolId: string, canteenId: string, body: ComplaintReviewRequest): Promise<SupplierComplaintResponse> {
+  const encodedComplaintId = encodeURIComponent(String(complaintId));
+  let path = "/api/v1/supplier-complaints/{complaintId}/review";
+  path = path.replace("{complaintId}", encodedComplaintId);
+  const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
+  const headers: Record<string, string> = {};
+  headers["Content-Type"] = "application/json";
+  const response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body) });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<SupplierComplaintResponse>;
 }
 
 export async function listSuppliers(schoolId: string, canteenId: string, keyword?: string, page?: number, size?: number): Promise<SupplierPageResponse> {

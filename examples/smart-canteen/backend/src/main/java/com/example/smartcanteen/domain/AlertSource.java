@@ -5,7 +5,8 @@ public enum AlertSource {
     DISTRICT_PLATFORM,
     BRIGHT_KITCHEN,
     MORNING_INSPECTION,
-    LEDGER;
+    LEDGER,
+    COMPLIANCE;
 
     public static AlertSource from(String value) {
         if (value == null || value.isBlank()) {

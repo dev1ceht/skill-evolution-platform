@@ -1446,6 +1446,789 @@ paths:
                 $ref: '#/components/schemas/AuditLogListResponse'
         '400':
           $ref: '#/components/responses/BusinessError'
+  /api/v1/ledger-configurations:
+    get:
+      operationId: listLedgerConfigurations
+      tags: [ledger-governance]
+      parameters:
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+        - name: includeDisabled
+          in: query
+          required: false
+          schema: { type: boolean, default: false }
+      responses:
+        '200':
+          description: 台账配置列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LedgerConfigurationListResponse'
+        '400': { $ref: '#/components/responses/BusinessError' }
+    post:
+      operationId: createLedgerConfiguration
+      tags: [ledger-governance]
+      parameters:
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LedgerConfigurationRequest' }
+      responses:
+        '200':
+          description: 台账配置
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LedgerConfigurationResponse' }
+        '400': { $ref: '#/components/responses/BusinessError' }
+  /api/v1/ledger-configurations/{configurationId}:
+    put:
+      operationId: updateLedgerConfiguration
+      tags: [ledger-governance]
+      parameters:
+        - name: configurationId
+          in: path
+          required: true
+          schema: { type: string }
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LedgerConfigurationRequest' }
+      responses:
+        '200':
+          description: 更新后的台账配置
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LedgerConfigurationResponse' }
+        '400': { $ref: '#/components/responses/BusinessError' }
+  /api/v1/ledger-cycles/configured/current:
+    post:
+      operationId: ensureConfiguredLedgerCycles
+      tags: [ledger-governance]
+      parameters:
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+        - name: asOf
+          in: query
+          required: false
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: 当前周期台账
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ConfiguredLedgerCycleListResponse' }
+        '400': { $ref: '#/components/responses/BusinessError' }
+  /api/v1/ledger-cycles/configured/{cycleId}/records:
+    post:
+      operationId: completeConfiguredLedger
+      tags: [ledger-governance]
+      parameters:
+        - name: cycleId
+          in: path
+          required: true
+          schema: { type: string }
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ConfiguredLedgerRecordRequest' }
+      responses:
+        '200':
+          description: 台账记录
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LedgerRecordResponse' }
+        '400': { $ref: '#/components/responses/BusinessError' }
+  /api/v1/compliance-records:
+    get:
+      operationId: listComplianceRecords
+      tags: [food-safety]
+      parameters:
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+        - name: category
+          in: query
+          required: false
+          schema: { $ref: '#/components/schemas/ComplianceCategory' }
+        - name: status
+          in: query
+          required: false
+          schema: { $ref: '#/components/schemas/ComplianceRecordStatus' }
+        - name: expiringWithinDays
+          in: query
+          required: false
+          schema: { type: integer, minimum: 0, maximum: 3650 }
+        - $ref: '#/components/parameters/OperationalPage'
+        - $ref: '#/components/parameters/OperationalSize'
+      responses:
+        '200':
+          description: 合规档案分页
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ComplianceRecordPageResponse' }
+        '400': { $ref: '#/components/responses/BusinessError' }
+    post:
+      operationId: createComplianceRecord
+      tags: [food-safety]
+      parameters:
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ComplianceRecordRequest' }
+      responses:
+        '200':
+          description: 合规档案
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ComplianceRecordResponse' }
+        '400': { $ref: '#/components/responses/BusinessError' }
+  /api/v1/compliance-records/{recordId}:
+    get:
+      operationId: getComplianceRecord
+      tags: [food-safety]
+      parameters:
+        - name: recordId
+          in: path
+          required: true
+          schema: { type: string }
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+      responses:
+        '200':
+          description: 合规档案
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ComplianceRecordResponse' }
+        '400': { $ref: '#/components/responses/BusinessError' }
+    put:
+      operationId: updateComplianceRecord
+      tags: [food-safety]
+      parameters:
+        - name: recordId
+          in: path
+          required: true
+          schema: { type: string }
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ComplianceRecordRequest' }
+      responses:
+        '200':
+          description: 更新后的合规档案
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ComplianceRecordResponse' }
+        '400': { $ref: '#/components/responses/BusinessError' }
+  /api/v1/compliance-records/{recordId}/submit:
+    post:
+      operationId: submitComplianceRecord
+      tags: [food-safety]
+      parameters:
+        - name: recordId
+          in: path
+          required: true
+          schema: { type: string }
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/VersionRequest' }
+      responses:
+        '200':
+          description: 已提交审核
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ComplianceRecordResponse' }
+        '400': { $ref: '#/components/responses/BusinessError' }
+  /api/v1/compliance-records/{recordId}/review:
+    post:
+      operationId: reviewComplianceRecord
+      tags: [food-safety]
+      parameters:
+        - name: recordId
+          in: path
+          required: true
+          schema: { type: string }
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ComplianceReviewRequest' }
+      responses:
+        '200':
+          description: 审核结果
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ComplianceRecordResponse' }
+        '400': { $ref: '#/components/responses/BusinessError' }
+  /api/v1/compliance-records/{recordId}/history:
+    get:
+      operationId: listComplianceHistory
+      tags: [food-safety]
+      parameters:
+        - name: recordId
+          in: path
+          required: true
+          schema: { type: string }
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+      responses:
+        '200':
+          description: 合规变更历史
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ComplianceHistoryListResponse' }
+        '400': { $ref: '#/components/responses/BusinessError' }
+  /api/v1/compliance-records/expiry-scan:
+    post:
+      operationId: scanComplianceExpiry
+      tags: [food-safety]
+      parameters:
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ExpiryScanRequest' }
+      responses:
+        '200':
+          description: 本次扫描生成或复用的预警
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AlertRecordListResponse' }
+        '400': { $ref: '#/components/responses/BusinessError' }
+  /api/v1/canteen-showcases:
+    get:
+      operationId: listCanteenShowcases
+      tags: [governance]
+      parameters:
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+        - name: status
+          in: query
+          required: false
+          schema: { $ref: '#/components/schemas/CanteenShowcaseStatus' }
+        - $ref: '#/components/parameters/OperationalPage'
+        - $ref: '#/components/parameters/OperationalSize'
+      responses:
+        '200':
+          description: 食堂风采分页
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CanteenShowcasePageResponse' }
+        '400': { $ref: '#/components/responses/BusinessError' }
+    post:
+      operationId: createCanteenShowcase
+      tags: [governance]
+      parameters:
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ShowcaseRequest' }
+      responses:
+        '200':
+          description: 食堂风采草稿
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CanteenShowcaseResponse' }
+        '400': { $ref: '#/components/responses/BusinessError' }
+  /api/v1/canteen-showcases/{showcaseId}:
+    get:
+      operationId: getCanteenShowcase
+      tags: [governance]
+      parameters:
+        - name: showcaseId
+          in: path
+          required: true
+          schema: { type: string }
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+      responses:
+        '200':
+          description: 食堂风采
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CanteenShowcaseResponse' }
+        '400': { $ref: '#/components/responses/BusinessError' }
+    put:
+      operationId: updateCanteenShowcase
+      tags: [governance]
+      parameters:
+        - name: showcaseId
+          in: path
+          required: true
+          schema: { type: string }
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ShowcaseRequest' }
+      responses:
+        '200':
+          description: 更新后的食堂风采
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CanteenShowcaseResponse' }
+        '400': { $ref: '#/components/responses/BusinessError' }
+  /api/v1/canteen-showcases/{showcaseId}/submit:
+    post:
+      operationId: submitCanteenShowcase
+      tags: [governance]
+      parameters:
+        - name: showcaseId
+          in: path
+          required: true
+          schema: { type: string }
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/VersionRequest' }
+      responses:
+        '200':
+          description: 已提交风采审核
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CanteenShowcaseResponse' }
+        '400': { $ref: '#/components/responses/BusinessError' }
+  /api/v1/canteen-showcases/{showcaseId}/review:
+    post:
+      operationId: reviewCanteenShowcase
+      tags: [governance]
+      parameters:
+        - name: showcaseId
+          in: path
+          required: true
+          schema: { type: string }
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ShowcaseReviewRequest' }
+      responses:
+        '200':
+          description: 风采审核结果
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CanteenShowcaseResponse' }
+        '400': { $ref: '#/components/responses/BusinessError' }
+  /api/v1/canteen-showcases/{showcaseId}/publish:
+    post:
+      operationId: publishCanteenShowcase
+      tags: [governance]
+      parameters:
+        - name: showcaseId
+          in: path
+          required: true
+          schema: { type: string }
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/VersionRequest' }
+      responses:
+        '200':
+          description: 已发布食堂风采
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CanteenShowcaseResponse' }
+        '400': { $ref: '#/components/responses/BusinessError' }
+  /api/v1/canteen-showcases/{showcaseId}/revoke:
+    post:
+      operationId: revokeCanteenShowcase
+      tags: [governance]
+      parameters:
+        - name: showcaseId
+          in: path
+          required: true
+          schema: { type: string }
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/VersionRequest' }
+      responses:
+        '200':
+          description: 已撤回食堂风采
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CanteenShowcaseResponse' }
+        '400': { $ref: '#/components/responses/BusinessError' }
+  /api/v1/canteen-showcases/{showcaseId}/versions:
+    post:
+      operationId: createCanteenShowcaseVersion
+      tags: [governance]
+      parameters:
+        - name: showcaseId
+          in: path
+          required: true
+          schema: { type: string }
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ShowcaseRequest' }
+      responses:
+        '200':
+          description: 新版食堂风采草稿
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CanteenShowcaseResponse' }
+        '400': { $ref: '#/components/responses/BusinessError' }
+  /api/v1/canteen-showcases/{showcaseId}/history:
+    get:
+      operationId: listCanteenShowcaseHistory
+      tags: [governance]
+      parameters:
+        - name: showcaseId
+          in: path
+          required: true
+          schema: { type: string }
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+      responses:
+        '200':
+          description: 风采操作历史
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GovernanceHistoryListResponse' }
+        '400': { $ref: '#/components/responses/BusinessError' }
+  /api/v1/meal-suspensions:
+    get:
+      operationId: listMealSuspensions
+      tags: [governance]
+      parameters:
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+        - name: from
+          in: query
+          required: false
+          schema: { type: string, format: date }
+        - name: to
+          in: query
+          required: false
+          schema: { type: string, format: date }
+        - name: status
+          in: query
+          required: false
+          schema: { $ref: '#/components/schemas/MealSuspensionStatus' }
+        - $ref: '#/components/parameters/OperationalPage'
+        - $ref: '#/components/parameters/OperationalSize'
+      responses:
+        '200':
+          description: 停餐报备分页
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MealSuspensionPageResponse' }
+        '400': { $ref: '#/components/responses/BusinessError' }
+    post:
+      operationId: createMealSuspension
+      tags: [governance]
+      parameters:
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/MealSuspensionRequest' }
+      responses:
+        '200':
+          description: 停餐报备
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MealSuspensionResponse' }
+        '400': { $ref: '#/components/responses/BusinessError' }
+  /api/v1/meal-suspensions/{suspensionId}/review:
+    post:
+      operationId: reviewMealSuspension
+      tags: [governance]
+      parameters:
+        - name: suspensionId
+          in: path
+          required: true
+          schema: { type: string }
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/MealReviewRequest' }
+      responses:
+        '200':
+          description: 停餐审核结果
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MealSuspensionResponse' }
+        '400': { $ref: '#/components/responses/BusinessError' }
+  /api/v1/meal-suspensions/{suspensionId}/cancel:
+    post:
+      operationId: cancelMealSuspension
+      tags: [governance]
+      parameters:
+        - name: suspensionId
+          in: path
+          required: true
+          schema: { type: string }
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/VersionRequest' }
+      responses:
+        '200':
+          description: 已取消停餐报备
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MealSuspensionResponse' }
+        '400': { $ref: '#/components/responses/BusinessError' }
+  /api/v1/meal-suspensions/stats:
+    get:
+      operationId: getMealSuspensionStats
+      tags: [governance]
+      parameters:
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+        - name: from
+          in: query
+          required: false
+          schema: { type: string, format: date }
+        - name: to
+          in: query
+          required: false
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: 停餐统计
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MealSuspensionStatsResponse' }
+        '400': { $ref: '#/components/responses/BusinessError' }
+  /api/v1/meal-suspensions/{suspensionId}/history:
+    get:
+      operationId: listMealSuspensionHistory
+      tags: [governance]
+      parameters:
+        - name: suspensionId
+          in: path
+          required: true
+          schema: { type: string }
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+      responses:
+        '200':
+          description: 停餐操作历史
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GovernanceHistoryListResponse' }
+        '400': { $ref: '#/components/responses/BusinessError' }
+  /api/v1/supplier-complaints:
+    get:
+      operationId: listSupplierComplaints
+      tags: [governance]
+      parameters:
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+        - name: status
+          in: query
+          required: false
+          schema: { $ref: '#/components/schemas/SupplierComplaintStatus' }
+        - name: supplierId
+          in: query
+          required: false
+          schema: { type: string }
+        - $ref: '#/components/parameters/OperationalPage'
+        - $ref: '#/components/parameters/OperationalSize'
+      responses:
+        '200':
+          description: 供应商投诉分页
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SupplierComplaintPageResponse' }
+        '400': { $ref: '#/components/responses/BusinessError' }
+    post:
+      operationId: createSupplierComplaint
+      tags: [governance]
+      parameters:
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ComplaintRequest' }
+      responses:
+        '200':
+          description: 供应商投诉
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SupplierComplaintResponse' }
+        '400': { $ref: '#/components/responses/BusinessError' }
+  /api/v1/supplier-complaints/{complaintId}:
+    get:
+      operationId: getSupplierComplaint
+      tags: [governance]
+      parameters:
+        - name: complaintId
+          in: path
+          required: true
+          schema: { type: string }
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+      responses:
+        '200':
+          description: 供应商投诉
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SupplierComplaintResponse' }
+        '400': { $ref: '#/components/responses/BusinessError' }
+  /api/v1/supplier-complaints/{complaintId}/review:
+    post:
+      operationId: reviewSupplierComplaint
+      tags: [governance]
+      parameters:
+        - name: complaintId
+          in: path
+          required: true
+          schema: { type: string }
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ComplaintReviewRequest' }
+      responses:
+        '200':
+          description: 投诉受理结果
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SupplierComplaintResponse' }
+        '400': { $ref: '#/components/responses/BusinessError' }
+  /api/v1/supplier-complaints/{complaintId}/process:
+    post:
+      operationId: processSupplierComplaint
+      tags: [governance]
+      parameters:
+        - name: complaintId
+          in: path
+          required: true
+          schema: { type: string }
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/VersionRequest' }
+      responses:
+        '200':
+          description: 投诉处理中
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SupplierComplaintResponse' }
+        '400': { $ref: '#/components/responses/BusinessError' }
+  /api/v1/supplier-complaints/{complaintId}/reply:
+    post:
+      operationId: replySupplierComplaint
+      tags: [governance]
+      parameters:
+        - name: complaintId
+          in: path
+          required: true
+          schema: { type: string }
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ComplaintReplyRequest' }
+      responses:
+        '200':
+          description: 投诉回复
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SupplierComplaintResponse' }
+        '400': { $ref: '#/components/responses/BusinessError' }
+  /api/v1/supplier-complaints/{complaintId}/close:
+    post:
+      operationId: closeSupplierComplaint
+      tags: [governance]
+      parameters:
+        - name: complaintId
+          in: path
+          required: true
+          schema: { type: string }
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/VersionRequest' }
+      responses:
+        '200':
+          description: 投诉关闭
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SupplierComplaintResponse' }
+        '400': { $ref: '#/components/responses/BusinessError' }
+  /api/v1/supplier-complaints/{complaintId}/history:
+    get:
+      operationId: listSupplierComplaintHistory
+      tags: [governance]
+      parameters:
+        - name: complaintId
+          in: path
+          required: true
+          schema: { type: string }
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+      responses:
+        '200':
+          description: 投诉操作历史
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GovernanceHistoryListResponse' }
+        '400': { $ref: '#/components/responses/BusinessError' }
 components:
   securitySchemes:
     bearerAuth:
@@ -1512,7 +2295,7 @@ components:
       required: false
       schema:
         type: string
-        enum: [DISTRICT_PLATFORM, BRIGHT_KITCHEN, MORNING_INSPECTION, LEDGER]
+        enum: [DISTRICT_PLATFORM, BRIGHT_KITCHEN, MORNING_INSPECTION, LEDGER, COMPLIANCE]
     AlertStatus:
       name: status
       in: query
@@ -3056,6 +3839,459 @@ components:
           type: string
         data:
           $ref: '#/components/schemas/LedgerAlert'
+    LedgerFrequency:
+      type: string
+      enum: [DAILY, WEEKLY, MONTHLY, CUSTOM]
+    LedgerConfigurationStatus:
+      type: string
+      enum: [ACTIVE, DISABLED]
+    LedgerConfiguration:
+      type: object
+      required: [id, code, name, frequency, requiredFields, reminderDays, status, version]
+      properties:
+        id: { type: string }
+        code: { type: string }
+        name: { type: string }
+        frequency: { $ref: '#/components/schemas/LedgerFrequency' }
+        periodDays: { type: integer, nullable: true, minimum: 1, maximum: 365 }
+        requiredFields:
+          type: array
+          minItems: 1
+          items: { type: string }
+        template:
+          type: object
+          additionalProperties: true
+        responsibleRole: { type: string, nullable: true }
+        reminderDays: { type: integer, minimum: 0, maximum: 365 }
+        status: { $ref: '#/components/schemas/LedgerConfigurationStatus' }
+        version: { type: integer, format: int64 }
+        createdAt: { type: string, format: date-time, nullable: true }
+        updatedAt: { type: string, format: date-time, nullable: true }
+    LedgerConfigurationRequest:
+      type: object
+      required: [code, name, frequency, requiredFields]
+      properties:
+        configurationId: { type: string, nullable: true }
+        code: { type: string, minLength: 1 }
+        name: { type: string, minLength: 1 }
+        frequency: { $ref: '#/components/schemas/LedgerFrequency' }
+        periodDays: { type: integer, nullable: true, minimum: 1, maximum: 365 }
+        requiredFields:
+          type: array
+          minItems: 1
+          items: { type: string, minLength: 1 }
+        template:
+          type: object
+          additionalProperties: true
+        responsibleRole: { type: string, nullable: true }
+        reminderDays: { type: integer, minimum: 0, maximum: 365, default: 0 }
+        status: { $ref: '#/components/schemas/LedgerConfigurationStatus' }
+        version: { type: integer, format: int64, default: 0 }
+    ConfiguredLedgerCycle:
+      type: object
+      required: [cycleId, configurationId, ledgerCode, periodStart, periodEnd, status, missingLedgerCodes]
+      properties:
+        cycleId: { type: string }
+        configurationId: { type: string }
+        ledgerCode: { type: string }
+        periodStart: { type: string, format: date }
+        periodEnd: { type: string, format: date }
+        status: { type: string, enum: [OPEN, CLEARED] }
+        missingLedgerCodes:
+          type: array
+          items: { type: string }
+    ConfiguredLedgerRecordRequest:
+      type: object
+      required: [ledgerCode]
+      properties:
+        recordId: { type: string, nullable: true }
+        ledgerCode: { type: string, minLength: 1 }
+        recordTime: { type: string, format: date-time, nullable: true }
+        recorderId: { type: string, nullable: true }
+        content:
+          type: object
+          additionalProperties: true
+        photos:
+          type: array
+          items: { type: string }
+        remark: { type: string, nullable: true }
+    LedgerConfigurationResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code: { type: integer }
+        message: { type: string }
+        data: { $ref: '#/components/schemas/LedgerConfiguration' }
+    LedgerConfigurationListResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code: { type: integer }
+        message: { type: string }
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/LedgerConfiguration' }
+    ConfiguredLedgerCycleListResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code: { type: integer }
+        message: { type: string }
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/ConfiguredLedgerCycle' }
+    ComplianceCategory:
+      type: string
+      enum: [LICENSE, HEALTH_CERTIFICATE, MANAGEMENT_DOCUMENT, SUPPLIER_QUALIFICATION, WASTE_RECYCLER_QUALIFICATION]
+    ComplianceRecordStatus:
+      type: string
+      enum: [DRAFT, SUBMITTED, APPROVED, REJECTED]
+    ComplianceRecord:
+      type: object
+      required: [id, category, subjectType, subjectId, subjectName, title, validFrom, validTo, attachmentRefs, status, version]
+      properties:
+        id: { type: string }
+        category: { $ref: '#/components/schemas/ComplianceCategory' }
+        subjectType: { type: string }
+        subjectId: { type: string }
+        subjectName: { type: string }
+        title: { type: string }
+        credentialNo: { type: string, nullable: true }
+        validFrom: { type: string, format: date }
+        validTo: { type: string, format: date }
+        attachmentRefs:
+          type: array
+          items: { type: string }
+        status: { $ref: '#/components/schemas/ComplianceRecordStatus' }
+        reviewRemark: { type: string, nullable: true }
+        version: { type: integer, format: int64 }
+        createdAt: { type: string, format: date-time, nullable: true }
+        updatedAt: { type: string, format: date-time, nullable: true }
+        submittedAt: { type: string, format: date-time, nullable: true }
+        reviewedAt: { type: string, format: date-time, nullable: true }
+        reviewedBy: { type: string, nullable: true }
+    ComplianceRecordRequest:
+      type: object
+      required: [category, subjectType, subjectId, subjectName, title, validFrom, validTo]
+      properties:
+        recordId: { type: string, nullable: true }
+        category: { $ref: '#/components/schemas/ComplianceCategory' }
+        subjectType: { type: string, minLength: 1 }
+        subjectId: { type: string, minLength: 1 }
+        subjectName: { type: string, minLength: 1 }
+        title: { type: string, minLength: 1 }
+        credentialNo: { type: string, nullable: true }
+        validFrom: { type: string, format: date }
+        validTo: { type: string, format: date }
+        attachmentRefs:
+          type: array
+          items: { type: string }
+        status: { $ref: '#/components/schemas/ComplianceRecordStatus' }
+        reviewRemark: { type: string, nullable: true }
+        version: { type: integer, format: int64, default: 0 }
+    ComplianceReviewRequest:
+      type: object
+      required: [version, status, reviewRemark]
+      properties:
+        version: { type: integer, format: int64 }
+        status: { type: string, enum: [APPROVED, REJECTED] }
+        reviewRemark: { type: string, minLength: 1 }
+    VersionRequest:
+      type: object
+      required: [version]
+      properties:
+        version: { type: integer, format: int64, minimum: 0 }
+    ExpiryScanRequest:
+      type: object
+      properties:
+        asOf: { type: string, format: date, nullable: true }
+        windowDays: { type: integer, minimum: 0, maximum: 3650, default: 30 }
+    ComplianceRecordResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code: { type: integer }
+        message: { type: string }
+        data: { $ref: '#/components/schemas/ComplianceRecord' }
+    PageViewComplianceRecord:
+      type: object
+      required: [total, pages, current, size, records]
+      properties:
+        total: { type: integer, format: int64 }
+        pages: { type: integer, format: int64 }
+        current: { type: integer }
+        size: { type: integer }
+        records:
+          type: array
+          items: { $ref: '#/components/schemas/ComplianceRecord' }
+    ComplianceRecordPageResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code: { type: integer }
+        message: { type: string }
+        data: { $ref: '#/components/schemas/PageViewComplianceRecord' }
+    ComplianceHistory:
+      type: object
+      required: [historyId, recordId, action, status, snapshot, actorId, occurredAt]
+      properties:
+        historyId: { type: string }
+        recordId: { type: string }
+        action: { type: string }
+        status: { $ref: '#/components/schemas/ComplianceRecordStatus' }
+        snapshot: { type: object, additionalProperties: true }
+        actorId: { type: string }
+        occurredAt: { type: string, format: date-time }
+    ComplianceHistoryListResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code: { type: integer }
+        message: { type: string }
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/ComplianceHistory' }
+    AlertRecordListResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code: { type: integer }
+        message: { type: string }
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/AlertRecord' }
+    CanteenShowcaseStatus:
+      type: string
+      enum: [DRAFT, SUBMITTED, APPROVED, REJECTED, PUBLISHED, REVOKED]
+    CanteenShowcase:
+      type: object
+      required: [id, title, content, photos, status, version]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        content: { type: string }
+        photos:
+          type: array
+          items: { type: string }
+        status: { $ref: '#/components/schemas/CanteenShowcaseStatus' }
+        previousVersionId: { type: string, nullable: true }
+        version: { type: integer, format: int64 }
+        createdAt: { type: string, format: date-time, nullable: true }
+        updatedAt: { type: string, format: date-time, nullable: true }
+        reviewRemark: { type: string, nullable: true }
+        reviewedAt: { type: string, format: date-time, nullable: true }
+        reviewedBy: { type: string, nullable: true }
+        publishedAt: { type: string, format: date-time, nullable: true }
+    ShowcaseRequest:
+      type: object
+      required: [title, content]
+      properties:
+        showcaseId: { type: string, nullable: true }
+        title: { type: string, minLength: 1 }
+        content: { type: string, minLength: 1 }
+        photos:
+          type: array
+          items: { type: string }
+        status: { $ref: '#/components/schemas/CanteenShowcaseStatus' }
+        previousVersionId: { type: string, nullable: true }
+        version: { type: integer, format: int64, default: 0 }
+    ShowcaseReviewRequest:
+      type: object
+      required: [version, status, reviewRemark]
+      properties:
+        version: { type: integer, format: int64 }
+        status: { type: string, enum: [APPROVED, REJECTED] }
+        reviewRemark: { type: string, minLength: 1 }
+    CanteenShowcaseResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code: { type: integer }
+        message: { type: string }
+        data: { $ref: '#/components/schemas/CanteenShowcase' }
+    PageViewCanteenShowcase:
+      type: object
+      required: [total, pages, current, size, records]
+      properties:
+        total: { type: integer, format: int64 }
+        pages: { type: integer, format: int64 }
+        current: { type: integer }
+        size: { type: integer }
+        records:
+          type: array
+          items: { $ref: '#/components/schemas/CanteenShowcase' }
+    CanteenShowcasePageResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code: { type: integer }
+        message: { type: string }
+        data: { $ref: '#/components/schemas/PageViewCanteenShowcase' }
+    MealSuspensionStatus:
+      type: string
+      enum: [SUBMITTED, APPROVED, REJECTED, CANCELLED]
+    MealPeriod:
+      type: string
+      enum: [BREAKFAST, LUNCH, DINNER, SNACK]
+    MealSuspension:
+      type: object
+      required: [id, mealDate, mealPeriod, reason, status, version]
+      properties:
+        id: { type: string }
+        mealDate: { type: string, format: date }
+        mealPeriod: { $ref: '#/components/schemas/MealPeriod' }
+        reason: { type: string }
+        status: { $ref: '#/components/schemas/MealSuspensionStatus' }
+        reviewRemark: { type: string, nullable: true }
+        version: { type: integer, format: int64 }
+        createdAt: { type: string, format: date-time, nullable: true }
+        updatedAt: { type: string, format: date-time, nullable: true }
+        reviewedAt: { type: string, format: date-time, nullable: true }
+        reviewedBy: { type: string, nullable: true }
+    MealSuspensionRequest:
+      type: object
+      required: [mealDate, mealPeriod, reason]
+      properties:
+        suspensionId: { type: string, nullable: true }
+        mealDate: { type: string, format: date }
+        mealPeriod: { $ref: '#/components/schemas/MealPeriod' }
+        reason: { type: string, minLength: 1 }
+    MealReviewRequest:
+      type: object
+      required: [version, status, reviewRemark]
+      properties:
+        version: { type: integer, format: int64 }
+        status: { type: string, enum: [APPROVED, REJECTED] }
+        reviewRemark: { type: string, minLength: 1 }
+    MealSuspensionResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code: { type: integer }
+        message: { type: string }
+        data: { $ref: '#/components/schemas/MealSuspension' }
+    PageViewMealSuspension:
+      type: object
+      required: [total, pages, current, size, records]
+      properties:
+        total: { type: integer, format: int64 }
+        pages: { type: integer, format: int64 }
+        current: { type: integer }
+        size: { type: integer }
+        records:
+          type: array
+          items: { $ref: '#/components/schemas/MealSuspension' }
+    MealSuspensionPageResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code: { type: integer }
+        message: { type: string }
+        data: { $ref: '#/components/schemas/PageViewMealSuspension' }
+    MealSuspensionStatsResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code: { type: integer }
+        message: { type: string }
+        data:
+          type: object
+          additionalProperties: { type: integer, format: int64 }
+    SupplierComplaintStatus:
+      type: string
+      enum: [SUBMITTED, ACCEPTED, PROCESSING, REPLIED, CLOSED, REJECTED]
+    SupplierComplaint:
+      type: object
+      required: [id, supplierId, subject, description, attachmentRefs, status, version, createdBy]
+      properties:
+        id: { type: string }
+        supplierId: { type: string }
+        subject: { type: string }
+        description: { type: string }
+        attachmentRefs:
+          type: array
+          items: { type: string }
+        deadline: { type: string, format: date, nullable: true }
+        status: { $ref: '#/components/schemas/SupplierComplaintStatus' }
+        reply: { type: string, nullable: true }
+        version: { type: integer, format: int64 }
+        createdBy: { type: string }
+        assignedTo: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time, nullable: true }
+        updatedAt: { type: string, format: date-time, nullable: true }
+        acceptedAt: { type: string, format: date-time, nullable: true }
+        closedAt: { type: string, format: date-time, nullable: true }
+    ComplaintRequest:
+      type: object
+      required: [supplierId, subject, description]
+      properties:
+        complaintId: { type: string, nullable: true }
+        supplierId: { type: string, minLength: 1 }
+        subject: { type: string, minLength: 1 }
+        description: { type: string, minLength: 1 }
+        attachmentRefs:
+          type: array
+          items: { type: string }
+        deadline: { type: string, format: date, nullable: true }
+    ComplaintReviewRequest:
+      type: object
+      required: [version, status]
+      properties:
+        version: { type: integer, format: int64 }
+        status: { type: string, enum: [ACCEPTED, REJECTED] }
+        note: { type: string, nullable: true }
+    ComplaintReplyRequest:
+      type: object
+      required: [version, reply]
+      properties:
+        version: { type: integer, format: int64 }
+        reply: { type: string, minLength: 1 }
+    SupplierComplaintResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code: { type: integer }
+        message: { type: string }
+        data: { $ref: '#/components/schemas/SupplierComplaint' }
+    PageViewSupplierComplaint:
+      type: object
+      required: [total, pages, current, size, records]
+      properties:
+        total: { type: integer, format: int64 }
+        pages: { type: integer, format: int64 }
+        current: { type: integer }
+        size: { type: integer }
+        records:
+          type: array
+          items: { $ref: '#/components/schemas/SupplierComplaint' }
+    SupplierComplaintPageResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code: { type: integer }
+        message: { type: string }
+        data: { $ref: '#/components/schemas/PageViewSupplierComplaint' }
+    GovernanceHistory:
+      type: object
+      required: [historyId, entityType, entityId, action, status, snapshot, actorId, occurredAt]
+      properties:
+        historyId: { type: string }
+        entityType: { type: string }
+        entityId: { type: string }
+        action: { type: string }
+        status: { type: string }
+        snapshot: { type: object, additionalProperties: true }
+        actorId: { type: string }
+        occurredAt: { type: string, format: date-time }
+    GovernanceHistoryListResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code: { type: integer }
+        message: { type: string }
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/GovernanceHistory' }
     ErrorResponse:
       type: object
       required: [code, message]
