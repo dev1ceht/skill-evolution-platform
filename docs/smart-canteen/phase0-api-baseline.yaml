@@ -16,7 +16,7 @@ resources:
       - POST /auth/logout
       - GET /auth/me
     target:
-      - POST /auth/wxmp/login
+      - POST /wxmp/auth/login
 
   organization:
     target:
@@ -67,7 +67,8 @@ resources:
       - POST /procurement-plans/{planId}/confirm
       - POST /purchase-orders/{orderId}/ship
       - POST /purchase-orders/{orderId}/deliver
-      - POST /purchase-orders/{orderId}/accept
+      - POST /purchase-orders/{orderId}/inspect
+      - POST /purchase-orders/{orderId}/stock-in
       - POST /inventory/counts
       - POST /inventory/adjustments
 
@@ -85,6 +86,38 @@ resources:
       - PUT /ledger-configurations/{id}
       - POST /ledger-records/{recordId}/attachments
       - GET /ledger/exports
+
+  system_management:
+    target:
+      - GET /announcements
+      - POST /announcements
+      - POST /announcements/{announcementId}/submit
+      - POST /announcements/{announcementId}/publish
+      - POST /announcements/{announcementId}/withdraw
+      - GET /canteen-styles
+      - POST /canteen-styles
+      - POST /canteen-styles/{styleId}/submit
+      - POST /canteen-styles/{styleId}/decision
+      - GET /meal-suspensions
+      - POST /meal-suspensions
+      - POST /meal-suspensions/{suspensionId}/decision
+      - GET /complaints
+      - POST /complaints
+      - POST /complaints/{complaintId}/process
+      - POST /complaints/{complaintId}/close
+      - GET /knowledge
+      - POST /knowledge
+      - POST /knowledge/{knowledgeId}/publish
+
+  settlement_and_cost:
+    target:
+      - GET /settlements
+      - POST /settlements/generate
+      - POST /settlements/{settlementId}/decision
+      - GET /cost-records
+      - POST /cost-records
+      - GET /cost-accounting
+      - POST /cost-accounting/{accountingId}/publish
 
   safety_and_alerts:
     target:
@@ -108,6 +141,20 @@ resources:
       - GET /statistics/ledger
       - GET /statistics/risk
       - GET /datacenter/sync-status
+
+  city_data:
+    target:
+      - POST /datacenter/auth/token
+      - POST /datacenter/sync/full
+      - POST /datacenter/sync/incremental
+      - GET /datacenter/sync-runs/{runId}
+
+  external_integrations:
+    target:
+      - GET /integration-connections
+      - POST /integration-connections/{connectionId}/test
+      - GET /devices
+      - GET /device-sync-runs
 
 compatibility:
   rule: "旧路径可以保留兼容，但必须调用规范应用服务，不能形成第二套业务规则。"

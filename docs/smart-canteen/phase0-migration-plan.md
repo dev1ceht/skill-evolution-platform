@@ -28,41 +28,36 @@
 
 ### V7：规范食谱模型
 
-新增或扩展：
+V5 已经提供 `ingredients`、`dishes`、`dish_ingredients`、`daily_menus` 和
+`daily_menu_items`，V7 必须复用并扩展这些表，不能再次创建同名表。建议扩展：
 
-- `ingredient_master`
-- `ingredient_nutrition`
-- `dishes`
-- `dish_ingredients`
-- `serving_profiles`
-- `menus`
-- `menu_items`
-- `menu_approvals`
-- `menu_versions`
+- 食材营养和单位换算字段；
+- 菜品适用人群、营养计算和配方版本字段；
+- 日食谱的审批状态、发布时间、不可变版本和带量明细字段；
+- `menu_approvals`、`menu_versions` 等审批/版本关联表（确认 V5 中不存在后再创建）。
 
-将旧 `menus/recipe_requirements` 映射到规范 Menu/Dish/Recipe。无法自动映射的数据进入迁移异常表，不允许静默丢弃。
+将 V3 的旧 `menus/recipe_requirements` 映射到现有 `daily_menus`、`daily_menu_items`、
+`dishes` 和 `dish_ingredients`。无法自动映射的数据进入迁移异常表，不允许静默丢弃。
 
 ### V8：采购、验收、库存和溯源
 
-新增或扩展：
+V5 已经提供采购订单、验收、库存批次、出库和溯源的基础表，包括
+`purchase_orders`、`purchase_order_items`、`purchase_receipts`、
+`purchase_receipt_items`、`inventory_batches`、`stock_out_records`、
+`stock_out_items` 和 `traceability_records`。V8 复用并扩展这些表，不能创建第二套订单或库存表。
 
-- `procurement_plans`
-- `procurement_plan_items`
-- `supplier_catalog_items`
-- `purchase_orders`
-- `purchase_order_items`
-- `deliveries`
-- `inspections`
-- `receipts`
-- `inventory_batches`
-- `stock_out_records`
-- `traceability_records`
+新增或扩展的重点是：
+
+- `procurement_plans`、`procurement_plan_items` 和 `supplier_catalog_items`；
+- `deliveries`、`inspections` 以及验收附件、拒收/部分接收明细；
+- 订单、验收、入库、库存批次和溯源之间的外键、幂等键及审计字段。
 
 采购计划必须引用 Menu 版本；库存写入只能由 Receipt/StockOut 服务完成。
 
 ### V9：配置化台账和通知
 
-新增：
+V2 已经提供 `ledger_cycles`、`ledger_cycle_requirements` 和 `ledger_alerts` 等周期台账基础结构，
+V5 也已存在运营台账表。V9 复用这些表并补齐配置化能力，新增：
 
 - `ledger_types`
 - `ledger_templates`
@@ -126,4 +121,3 @@
 | `/api/v1/inventory/receipts` | 保留为兼容入口，最终统一到 Receipt 服务 |
 | `/api/v1/ledger-cycles` | 保留查询，新增配置化台账服务作为唯一写入口 |
 | `/api/v1/alerts` | 保留，扩展规则、通知和处置过程 |
-

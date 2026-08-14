@@ -18,3 +18,9 @@ status: accepted
 - 采购计划必须引用菜单版本和菜单明细，不能只接受独立的菜单编号或旧配方数据。
 - 验收、库存、出库和溯源必须在同一个食堂范围内建立关联。
 - 二期设备和第三方平台不会直接污染核心领域对象，接入失败也不能改变核心业务状态。
+
+## Sources
+
+- 概要设计：3.4 食谱管理、3.6 采购管理、3.8 食品溯源信息、5.5 基础支撑层、5.6.2 授权控制。
+- 二期设计：3.2.13 采购管理、3.2.14 食品安全溯源码、3.2.16 食谱管理、3.2.5 基础单位统一。
+- 迁移边界和验收追踪见 [`docs/smart-canteen/phase0-migration-plan.md`](../smart-canteen/phase0-migration-plan.md) 与 [`docs/smart-canteen/phase0-traceability.md`](../smart-canteen/phase0-traceability.md)。

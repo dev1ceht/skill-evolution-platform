@@ -14,12 +14,12 @@ _Avoid_: Restaurant, Kitchen（Kitchen 只描述加工区域）
 _Avoid_: Account, User（Account/User 描述登录身份，不描述业务职责）
 
 **Supplier（供应商）**：向食堂提供食材或商品，并承担供货资质和履约责任的外部主体。
-_Avoid_: Vendor（接口文档可以使用，但领域代码统一使用 Supplier）
+_Avoid_: Vendor
 
 ## 食谱与采购
 
 **Ingredient（食材）**：可采购、验收、入库和领用的原材料，具有基础单位、规格和营养属性。
-_Avoid_: Material, Food（Material 仅作为旧接口兼容字段）
+_Avoid_: Material, Food
 
 **Dish（菜品）**：一个餐次中可以供应给就餐对象的成品菜，引用一个或多个食材及其标准用量。
 _Avoid_: Food（Food 过于宽泛）
@@ -28,7 +28,7 @@ _Avoid_: Food（Food 过于宽泛）
 _Avoid_: Menu（Menu 是按日期和餐次编排的食谱）
 
 **Menu（食谱）**：某个食堂在指定日期和餐次提供的菜品编排及预计份数。
-_Avoid_: Daily menu 与 Menu 并行使用；代码中统一以 Menu 表示日食谱
+_Avoid_: Daily menu（中文业务名称仍统一为食谱）
 
 **Procurement Plan（采购计划）**：根据已审批食谱、有效库存和未入库订单计算出的采购建议，不代表已经下单。
 _Avoid_: Purchase Order
@@ -67,5 +67,4 @@ _Avoid_: Admin（Admin 不代表监管范围）
 
 ## 统一范围
 
-**Canteen Scope（食堂范围）**：由 `schoolId + canteenId` 组成的最小运营数据隔离边界。除明确的区域汇总查询外，所有食谱、采购、库存、台账、预警和溯源数据都必须绑定该范围。
-
+**Canteen Scope（食堂范围）**：由学校和食堂构成的最小运营数据归属边界。除明确的区域汇总查询外，所有食谱、采购、库存、台账、预警和溯源数据都必须绑定该范围。

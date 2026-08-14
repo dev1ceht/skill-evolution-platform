@@ -183,11 +183,169 @@ requirements:
   - id: EVALUATION-001
     priority: P2
     category: evaluation
-    statement: "系统支持食堂满意度调查、供应商评价、食堂百科和批量食谱导入审批。"
+    statement: "系统支持食堂满意度调查和供应商评价。"
     source:
       - document: phase2-design
-        section: "3.2.15～3.2.19"
+        section: "3.2.17～3.2.19"
     acceptance:
       - "评价周期、问卷、题目、答卷、得分和排名可查询。"
-      - "批量导入有模板、校验和失败明细。"
-      - "知识内容支持教育局发布和学校下钻查看。"
+
+  - id: WXMP-001
+    priority: P0
+    category: channel
+    statement: "微信小程序提供扫码登录、食谱查看和台账记录三项最小可用访问能力。"
+    source:
+      - document: overview-design
+        section: "2.1.1 移动端; 3.1.2 移动端登录入口; 3.1.4 当日概览; 5.5.1 微信小程序接口"
+    acceptance:
+      - "用户可以通过微信授权完成身份绑定、会话建立和登录失败提示。"
+      - "登录后可以查看授权食堂食谱并提交台账记录，接口明确真实微信凭据属于联调前置条件。"
+
+  - id: SYS-ANNOUNCEMENT-001
+    priority: P1
+    category: system-management
+    statement: "管理部门可以创建、审核、发布和撤回通知公告，学校只能查看其授权范围内的公告。"
+    source:
+      - document: overview-design
+        section: "3.2.2 系统管理模块（通知公告管理）"
+    acceptance:
+      - "公告具有草稿、待审核、已发布和已撤回状态，发布范围与发布时间可追溯。"
+      - "学校端只能读取已发布且命中本校范围的公告，撤回后不再出现在公开列表。"
+
+  - id: SYS-CANTEEN-STYLE-001
+    priority: P1
+    category: system-management
+    statement: "学校可以维护食堂风采内容，管理部门审核后才能发布展示。"
+    source:
+      - document: overview-design
+        section: "3.2.2 系统管理模块（食堂风采管理）"
+    acceptance:
+      - "风采支持内容编辑、图片附件、提交审核、审核驳回和重新提交。"
+      - "只有审核通过的版本可以对授权访问者展示，历史版本和审核意见可追溯。"
+
+  - id: MEAL-SUSPENSION-001
+    priority: P1
+    category: system-management
+    statement: "学校可以提交停餐报备，管理部门可以审核、查询和统计停餐信息。"
+    source:
+      - document: overview-design
+        section: "3.2.2 系统管理模块（停餐报备）"
+    acceptance:
+      - "停餐报备记录停餐食堂、日期、餐次、原因、提交人和审核状态。"
+      - "管理部门可以按学校、食堂、日期和状态查询统计，审核结果和修改历史可追溯。"
+
+  - id: COMPLAINT-001
+    priority: P1
+    category: system-management
+    statement: "学校可以针对供应商提交投诉建议，管理部门可以受理、跟踪、统计并关闭处理流程。"
+    source:
+      - document: overview-design
+        section: "3.2.2 系统管理模块（投诉建议）"
+    acceptance:
+      - "投诉建议包含供应商、问题描述、附件、提交人、处理状态和处理时限。"
+      - "受理、处理中、已回复和已关闭的每次状态变化都记录处理人、时间和结果。"
+
+  - id: KNOWLEDGE-001
+    priority: P2
+    category: system-management
+    statement: "知识库支持法规制度和安全知识的分类维护、审核发布以及学校按授权范围查看。"
+    source:
+      - document: overview-design
+        section: "3.2.2 系统管理模块（知识库）"
+    acceptance:
+      - "知识内容具有分类、版本、附件、发布范围、审核状态和生效时间。"
+      - "管理部门发布的内容可以被授权学校检索和查看，撤回或过期内容不进入有效结果。"
+
+  - id: SETTLEMENT-001
+    priority: P1
+    category: settlement
+    statement: "系统可以按自定义结算周期汇总未结算采购单，生成供应商结算单并支持审核和历史查询。"
+    source:
+      - document: overview-design
+        section: "3.6.2 采购管理模块（结算管理）"
+      - document: phase2-design
+        section: "3.2.13 采购管理"
+    acceptance:
+      - "结算单按食堂、供应商和结算周期幂等生成，明细可追溯到验收合格数量和金额。"
+      - "结算单支持审核、驳回、确认和历史查询，已确认单据不能静默修改。"
+
+  - id: COST-001
+    priority: P1
+    category: settlement
+    statement: "系统记录餐费收入和各类支出，自动计算成本指标并生成可审核、可公示的成本核算结果。"
+    source:
+      - document: overview-design
+        section: "3.6.2 采购管理模块（成本核算）; 3.7 采购统计"
+    acceptance:
+      - "收入、支出、成本分类、统计周期和来源凭证可维护，计算口径和金额可复核。"
+      - "成本核算结果支持审核、提交公示、锁定和历史查询，公示版本不可静默覆盖。"
+
+  - id: CITY-001
+    priority: P1
+    category: city-platform
+    statement: "系统通过市级平台约定的认证、签名、全量/增量上报和数据质量流程完成数据中心对接。"
+    source:
+      - document: overview-design
+        section: "3.9 市级数据中心模块; 5.5.2 市级数据中心接口"
+      - document: phase2-design
+        section: "3.2.3 市级平台数据接入"
+    acceptance:
+      - "使用 clientId、clientSecret 获取 accessToken，并按 timestamp 和签名规则校验每次请求。"
+      - "支持全量和增量数据上报、字段转换、数据质量校验、失败重试、同步监控和 T+1 汇总。"
+
+  - id: BRIGHT-001
+    priority: P2
+    category: integration
+    statement: "明厨亮灶适配器支持机构和摄像头同步、实时/回放视频、AI告警和单点登录边界。"
+    source:
+      - document: phase2-design
+        section: "3.2.1 明厨亮灶平台"
+    acceptance:
+      - "机构和摄像头同步具备映射、停用和同步日志，实时与回放访问均校验授权。"
+      - "AI警情和单点登录结果先归一化并记录原始来源，凭据或厂商服务不可用时明确失败。"
+
+  - id: DEVICE-001
+    priority: P2
+    category: integration
+    statement: "晨检仪、高拍仪、电子秤和标签打印机通过统一设备管理和同步日志接入。"
+    source:
+      - document: phase2-design
+        section: "3.2.6 晨检仪; 3.2.7 高拍仪; 3.2.8 电子秤; 3.2.9 标签打印机; 3.2.10～3.2.11 设备管理"
+    acceptance:
+      - "设备可以注册、绑定食堂、同步人员或业务数据，并能查询在线状态和最近同步结果。"
+      - "调用具备超时、重试、幂等、失败日志和人工补录入口，不因设备失败伪造业务成功。"
+
+  - id: PRICE-001
+    priority: P1
+    category: statistics
+    statement: "系统维护主食材基准价，分析采购价偏差并按阈值生成监管预警和导出结果。"
+    source:
+      - document: overview-design
+        section: "3.7 采购统计"
+      - document: phase2-design
+        section: "3.2.12 主食材价格监管"
+    acceptance:
+      - "基准价支持导入、版本、生效日期、食材和区域范围，异常数据有失败明细。"
+      - "采购价偏差按配置阈值分析，结果可查询、预警、复核和导出。"
+
+  - id: CONTENT-001
+    priority: P2
+    category: content
+    statement: "百科知识和批量食谱导入支持多格式内容、区域下钻、模板校验、失败明细和审批发布。"
+    source:
+      - document: phase2-design
+        section: "3.2.15 食堂百科; 3.2.16 食谱管理"
+    acceptance:
+      - "知识内容支持多格式附件和按区域、学校、食堂下钻查看，发布范围可审计。"
+      - "批量导入提供模板、字段和业务校验、失败明细、重试以及审批后发布。"
+
+  - id: PLATFORM-001
+    priority: P1
+    category: platform
+    statement: "微信、短信、对象存储、缓存、消息队列和备份监控等平台能力通过明确配置契约和可观测性接入。"
+    source:
+      - document: overview-design
+        section: "2.3 逻辑架构; 5.5 基础支撑层; 6 非功能需求; 7 部署架构"
+    acceptance:
+      - "缺少真实凭据时相关适配器明确返回配置错误，不能伪装为已连接或已发送。"
+      - "外部调用、通知、缓存、消息、备份和恢复具有超时/重试/审计/监控指标及故障演练记录。"

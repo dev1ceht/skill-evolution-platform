@@ -33,6 +33,16 @@ flowchart LR
 | 统计与监管 | RiskAssessment、Rating | ScoreDimension、StatisticSnapshot、InspectionTask | 监管 |
 | 外部接入 | IntegrationConnection | SyncRun、Device、RawMessage | 平台 |
 
+## 共享值对象
+
+`CanteenScope` 表示一个运营数据归属边界，由一个学校和该学校下的一个食堂构成。菜单、采购、库存、台账、预警和溯源聚合都必须携带一个有效的 `CanteenScope`；监管查询可以基于多个已授权范围汇总，但不能把多个范围压成一个普通食堂聚合。
+
+约束：
+
+- 学校和食堂标识不能为空，食堂必须属于该学校；
+- 聚合之间比较范围时使用 `CanteenScope`，不在各模块分别拼接标识；
+- 监管角色的区域范围是授权集合，不等同于绕过单个 `CanteenScope` 校验。
+
 ## 关键关系
 
 - 一个 School 拥有一个或多个 Canteen。
@@ -61,4 +71,3 @@ flowchart LR
 10. Alert 关闭必须有处置人、处置时间和处置结果。
 11. 统计数据必须能追溯到业务明细或明确标记为快照数据。
 12. 外部系统不能直接写入领域数据库，必须经过适配器和归一化校验。
-
