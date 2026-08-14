@@ -11,4 +11,3 @@
 
 - **Skill Evolution Platform → Smart Canteen**：平台提供需求切片、API契约、测试证据和阶段治理能力；不拥有食堂业务对象。
 - **Smart Canteen → Skill Evolution Platform**：智慧食堂阶段计划和验收记录作为平台的工程产物保存；不把食堂业务数据写入平台领域模型。
-
