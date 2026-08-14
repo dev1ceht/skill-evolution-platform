@@ -45,6 +45,18 @@
       "dependencies": ["MenuApprovalPage:APPROVED"]
     },
     {
+      "page": "UnifiedProcurementPlanPage",
+      "operations": ["listProcurementPlans", "getProcurementPlan", "generateProcurementPlanRange", "adjustProcurementPlan", "confirmProcurementPlan", "cancelProcurementPlan", "createPurchaseOrderFromPlan", "listSuppliers"],
+      "states": ["loading", "empty", "ready", "editing", "confirming", "converted", "cancelled", "business-error"],
+      "dependencies": ["DailyMenuPage:PUBLISHED", "AuthPanel:authenticated"]
+    },
+    {
+      "page": "PurchaseOrderFulfillmentPage",
+      "operations": ["listPurchaseOrders", "transitionPurchaseOrder", "receivePurchaseOrder"],
+      "states": ["loading", "empty", "draft", "submitted", "confirmed", "partially-received", "received", "business-error"],
+      "dependencies": ["UnifiedProcurementPlanPage:converted", "AuthPanel:authenticated"]
+    },
+    {
       "page": "LedgerAlertPage",
       "operations": ["getCurrentLedgerAlert", "completeLedgerRecord", "listOperationalLedgerRecords", "saveOperationalLedgerRecord", "getOperationalLedgerStats"],
       "states": ["loading", "empty", "ready", "submitting", "business-error"],
@@ -75,6 +87,6 @@
     "The demo persists scoped catalog, menu, procurement, batch inventory, ledger and alert state in MySQL; Redis and RabbitMQ are provisioned but not yet connected to business ports.",
     "Bright-kitchen, morning-inspection and district-platform network clients are represented as replaceable ports; credentials and vendor contracts are required before implementing adapters.",
     "The alert center accepts a normalized report and owns idempotent ingestion, disposal and query; source adapters remain outside this phase-5 slice.",
-    "All quantities are normalized server-side to g, ml or count."
+    "All quantities are normalized server-side to an ingredient base unit; configured business units (for example bag) carry an explicit conversion factor."
   ]
 }

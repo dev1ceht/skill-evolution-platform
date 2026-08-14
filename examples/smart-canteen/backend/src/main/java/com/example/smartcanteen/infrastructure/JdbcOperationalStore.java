@@ -1,5 +1,6 @@
 package com.example.smartcanteen.infrastructure;
 
+import com.example.smartcanteen.application.IngredientQuantityConverter;
 import com.example.smartcanteen.application.port.OperationalStore;
 import com.example.smartcanteen.domain.CanteenScope;
 import com.example.smartcanteen.domain.DailyMenu;
@@ -16,7 +17,6 @@ import com.example.smartcanteen.domain.PurchaseOrder;
 import com.example.smartcanteen.domain.PurchaseOrderItem;
 import com.example.smartcanteen.domain.Supplier;
 import com.example.smartcanteen.domain.TraceabilityResult;
-import com.example.smartcanteen.domain.UnitConverter;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -46,13 +46,15 @@ public class JdbcOperationalStore implements OperationalStore {
 
     private final JdbcTemplate jdbc;
     private final ObjectMapper objectMapper;
-    private final UnitConverter units;
+    private final IngredientQuantityConverter quantityConverter;
 
     public JdbcOperationalStore(
-            JdbcTemplate jdbc, ObjectMapper objectMapper, UnitConverter units) {
+            JdbcTemplate jdbc,
+            ObjectMapper objectMapper,
+            IngredientQuantityConverter quantityConverter) {
         this.jdbc = jdbc;
         this.objectMapper = objectMapper;
-        this.units = units;
+        this.quantityConverter = quantityConverter;
     }
 
     @Override
@@ -517,30 +519,44 @@ public class JdbcOperationalStore implements OperationalStore {
                 throw new IllegalArgumentException(
                         "Idempotency-Key was already used for a different purchase receipt");
             }
-            ensureSameReceipt(scope, previous.get(), items);
+            // An empty body means "receive the remaining quantity". It is intentionally
+            // accepted on an idempotent retry of an explicit receipt.
+            if (items != null && !items.isEmpty()) {
+                ensureSameReceipt(scope, previous.get(), items);
+            }
             return previous.get();
         }
         PurchaseOrder order = findPurchaseOrder(scope, orderId)
                 .orElseThrow(() -> new IllegalArgumentException("Purchase order not found: " + orderId));
-        if ("CANCELLED".equals(order.status()) || "RECEIVED".equals(order.status())) {
+        if (!"CONFIRMED".equals(order.status())) {
             throw new IllegalStateException("Purchase order cannot be received in status " + order.status());
         }
         Map<String, PurchaseOrderItem> ordered = new HashMap<>();
         for (PurchaseOrderItem item : order.items()) {
             ordered.put(item.ingredientId(), item);
         }
+        List<ReceiveItem> effectiveItems = items == null || items.isEmpty()
+                ? remainingItems(scope, order)
+                : List.copyOf(items);
+        if (effectiveItems.isEmpty()) {
+            throw new IllegalStateException("Purchase order has no remaining quantity: " + orderId);
+        }
         Set<String> receivedIngredients = new HashSet<>();
-        for (ReceiveItem item : items) {
+        for (ReceiveItem item : effectiveItems) {
             PurchaseOrderItem orderItem = ordered.get(item.ingredientId());
             if (orderItem == null || !receivedIngredients.add(item.ingredientId())) {
                 throw new IllegalArgumentException(
                         "Received ingredient is not a unique order line: " + item.ingredientId());
             }
-            BigDecimal receivedBase = units.convert(item.quantity(), item.unit()).quantity();
-            BigDecimal orderedBase = units.convert(orderItem.quantity(), orderItem.unit()).quantity();
-            if (receivedBase.compareTo(orderedBase) > 0) {
+            BigDecimal receivedBase = toIngredientBase(
+                    scope, item.ingredientId(), item.quantity(), item.unit()).quantity();
+            BigDecimal orderedBase = toIngredientBase(
+                    scope, item.ingredientId(), orderItem.quantity(), orderItem.unit()).quantity();
+            BigDecimal alreadyReceived = receivedQuantityForUpdate(
+                    scope, orderId, item.ingredientId());
+            if (receivedBase.compareTo(orderedBase.subtract(alreadyReceived)) > 0) {
                 throw new IllegalArgumentException(
-                        "Received quantity exceeds ordered quantity for " + item.ingredientId());
+                        "Received quantity exceeds remaining ordered quantity for " + item.ingredientId());
             }
         }
         String receiptId = "RECEIPT-" + UUID.randomUUID();
@@ -560,14 +576,17 @@ public class JdbcOperationalStore implements OperationalStore {
                 throw new IllegalArgumentException(
                         "Idempotency-Key was already used for a different purchase receipt");
             }
-            ensureSameReceipt(scope, raced, items);
+            if (items != null && !items.isEmpty()) {
+                ensureSameReceipt(scope, raced, items);
+            }
             return raced;
         }
         List<String> traceCodes = new ArrayList<>();
-        for (ReceiveItem item : items) {
+        for (ReceiveItem item : effectiveItems) {
             IngredientData ingredient = findIngredientData(scope, item.ingredientId())
                     .orElseThrow(() -> new IllegalArgumentException("Unknown ingredient: " + item.ingredientId()));
-            BaseAmount amount = toIngredientBase(ingredient.baseUnit(), item.quantity(), item.unit());
+            BaseAmount amount = toIngredientBase(
+                    scope, item.ingredientId(), item.quantity(), item.unit());
             String batchId = "BATCH-" + UUID.randomUUID();
             String traceCode = "TRACE-" + UUID.randomUUID();
             jdbc.update(
@@ -589,7 +608,7 @@ public class JdbcOperationalStore implements OperationalStore {
                     item.expiryDate() == null ? null : java.sql.Date.valueOf(item.expiryDate()),
                     traceCode);
             jdbc.update(
-                    "INSERT INTO purchase_receipt_items (school_id, canteen_id, receipt_id, batch_id, ingredient_id, "
+                "INSERT INTO purchase_receipt_items (school_id, canteen_id, receipt_id, batch_id, ingredient_id, "
                             + "quantity_base, base_unit) VALUES (?, ?, ?, ?, ?, ?, ?)",
                     scope.schoolId(),
                     scope.canteenId(),
@@ -598,6 +617,17 @@ public class JdbcOperationalStore implements OperationalStore {
                     item.ingredientId(),
                     amount.quantity(),
                     amount.unit());
+            int updated = jdbc.update(
+                    "UPDATE purchase_order_items SET received_quantity_base = received_quantity_base + ? "
+                            + "WHERE school_id = ? AND canteen_id = ? AND order_id = ? AND ingredient_id = ?",
+                    amount.quantity(),
+                    scope.schoolId(),
+                    scope.canteenId(),
+                    orderId,
+                    item.ingredientId());
+            if (updated != 1) {
+                throw new IllegalStateException("Purchase order line disappeared: " + item.ingredientId());
+            }
             addInventory(scope, item.ingredientId(), ingredient, amount);
             jdbc.update(
                     "INSERT INTO traceability_records (school_id, canteen_id, trace_code, batch_id, order_id, "
@@ -613,12 +643,22 @@ public class JdbcOperationalStore implements OperationalStore {
                     amount.unit());
             traceCodes.add(traceCode);
         }
-        jdbc.update(
-                "UPDATE purchase_orders SET status = 'RECEIVED', updated_at = CURRENT_TIMESTAMP "
-                        + "WHERE school_id = ? AND canteen_id = ? AND order_id = ? AND status <> 'CANCELLED'",
-                scope.schoolId(),
-                scope.canteenId(),
-                orderId);
+        boolean complete = true;
+        for (PurchaseOrderItem item : order.items()) {
+            BigDecimal orderedBase = toIngredientBase(
+                    scope, item.ingredientId(), item.quantity(), item.unit()).quantity();
+            if (receivedQuantityForUpdate(scope, orderId, item.ingredientId())
+                    .compareTo(orderedBase) < 0) {
+                complete = false;
+                break;
+            }
+        }
+        if (complete) {
+            jdbc.update(
+                    "UPDATE purchase_orders SET status = 'RECEIVED', updated_at = CURRENT_TIMESTAMP "
+                            + "WHERE school_id = ? AND canteen_id = ? AND order_id = ? AND status = 'CONFIRMED'",
+                    scope.schoolId(), scope.canteenId(), orderId);
+        }
         return new ReceiveResult(orderId, receiptId, traceCodes);
     }
 
@@ -693,7 +733,8 @@ public class JdbcOperationalStore implements OperationalStore {
         for (StockOutItem item : items) {
             IngredientData ingredient = findIngredientData(scope, item.ingredientId())
                     .orElseThrow(() -> new IllegalArgumentException("Unknown ingredient: " + item.ingredientId()));
-            BaseAmount amount = toIngredientBase(ingredient.baseUnit(), item.quantity(), item.unit());
+            BaseAmount amount = toIngredientBase(
+                    scope, item.ingredientId(), item.quantity(), item.unit());
             int changed = jdbc.update(
                     "UPDATE inventory SET quantity_base = quantity_base - ?, last_update_time = CURRENT_TIMESTAMP "
                             + "WHERE school_id = ? AND canteen_id = ? AND material_id = ? "
@@ -1103,7 +1144,8 @@ public class JdbcOperationalStore implements OperationalStore {
             IngredientData ingredient = findIngredientData(scope, item.ingredientId())
                     .orElseThrow(() -> new IllegalArgumentException(
                             "Unknown ingredient: " + item.ingredientId()));
-            BaseAmount amount = toIngredientBase(ingredient.baseUnit(), item.quantity(), item.unit());
+            BaseAmount amount = toIngredientBase(
+                    scope, item.ingredientId(), item.quantity(), item.unit());
             StockOutItem other = expected.get(item.ingredientId());
             if (other == null
                     || !other.unit().equals(amount.unit())
@@ -1177,7 +1219,8 @@ public class JdbcOperationalStore implements OperationalStore {
             IngredientData ingredient = findIngredientData(scope, item.ingredientId())
                     .orElseThrow(() -> new IllegalArgumentException(
                             "Unknown ingredient: " + item.ingredientId()));
-            BaseAmount amount = toIngredientBase(ingredient.baseUnit(), item.quantity(), item.unit());
+            BaseAmount amount = toIngredientBase(
+                    scope, item.ingredientId(), item.quantity(), item.unit());
             ReceiveItem saved = expected.get(item.ingredientId());
             if (saved == null
                     || !saved.unit().equals(amount.unit())
@@ -1230,16 +1273,50 @@ public class JdbcOperationalStore implements OperationalStore {
                 .findFirst();
     }
 
-    private BaseAmount toIngredientBase(
-            String ingredientBaseUnit, BigDecimal quantity, String unit) {
-        BaseAmount amount = new BaseAmount(
-                units.convert(quantity, unit).quantity(),
-                units.convert(quantity, unit).unit());
-        String expected = units.convert(BigDecimal.ONE, ingredientBaseUnit).unit();
-        if (!expected.equals(amount.unit())) {
-            throw new IllegalArgumentException("Unit is incompatible with ingredient");
+    private List<ReceiveItem> remainingItems(CanteenScope scope, PurchaseOrder order) {
+        List<ReceiveItem> remaining = new ArrayList<>();
+        for (PurchaseOrderItem item : order.items()) {
+            BigDecimal orderedBase = toIngredientBase(
+                    scope, item.ingredientId(), item.quantity(), item.unit()).quantity();
+            BigDecimal receivedBase = receivedQuantityForUpdate(
+                    scope, order.id(), item.ingredientId());
+            BigDecimal quantity = orderedBase.subtract(receivedBase);
+            if (quantity.signum() > 0) {
+                String baseUnit = toIngredientBase(
+                        scope, item.ingredientId(), BigDecimal.ONE, item.unit()).unit();
+                remaining.add(new ReceiveItem(
+                        item.ingredientId(),
+                        quantity,
+                        baseUnit,
+                        "BATCH-" + UUID.randomUUID(),
+                        item.unitPrice(),
+                        null,
+                        null));
+            }
         }
-        return amount;
+        return remaining;
+    }
+
+    private BigDecimal receivedQuantityForUpdate(
+            CanteenScope scope, String orderId, String ingredientId) {
+        return jdbc.query(
+                        "SELECT received_quantity_base FROM purchase_order_items "
+                                + "WHERE school_id = ? AND canteen_id = ? AND order_id = ? "
+                                + "AND ingredient_id = ? FOR UPDATE",
+                        (result, row) -> result.getBigDecimal("received_quantity_base"),
+                        scope.schoolId(), scope.canteenId(), orderId, ingredientId)
+                .stream()
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Purchase order line not found: " + ingredientId));
+    }
+
+    private BaseAmount toIngredientBase(
+            CanteenScope scope, String ingredientId, BigDecimal quantity, String unit) {
+        Ingredient ingredient = findIngredient(scope, ingredientId)
+                .orElseThrow(() -> new IllegalArgumentException("Unknown ingredient: " + ingredientId));
+        var converted = quantityConverter.toBase(scope, ingredient, quantity, unit);
+        return new BaseAmount(converted.quantity(), converted.unit());
     }
 
     private void addInventory(

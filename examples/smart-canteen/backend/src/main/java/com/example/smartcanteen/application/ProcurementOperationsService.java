@@ -8,7 +8,6 @@ import com.example.smartcanteen.domain.PageResult;
 import com.example.smartcanteen.domain.PurchaseOrder;
 import com.example.smartcanteen.domain.PurchaseOrderItem;
 import com.example.smartcanteen.domain.Supplier;
-import com.example.smartcanteen.domain.UnitConverter;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -23,11 +22,12 @@ import org.springframework.transaction.annotation.Transactional;
 public class ProcurementOperationsService {
 
     private final OperationalStore store;
-    private final UnitConverter units;
+    private final IngredientQuantityConverter quantityConverter;
 
-    public ProcurementOperationsService(OperationalStore store, UnitConverter units) {
+    public ProcurementOperationsService(
+            OperationalStore store, IngredientQuantityConverter quantityConverter) {
         this.store = store;
-        this.units = units;
+        this.quantityConverter = quantityConverter;
     }
 
     @Transactional(readOnly = true)
@@ -82,7 +82,7 @@ public class ProcurementOperationsService {
                     .filter(Ingredient::active)
                     .orElseThrow(() -> new IllegalArgumentException(
                             "Unknown or disabled ingredient: " + item.ingredientId()));
-            ensureCompatibleUnit(ingredient, item.unit());
+            ensureCompatibleUnit(scope, ingredient, item.unit());
             total = total.add(item.quantity().multiply(item.unitPrice()));
         }
         PurchaseOrder order = new PurchaseOrder(
@@ -113,23 +113,14 @@ public class ProcurementOperationsService {
         require(idempotencyKey, "Idempotency-Key");
         PurchaseOrder order = store.findPurchaseOrder(scope, orderId)
                 .orElseThrow(() -> new IllegalArgumentException("Purchase order not found: " + orderId));
-        List<OperationalStore.ReceiveItem> items = requestedItems == null || requestedItems.isEmpty()
-                ? order.items().stream()
-                        .map(item -> new OperationalStore.ReceiveItem(
-                                item.ingredientId(),
-                                item.quantity(),
-                                item.unit(),
-                                "BATCH-" + UUID.randomUUID(),
-                                item.unitPrice(),
-                                null,
-                                null))
-                        .toList()
+        List<OperationalStore.ReceiveItem> items = requestedItems == null
+                ? List.of()
                 : requestedItems;
         for (OperationalStore.ReceiveItem item : items) {
             Ingredient ingredient = store.findIngredient(scope, item.ingredientId())
                     .orElseThrow(() -> new IllegalArgumentException(
                             "Unknown ingredient: " + item.ingredientId()));
-            ensureCompatibleUnit(ingredient, item.unit());
+            ensureCompatibleUnit(scope, ingredient, item.unit());
             if (item.quantity() == null || item.quantity().signum() <= 0) {
                 throw new IllegalArgumentException("Received quantity must be positive");
             }
@@ -159,7 +150,7 @@ public class ProcurementOperationsService {
             Ingredient ingredient = store.findIngredient(scope, item.ingredientId())
                     .orElseThrow(() -> new IllegalArgumentException(
                             "Unknown ingredient: " + item.ingredientId()));
-            ensureCompatibleUnit(ingredient, item.unit());
+            ensureCompatibleUnit(scope, ingredient, item.unit());
             if (item.quantity() == null || item.quantity().signum() <= 0) {
                 throw new IllegalArgumentException("Stock-out quantity must be positive");
             }
@@ -167,13 +158,9 @@ public class ProcurementOperationsService {
         return store.stockOut(scope, idempotencyKey, reason, items);
     }
 
-    private void ensureCompatibleUnit(Ingredient ingredient, String unit) {
-        String expected = units.convert(BigDecimal.ONE, ingredient.baseUnit()).unit();
-        String actual = units.convert(BigDecimal.ONE, unit).unit();
-        if (!expected.equals(actual)) {
-            throw new IllegalArgumentException(
-                    "Unit " + unit + " is incompatible with ingredient " + ingredient.id());
-        }
+    private void ensureCompatibleUnit(
+            CanteenScope scope, Ingredient ingredient, String unit) {
+        quantityConverter.requireCompatible(scope, ingredient, unit);
     }
 
     private static String normalizeStatus(String value) {

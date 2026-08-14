@@ -93,6 +93,166 @@ paths:
                 $ref: '#/components/schemas/ProcurementPlanResponse'
         '400':
           $ref: '#/components/responses/BusinessError'
+  /api/v1/procurement-plans:
+    get:
+      operationId: listProcurementPlans
+      tags: [procurement]
+      parameters:
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [DRAFT, CONFIRMED, CONVERTED, CANCELLED]
+        - $ref: '#/components/parameters/OperationalPage'
+        - $ref: '#/components/parameters/OperationalSize'
+      responses:
+        '200':
+          description: 分页采购计划
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProcurementPlanAggregatePageResponse'
+        '400':
+          $ref: '#/components/responses/BusinessError'
+  /api/v1/procurement-plans/{planId}:
+    get:
+      operationId: getProcurementPlan
+      tags: [procurement]
+      parameters:
+        - name: planId
+          in: path
+          required: true
+          schema: { type: string }
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+      responses:
+        '200':
+          description: 采购计划详情
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProcurementPlanAggregateResponse'
+        '400':
+          $ref: '#/components/responses/BusinessError'
+  /api/v1/procurement-plans/generate-range:
+    post:
+      operationId: generateProcurementPlanRange
+      tags: [procurement]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenerateProcurementRangeRequest'
+      responses:
+        '200':
+          description: 按已发布食谱生成的采购计划
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProcurementPlanAggregateResponse'
+        '400':
+          $ref: '#/components/responses/BusinessError'
+  /api/v1/procurement-plans/{planId}/items:
+    put:
+      operationId: adjustProcurementPlan
+      tags: [procurement]
+      parameters:
+        - name: planId
+          in: path
+          required: true
+          schema: { type: string }
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdjustProcurementPlanRequest'
+      responses:
+        '200':
+          description: 调整后的采购计划
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProcurementPlanAggregateResponse'
+        '400':
+          $ref: '#/components/responses/BusinessError'
+  /api/v1/procurement-plans/{planId}/confirm:
+    post:
+      operationId: confirmProcurementPlan
+      tags: [procurement]
+      parameters:
+        - name: planId
+          in: path
+          required: true
+          schema: { type: string }
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+      responses:
+        '200':
+          description: 已确认采购计划
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProcurementPlanAggregateResponse'
+        '400':
+          $ref: '#/components/responses/BusinessError'
+  /api/v1/procurement-plans/{planId}/cancel:
+    post:
+      operationId: cancelProcurementPlan
+      tags: [procurement]
+      parameters:
+        - name: planId
+          in: path
+          required: true
+          schema: { type: string }
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+      responses:
+        '200':
+          description: 已取消采购计划
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProcurementPlanAggregateResponse'
+        '400':
+          $ref: '#/components/responses/BusinessError'
+  /api/v1/procurement-plans/{planId}/purchase-orders:
+    post:
+      operationId: createPurchaseOrderFromPlan
+      tags: [procurement]
+      parameters:
+        - name: planId
+          in: path
+          required: true
+          schema: { type: string }
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProcurementOrderRequest'
+      responses:
+        '200':
+          description: 由采购计划创建的采购订单
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PurchaseOrderResponse'
+        '400':
+          $ref: '#/components/responses/BusinessError'
   /api/v1/inventory/receipts:
     post:
       operationId: receiveInventory
@@ -500,6 +660,26 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/IngredientResponse'
+  /api/v1/ingredients/{ingredientId}/units:
+    get:
+      operationId: listIngredientUnits
+      tags: [catalog]
+      parameters:
+        - name: ingredientId
+          in: path
+          required: true
+          schema: { type: string }
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+      responses:
+        '200':
+          description: 食材业务单位及基础单位换算
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IngredientUnitListResponse'
+        '400':
+          $ref: '#/components/responses/BusinessError'
   /api/v1/dishes:
     get:
       operationId: listDishes
@@ -1812,6 +1992,26 @@ components:
         carbohydrateG: { type: number, format: double, minimum: 0 }
         warningThreshold: { type: number, format: double, minimum: 0 }
         active: { type: boolean, default: true }
+        units:
+          type: array
+          items:
+            $ref: '#/components/schemas/IngredientUnitRequest'
+    IngredientUnit:
+      type: object
+      required: [unitCode, baseUnit, toBaseFactor, active]
+      properties:
+        unitCode: { type: string }
+        baseUnit: { type: string }
+        toBaseFactor: { type: number, format: double, exclusiveMinimum: true, minimum: 0 }
+        active: { type: boolean }
+    IngredientUnitRequest:
+      type: object
+      required: [unitCode, baseUnit, toBaseFactor]
+      properties:
+        unitCode: { type: string, minLength: 1 }
+        baseUnit: { type: string, minLength: 1 }
+        toBaseFactor: { type: number, format: double, exclusiveMinimum: true, minimum: 0 }
+        active: { type: boolean, default: true }
     DishIngredient:
       type: object
       required: [ingredientId, quantity, unit]
@@ -2383,6 +2583,74 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ProcurementItem'
+    ProcurementPlanAggregateItem:
+      type: object
+      required: [ingredientId, requiredBaseQuantity, inventoryBaseQuantity, openOrderBaseQuantity, shortageBaseQuantity, plannedBaseQuantity, baseUnit]
+      properties:
+        ingredientId: { type: string }
+        requiredBaseQuantity: { type: number, format: double, minimum: 0 }
+        inventoryBaseQuantity: { type: number, format: double, minimum: 0 }
+        openOrderBaseQuantity: { type: number, format: double, minimum: 0 }
+        shortageBaseQuantity: { type: number, format: double, minimum: 0 }
+        plannedBaseQuantity: { type: number, format: double, minimum: 0 }
+        baseUnit: { type: string }
+    ProcurementPlanAggregate:
+      type: object
+      required: [id, planNo, periodStart, periodEnd, status, version, sourceMenuIds, items, orderIds]
+      properties:
+        id: { type: string }
+        planNo: { type: string }
+        periodStart: { type: string, format: date }
+        periodEnd: { type: string, format: date }
+        status: { type: string, enum: [DRAFT, CONFIRMED, CONVERTED, CANCELLED] }
+        version: { type: integer, format: int64, minimum: 0 }
+        createdAt: { type: string, format: date-time, nullable: true }
+        sourceMenuIds:
+          type: array
+          items: { type: string }
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProcurementPlanAggregateItem'
+        orderIds:
+          type: array
+          items: { type: string }
+    GenerateProcurementRangeRequest:
+      type: object
+      required: [periodStart, periodEnd]
+      properties:
+        periodStart: { type: string, format: date }
+        periodEnd: { type: string, format: date }
+    AdjustProcurementPlanRequest:
+      type: object
+      required: [version, items]
+      properties:
+        version: { type: integer, format: int64, minimum: 0 }
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/ProcurementPlanItemAdjustment'
+    ProcurementPlanItemAdjustment:
+      type: object
+      required: [ingredientId, quantity, unit]
+      properties:
+        ingredientId: { type: string }
+        quantity: { type: number, format: double, minimum: 0 }
+        unit: { type: string }
+    CreateProcurementOrderRequest:
+      type: object
+      required: [supplierId, orderType, items]
+      properties:
+        supplierId: { type: string }
+        orderType: { type: string, enum: [ONLINE, OFFLINE] }
+        expectedDeliveryAt: { type: string, format: date-time, nullable: true }
+        remark: { type: string, nullable: true }
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/PurchaseOrderItemRequest'
     InventoryReceipt:
       type: object
       required: [materialId, quantity, unit]
@@ -2710,6 +2978,44 @@ components:
           type: string
         data:
           $ref: '#/components/schemas/ProcurementPlan'
+    ProcurementPlanAggregateResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code: { type: integer }
+        message: { type: string }
+        data:
+          $ref: '#/components/schemas/ProcurementPlanAggregate'
+    PageViewProcurementPlanAggregate:
+      type: object
+      required: [total, pages, current, size, records]
+      properties:
+        total: { type: integer, format: int64 }
+        pages: { type: integer, format: int64 }
+        current: { type: integer }
+        size: { type: integer }
+        records:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProcurementPlanAggregate'
+    ProcurementPlanAggregatePageResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code: { type: integer }
+        message: { type: string }
+        data:
+          $ref: '#/components/schemas/PageViewProcurementPlanAggregate'
+    IngredientUnitListResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code: { type: integer }
+        message: { type: string }
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/IngredientUnit'
     RecipeResponse:
       type: object
       required: [code, message, data]

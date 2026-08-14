@@ -1,7 +1,7 @@
 {
   "title": "Smart Canteen Workflow API",
   "version": "1.0.0",
-  "documentHash": "74ffe6435132ad7f0c9d03658a13eff64eb64eb248946716d7138f8f92d6b256",
+  "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
   "schemas": {
     "LoginRequest": {
       "type": "object",
@@ -1024,6 +1024,66 @@
         "warningThreshold": {
           "type": "number",
           "format": "double",
+          "minimum": 0
+        },
+        "active": {
+          "type": "boolean",
+          "default": true
+        },
+        "units": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/IngredientUnitRequest"
+          }
+        }
+      }
+    },
+    "IngredientUnit": {
+      "type": "object",
+      "required": [
+        "unitCode",
+        "baseUnit",
+        "toBaseFactor",
+        "active"
+      ],
+      "properties": {
+        "unitCode": {
+          "type": "string"
+        },
+        "baseUnit": {
+          "type": "string"
+        },
+        "toBaseFactor": {
+          "type": "number",
+          "format": "double",
+          "exclusiveMinimum": true,
+          "minimum": 0
+        },
+        "active": {
+          "type": "boolean"
+        }
+      }
+    },
+    "IngredientUnitRequest": {
+      "type": "object",
+      "required": [
+        "unitCode",
+        "baseUnit",
+        "toBaseFactor"
+      ],
+      "properties": {
+        "unitCode": {
+          "type": "string",
+          "minLength": 1
+        },
+        "baseUnit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "toBaseFactor": {
+          "type": "number",
+          "format": "double",
+          "exclusiveMinimum": true,
           "minimum": 0
         },
         "active": {
@@ -2666,6 +2726,213 @@
         }
       }
     },
+    "ProcurementPlanAggregateItem": {
+      "type": "object",
+      "required": [
+        "ingredientId",
+        "requiredBaseQuantity",
+        "inventoryBaseQuantity",
+        "openOrderBaseQuantity",
+        "shortageBaseQuantity",
+        "plannedBaseQuantity",
+        "baseUnit"
+      ],
+      "properties": {
+        "ingredientId": {
+          "type": "string"
+        },
+        "requiredBaseQuantity": {
+          "type": "number",
+          "format": "double",
+          "minimum": 0
+        },
+        "inventoryBaseQuantity": {
+          "type": "number",
+          "format": "double",
+          "minimum": 0
+        },
+        "openOrderBaseQuantity": {
+          "type": "number",
+          "format": "double",
+          "minimum": 0
+        },
+        "shortageBaseQuantity": {
+          "type": "number",
+          "format": "double",
+          "minimum": 0
+        },
+        "plannedBaseQuantity": {
+          "type": "number",
+          "format": "double",
+          "minimum": 0
+        },
+        "baseUnit": {
+          "type": "string"
+        }
+      }
+    },
+    "ProcurementPlanAggregate": {
+      "type": "object",
+      "required": [
+        "id",
+        "planNo",
+        "periodStart",
+        "periodEnd",
+        "status",
+        "version",
+        "sourceMenuIds",
+        "items",
+        "orderIds"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "planNo": {
+          "type": "string"
+        },
+        "periodStart": {
+          "type": "string",
+          "format": "date"
+        },
+        "periodEnd": {
+          "type": "string",
+          "format": "date"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "DRAFT",
+            "CONFIRMED",
+            "CONVERTED",
+            "CANCELLED"
+          ]
+        },
+        "version": {
+          "type": "integer",
+          "format": "int64",
+          "minimum": 0
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "nullable": true
+        },
+        "sourceMenuIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/ProcurementPlanAggregateItem"
+          }
+        },
+        "orderIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "GenerateProcurementRangeRequest": {
+      "type": "object",
+      "required": [
+        "periodStart",
+        "periodEnd"
+      ],
+      "properties": {
+        "periodStart": {
+          "type": "string",
+          "format": "date"
+        },
+        "periodEnd": {
+          "type": "string",
+          "format": "date"
+        }
+      }
+    },
+    "AdjustProcurementPlanRequest": {
+      "type": "object",
+      "required": [
+        "version",
+        "items"
+      ],
+      "properties": {
+        "version": {
+          "type": "integer",
+          "format": "int64",
+          "minimum": 0
+        },
+        "items": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/components/schemas/ProcurementPlanItemAdjustment"
+          }
+        }
+      }
+    },
+    "ProcurementPlanItemAdjustment": {
+      "type": "object",
+      "required": [
+        "ingredientId",
+        "quantity",
+        "unit"
+      ],
+      "properties": {
+        "ingredientId": {
+          "type": "string"
+        },
+        "quantity": {
+          "type": "number",
+          "format": "double",
+          "minimum": 0
+        },
+        "unit": {
+          "type": "string"
+        }
+      }
+    },
+    "CreateProcurementOrderRequest": {
+      "type": "object",
+      "required": [
+        "supplierId",
+        "orderType",
+        "items"
+      ],
+      "properties": {
+        "supplierId": {
+          "type": "string"
+        },
+        "orderType": {
+          "type": "string",
+          "enum": [
+            "ONLINE",
+            "OFFLINE"
+          ]
+        },
+        "expectedDeliveryAt": {
+          "type": "string",
+          "format": "date-time",
+          "nullable": true
+        },
+        "remark": {
+          "type": "string",
+          "nullable": true
+        },
+        "items": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/components/schemas/PurchaseOrderItemRequest"
+          }
+        }
+      }
+    },
     "InventoryReceipt": {
       "type": "object",
       "required": [
@@ -3264,6 +3531,98 @@
         }
       }
     },
+    "ProcurementPlanAggregateResponse": {
+      "type": "object",
+      "required": [
+        "code",
+        "message",
+        "data"
+      ],
+      "properties": {
+        "code": {
+          "type": "integer"
+        },
+        "message": {
+          "type": "string"
+        },
+        "data": {
+          "$ref": "#/components/schemas/ProcurementPlanAggregate"
+        }
+      }
+    },
+    "PageViewProcurementPlanAggregate": {
+      "type": "object",
+      "required": [
+        "total",
+        "pages",
+        "current",
+        "size",
+        "records"
+      ],
+      "properties": {
+        "total": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "pages": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "current": {
+          "type": "integer"
+        },
+        "size": {
+          "type": "integer"
+        },
+        "records": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/ProcurementPlanAggregate"
+          }
+        }
+      }
+    },
+    "ProcurementPlanAggregatePageResponse": {
+      "type": "object",
+      "required": [
+        "code",
+        "message",
+        "data"
+      ],
+      "properties": {
+        "code": {
+          "type": "integer"
+        },
+        "message": {
+          "type": "string"
+        },
+        "data": {
+          "$ref": "#/components/schemas/PageViewProcurementPlanAggregate"
+        }
+      }
+    },
+    "IngredientUnitListResponse": {
+      "type": "object",
+      "required": [
+        "code",
+        "message",
+        "data"
+      ],
+      "properties": {
+        "code": {
+          "type": "integer"
+        },
+        "message": {
+          "type": "string"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/IngredientUnit"
+          }
+        }
+      }
+    },
     "RecipeResponse": {
       "type": "object",
       "required": [
@@ -3393,7 +3752,7 @@
         }
       },
       "provenance": {
-        "documentHash": "74ffe6435132ad7f0c9d03658a13eff64eb64eb248946716d7138f8f92d6b256",
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
         "pointer": "/paths/~1alarmApi~1warn~1report/post"
       }
     },
@@ -3431,7 +3790,7 @@
         }
       },
       "provenance": {
-        "documentHash": "74ffe6435132ad7f0c9d03658a13eff64eb64eb248946716d7138f8f92d6b256",
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
         "pointer": "/paths/~1alarmApi~1warnResult~1report/post"
       }
     },
@@ -3573,7 +3932,7 @@
         }
       },
       "provenance": {
-        "documentHash": "74ffe6435132ad7f0c9d03658a13eff64eb64eb248946716d7138f8f92d6b256",
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
         "pointer": "/paths/~1alarmWarn~1school~1queryPage/get"
       }
     },
@@ -3703,7 +4062,7 @@
         }
       },
       "provenance": {
-        "documentHash": "74ffe6435132ad7f0c9d03658a13eff64eb64eb248946716d7138f8f92d6b256",
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
         "pointer": "/paths/~1api~1v1~1alerts/get"
       }
     },
@@ -3741,7 +4100,7 @@
         }
       },
       "provenance": {
-        "documentHash": "74ffe6435132ad7f0c9d03658a13eff64eb64eb248946716d7138f8f92d6b256",
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
         "pointer": "/paths/~1api~1v1~1alerts/post"
       }
     },
@@ -3788,7 +4147,7 @@
         }
       },
       "provenance": {
-        "documentHash": "74ffe6435132ad7f0c9d03658a13eff64eb64eb248946716d7138f8f92d6b256",
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
         "pointer": "/paths/~1api~1v1~1alerts~1{warnId}~1disposal/post"
       }
     },
@@ -3829,7 +4188,7 @@
         }
       },
       "provenance": {
-        "documentHash": "74ffe6435132ad7f0c9d03658a13eff64eb64eb248946716d7138f8f92d6b256",
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
         "pointer": "/paths/~1api~1v1~1audit-logs/get"
       }
     },
@@ -3867,7 +4226,7 @@
         }
       },
       "provenance": {
-        "documentHash": "74ffe6435132ad7f0c9d03658a13eff64eb64eb248946716d7138f8f92d6b256",
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
         "pointer": "/paths/~1api~1v1~1auth~1login/post"
       }
     },
@@ -3902,7 +4261,7 @@
         }
       },
       "provenance": {
-        "documentHash": "74ffe6435132ad7f0c9d03658a13eff64eb64eb248946716d7138f8f92d6b256",
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
         "pointer": "/paths/~1api~1v1~1auth~1logout/post"
       }
     },
@@ -3931,7 +4290,7 @@
         }
       },
       "provenance": {
-        "documentHash": "74ffe6435132ad7f0c9d03658a13eff64eb64eb248946716d7138f8f92d6b256",
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
         "pointer": "/paths/~1api~1v1~1auth~1me/get"
       }
     },
@@ -3969,7 +4328,7 @@
         }
       },
       "provenance": {
-        "documentHash": "74ffe6435132ad7f0c9d03658a13eff64eb64eb248946716d7138f8f92d6b256",
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
         "pointer": "/paths/~1api~1v1~1auth~1refresh-token/post"
       }
     },
@@ -4024,7 +4383,7 @@
         }
       },
       "provenance": {
-        "documentHash": "74ffe6435132ad7f0c9d03658a13eff64eb64eb248946716d7138f8f92d6b256",
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
         "pointer": "/paths/~1api~1v1~1canteens/get"
       }
     },
@@ -4062,7 +4421,7 @@
         }
       },
       "provenance": {
-        "documentHash": "74ffe6435132ad7f0c9d03658a13eff64eb64eb248946716d7138f8f92d6b256",
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
         "pointer": "/paths/~1api~1v1~1canteens/post"
       }
     },
@@ -4110,7 +4469,7 @@
         }
       },
       "provenance": {
-        "documentHash": "74ffe6435132ad7f0c9d03658a13eff64eb64eb248946716d7138f8f92d6b256",
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
         "pointer": "/paths/~1api~1v1~1canteens~1{canteenId}/put"
       }
     },
@@ -4158,7 +4517,7 @@
         }
       },
       "provenance": {
-        "documentHash": "74ffe6435132ad7f0c9d03658a13eff64eb64eb248946716d7138f8f92d6b256",
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
         "pointer": "/paths/~1api~1v1~1canteens~1{canteenId}~1status/post"
       }
     },
@@ -4240,7 +4599,7 @@
         }
       },
       "provenance": {
-        "documentHash": "74ffe6435132ad7f0c9d03658a13eff64eb64eb248946716d7138f8f92d6b256",
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
         "pointer": "/paths/~1api~1v1~1daily-menus/get"
       }
     },
@@ -4294,7 +4653,7 @@
         }
       },
       "provenance": {
-        "documentHash": "74ffe6435132ad7f0c9d03658a13eff64eb64eb248946716d7138f8f92d6b256",
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
         "pointer": "/paths/~1api~1v1~1daily-menus/post"
       }
     },
@@ -4347,7 +4706,7 @@
         }
       },
       "provenance": {
-        "documentHash": "74ffe6435132ad7f0c9d03658a13eff64eb64eb248946716d7138f8f92d6b256",
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
         "pointer": "/paths/~1api~1v1~1daily-menus~1{menuId}~1publish/post"
       }
     },
@@ -4400,7 +4759,7 @@
         }
       },
       "provenance": {
-        "documentHash": "74ffe6435132ad7f0c9d03658a13eff64eb64eb248946716d7138f8f92d6b256",
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
         "pointer": "/paths/~1api~1v1~1dashboard~1risk/get"
       }
     },
@@ -4453,7 +4812,7 @@
         }
       },
       "provenance": {
-        "documentHash": "74ffe6435132ad7f0c9d03658a13eff64eb64eb248946716d7138f8f92d6b256",
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
         "pointer": "/paths/~1api~1v1~1dashboard~1summary/get"
       }
     },
@@ -4533,7 +4892,7 @@
         }
       },
       "provenance": {
-        "documentHash": "74ffe6435132ad7f0c9d03658a13eff64eb64eb248946716d7138f8f92d6b256",
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
         "pointer": "/paths/~1api~1v1~1dishes/get"
       }
     },
@@ -4587,7 +4946,7 @@
         }
       },
       "provenance": {
-        "documentHash": "74ffe6435132ad7f0c9d03658a13eff64eb64eb248946716d7138f8f92d6b256",
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
         "pointer": "/paths/~1api~1v1~1dishes/post"
       }
     },
@@ -4649,7 +5008,7 @@
         }
       },
       "provenance": {
-        "documentHash": "74ffe6435132ad7f0c9d03658a13eff64eb64eb248946716d7138f8f92d6b256",
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
         "pointer": "/paths/~1api~1v1~1dishes~1{dishId}/put"
       }
     },
@@ -4729,7 +5088,7 @@
         }
       },
       "provenance": {
-        "documentHash": "74ffe6435132ad7f0c9d03658a13eff64eb64eb248946716d7138f8f92d6b256",
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
         "pointer": "/paths/~1api~1v1~1ingredients/get"
       }
     },
@@ -4783,7 +5142,7 @@
         }
       },
       "provenance": {
-        "documentHash": "74ffe6435132ad7f0c9d03658a13eff64eb64eb248946716d7138f8f92d6b256",
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
         "pointer": "/paths/~1api~1v1~1ingredients/post"
       }
     },
@@ -4845,8 +5204,64 @@
         }
       },
       "provenance": {
-        "documentHash": "74ffe6435132ad7f0c9d03658a13eff64eb64eb248946716d7138f8f92d6b256",
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
         "pointer": "/paths/~1api~1v1~1ingredients~1{ingredientId}/put"
+      }
+    },
+    {
+      "operationId": "listIngredientUnits",
+      "method": "GET",
+      "path": "/api/v1/ingredients/{ingredientId}/units",
+      "tags": [
+        "catalog"
+      ],
+      "parameters": [
+        {
+          "name": "ingredientId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "schoolId",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        {
+          "name": "canteenId",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      ],
+      "requestBody": null,
+      "responses": {
+        "200": {
+          "description": "食材业务单位及基础单位换算",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IngredientUnitListResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "$ref": "#/components/responses/BusinessError"
+        }
+      },
+      "provenance": {
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
+        "pointer": "/paths/~1api~1v1~1ingredients~1{ingredientId}~1units/get"
       }
     },
     {
@@ -4926,7 +5341,7 @@
         }
       },
       "provenance": {
-        "documentHash": "74ffe6435132ad7f0c9d03658a13eff64eb64eb248946716d7138f8f92d6b256",
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
         "pointer": "/paths/~1api~1v1~1inventory/get"
       }
     },
@@ -4992,7 +5407,7 @@
         }
       },
       "provenance": {
-        "documentHash": "74ffe6435132ad7f0c9d03658a13eff64eb64eb248946716d7138f8f92d6b256",
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
         "pointer": "/paths/~1api~1v1~1inventory~1receipts/post"
       }
     },
@@ -5055,7 +5470,7 @@
         }
       },
       "provenance": {
-        "documentHash": "74ffe6435132ad7f0c9d03658a13eff64eb64eb248946716d7138f8f92d6b256",
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
         "pointer": "/paths/~1api~1v1~1inventory~1stock-outs/post"
       }
     },
@@ -5081,7 +5496,7 @@
         }
       },
       "provenance": {
-        "documentHash": "74ffe6435132ad7f0c9d03658a13eff64eb64eb248946716d7138f8f92d6b256",
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
         "pointer": "/paths/~1api~1v1~1ledger-alerts~1current/get"
       }
     },
@@ -5119,7 +5534,7 @@
         }
       },
       "provenance": {
-        "documentHash": "74ffe6435132ad7f0c9d03658a13eff64eb64eb248946716d7138f8f92d6b256",
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
         "pointer": "/paths/~1api~1v1~1ledger-cycles/post"
       }
     },
@@ -5173,7 +5588,7 @@
         }
       },
       "provenance": {
-        "documentHash": "74ffe6435132ad7f0c9d03658a13eff64eb64eb248946716d7138f8f92d6b256",
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
         "pointer": "/paths/~1api~1v1~1ledger-cycles~1{cycleId}~1alerts~1current/get"
       }
     },
@@ -5220,7 +5635,7 @@
         }
       },
       "provenance": {
-        "documentHash": "74ffe6435132ad7f0c9d03658a13eff64eb64eb248946716d7138f8f92d6b256",
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
         "pointer": "/paths/~1api~1v1~1ledger-cycles~1{cycleId}~1records/post"
       }
     },
@@ -5258,7 +5673,7 @@
         }
       },
       "provenance": {
-        "documentHash": "74ffe6435132ad7f0c9d03658a13eff64eb64eb248946716d7138f8f92d6b256",
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
         "pointer": "/paths/~1api~1v1~1ledger-records/post"
       }
     },
@@ -5361,7 +5776,7 @@
         }
       },
       "provenance": {
-        "documentHash": "74ffe6435132ad7f0c9d03658a13eff64eb64eb248946716d7138f8f92d6b256",
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
         "pointer": "/paths/~1api~1v1~1ledger~1records/get"
       }
     },
@@ -5415,7 +5830,7 @@
         }
       },
       "provenance": {
-        "documentHash": "74ffe6435132ad7f0c9d03658a13eff64eb64eb248946716d7138f8f92d6b256",
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
         "pointer": "/paths/~1api~1v1~1ledger~1records/post"
       }
     },
@@ -5476,7 +5891,7 @@
         }
       },
       "provenance": {
-        "documentHash": "74ffe6435132ad7f0c9d03658a13eff64eb64eb248946716d7138f8f92d6b256",
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
         "pointer": "/paths/~1api~1v1~1ledger~1stats/get"
       }
     },
@@ -5541,7 +5956,7 @@
         }
       },
       "provenance": {
-        "documentHash": "74ffe6435132ad7f0c9d03658a13eff64eb64eb248946716d7138f8f92d6b256",
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
         "pointer": "/paths/~1api~1v1~1menu-approvals~1{menuId}~1decision/post"
       }
     },
@@ -5606,7 +6021,7 @@
         }
       },
       "provenance": {
-        "documentHash": "74ffe6435132ad7f0c9d03658a13eff64eb64eb248946716d7138f8f92d6b256",
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
         "pointer": "/paths/~1api~1v1~1menus~1{menuId}~1recipe/post"
       }
     },
@@ -5662,7 +6077,7 @@
         }
       },
       "provenance": {
-        "documentHash": "74ffe6435132ad7f0c9d03658a13eff64eb64eb248946716d7138f8f92d6b256",
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
         "pointer": "/paths/~1api~1v1~1menus~1{menuId}~1submit/post"
       }
     },
@@ -5688,8 +6103,91 @@
         }
       },
       "provenance": {
-        "documentHash": "74ffe6435132ad7f0c9d03658a13eff64eb64eb248946716d7138f8f92d6b256",
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
         "pointer": "/paths/~1api~1v1~1permissions/get"
+      }
+    },
+    {
+      "operationId": "listProcurementPlans",
+      "method": "GET",
+      "path": "/api/v1/procurement-plans",
+      "tags": [
+        "procurement"
+      ],
+      "parameters": [
+        {
+          "name": "schoolId",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        {
+          "name": "canteenId",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        {
+          "name": "status",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "type": "string",
+            "enum": [
+              "DRAFT",
+              "CONFIRMED",
+              "CONVERTED",
+              "CANCELLED"
+            ]
+          }
+        },
+        {
+          "name": "page",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1
+          }
+        },
+        {
+          "name": "size",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 20
+          }
+        }
+      ],
+      "requestBody": null,
+      "responses": {
+        "200": {
+          "description": "分页采购计划",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProcurementPlanAggregatePageResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "$ref": "#/components/responses/BusinessError"
+        }
+      },
+      "provenance": {
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
+        "pointer": "/paths/~1api~1v1~1procurement-plans/get"
       }
     },
     {
@@ -5745,8 +6243,381 @@
         }
       },
       "provenance": {
-        "documentHash": "74ffe6435132ad7f0c9d03658a13eff64eb64eb248946716d7138f8f92d6b256",
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
         "pointer": "/paths/~1api~1v1~1procurement-plans~1generate/post"
+      }
+    },
+    {
+      "operationId": "generateProcurementPlanRange",
+      "method": "POST",
+      "path": "/api/v1/procurement-plans/generate-range",
+      "tags": [
+        "procurement"
+      ],
+      "parameters": [
+        {
+          "name": "Idempotency-Key",
+          "in": "header",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        {
+          "name": "schoolId",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        {
+          "name": "canteenId",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      ],
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/GenerateProcurementRangeRequest"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "按已发布食谱生成的采购计划",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProcurementPlanAggregateResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "$ref": "#/components/responses/BusinessError"
+        }
+      },
+      "provenance": {
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
+        "pointer": "/paths/~1api~1v1~1procurement-plans~1generate-range/post"
+      }
+    },
+    {
+      "operationId": "getProcurementPlan",
+      "method": "GET",
+      "path": "/api/v1/procurement-plans/{planId}",
+      "tags": [
+        "procurement"
+      ],
+      "parameters": [
+        {
+          "name": "planId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "schoolId",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        {
+          "name": "canteenId",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      ],
+      "requestBody": null,
+      "responses": {
+        "200": {
+          "description": "采购计划详情",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProcurementPlanAggregateResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "$ref": "#/components/responses/BusinessError"
+        }
+      },
+      "provenance": {
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
+        "pointer": "/paths/~1api~1v1~1procurement-plans~1{planId}/get"
+      }
+    },
+    {
+      "operationId": "cancelProcurementPlan",
+      "method": "POST",
+      "path": "/api/v1/procurement-plans/{planId}/cancel",
+      "tags": [
+        "procurement"
+      ],
+      "parameters": [
+        {
+          "name": "planId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "schoolId",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        {
+          "name": "canteenId",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      ],
+      "requestBody": null,
+      "responses": {
+        "200": {
+          "description": "已取消采购计划",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProcurementPlanAggregateResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "$ref": "#/components/responses/BusinessError"
+        }
+      },
+      "provenance": {
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
+        "pointer": "/paths/~1api~1v1~1procurement-plans~1{planId}~1cancel/post"
+      }
+    },
+    {
+      "operationId": "confirmProcurementPlan",
+      "method": "POST",
+      "path": "/api/v1/procurement-plans/{planId}/confirm",
+      "tags": [
+        "procurement"
+      ],
+      "parameters": [
+        {
+          "name": "planId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "schoolId",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        {
+          "name": "canteenId",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      ],
+      "requestBody": null,
+      "responses": {
+        "200": {
+          "description": "已确认采购计划",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProcurementPlanAggregateResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "$ref": "#/components/responses/BusinessError"
+        }
+      },
+      "provenance": {
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
+        "pointer": "/paths/~1api~1v1~1procurement-plans~1{planId}~1confirm/post"
+      }
+    },
+    {
+      "operationId": "adjustProcurementPlan",
+      "method": "PUT",
+      "path": "/api/v1/procurement-plans/{planId}/items",
+      "tags": [
+        "procurement"
+      ],
+      "parameters": [
+        {
+          "name": "planId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "schoolId",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        {
+          "name": "canteenId",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      ],
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/AdjustProcurementPlanRequest"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "调整后的采购计划",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProcurementPlanAggregateResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "$ref": "#/components/responses/BusinessError"
+        }
+      },
+      "provenance": {
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
+        "pointer": "/paths/~1api~1v1~1procurement-plans~1{planId}~1items/put"
+      }
+    },
+    {
+      "operationId": "createPurchaseOrderFromPlan",
+      "method": "POST",
+      "path": "/api/v1/procurement-plans/{planId}/purchase-orders",
+      "tags": [
+        "procurement"
+      ],
+      "parameters": [
+        {
+          "name": "planId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "Idempotency-Key",
+          "in": "header",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        {
+          "name": "schoolId",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        {
+          "name": "canteenId",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      ],
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/CreateProcurementOrderRequest"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "由采购计划创建的采购订单",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PurchaseOrderResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "$ref": "#/components/responses/BusinessError"
+        }
+      },
+      "provenance": {
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
+        "pointer": "/paths/~1api~1v1~1procurement-plans~1{planId}~1purchase-orders/post"
       }
     },
     {
@@ -5818,7 +6689,7 @@
         }
       },
       "provenance": {
-        "documentHash": "74ffe6435132ad7f0c9d03658a13eff64eb64eb248946716d7138f8f92d6b256",
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
         "pointer": "/paths/~1api~1v1~1purchase-orders/get"
       }
     },
@@ -5881,7 +6752,7 @@
         }
       },
       "provenance": {
-        "documentHash": "74ffe6435132ad7f0c9d03658a13eff64eb64eb248946716d7138f8f92d6b256",
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
         "pointer": "/paths/~1api~1v1~1purchase-orders/post"
       }
     },
@@ -5952,7 +6823,7 @@
         }
       },
       "provenance": {
-        "documentHash": "74ffe6435132ad7f0c9d03658a13eff64eb64eb248946716d7138f8f92d6b256",
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
         "pointer": "/paths/~1api~1v1~1purchase-orders~1{orderId}~1receive/post"
       }
     },
@@ -6014,7 +6885,7 @@
         }
       },
       "provenance": {
-        "documentHash": "74ffe6435132ad7f0c9d03658a13eff64eb64eb248946716d7138f8f92d6b256",
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
         "pointer": "/paths/~1api~1v1~1purchase-orders~1{orderId}~1status/post"
       }
     },
@@ -6040,7 +6911,7 @@
         }
       },
       "provenance": {
-        "documentHash": "74ffe6435132ad7f0c9d03658a13eff64eb64eb248946716d7138f8f92d6b256",
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
         "pointer": "/paths/~1api~1v1~1roles/get"
       }
     },
@@ -6087,7 +6958,7 @@
         }
       },
       "provenance": {
-        "documentHash": "74ffe6435132ad7f0c9d03658a13eff64eb64eb248946716d7138f8f92d6b256",
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
         "pointer": "/paths/~1api~1v1~1roles~1{roleCode}~1permissions/put"
       }
     },
@@ -6134,7 +7005,7 @@
         }
       },
       "provenance": {
-        "documentHash": "74ffe6435132ad7f0c9d03658a13eff64eb64eb248946716d7138f8f92d6b256",
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
         "pointer": "/paths/~1api~1v1~1schools/get"
       }
     },
@@ -6172,7 +7043,7 @@
         }
       },
       "provenance": {
-        "documentHash": "74ffe6435132ad7f0c9d03658a13eff64eb64eb248946716d7138f8f92d6b256",
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
         "pointer": "/paths/~1api~1v1~1schools/post"
       }
     },
@@ -6220,7 +7091,7 @@
         }
       },
       "provenance": {
-        "documentHash": "74ffe6435132ad7f0c9d03658a13eff64eb64eb248946716d7138f8f92d6b256",
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
         "pointer": "/paths/~1api~1v1~1schools~1{schoolId}/put"
       }
     },
@@ -6268,7 +7139,7 @@
         }
       },
       "provenance": {
-        "documentHash": "74ffe6435132ad7f0c9d03658a13eff64eb64eb248946716d7138f8f92d6b256",
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
         "pointer": "/paths/~1api~1v1~1schools~1{schoolId}~1status/post"
       }
     },
@@ -6341,7 +7212,7 @@
         }
       },
       "provenance": {
-        "documentHash": "74ffe6435132ad7f0c9d03658a13eff64eb64eb248946716d7138f8f92d6b256",
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
         "pointer": "/paths/~1api~1v1~1suppliers/get"
       }
     },
@@ -6395,7 +7266,7 @@
         }
       },
       "provenance": {
-        "documentHash": "74ffe6435132ad7f0c9d03658a13eff64eb64eb248946716d7138f8f92d6b256",
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
         "pointer": "/paths/~1api~1v1~1suppliers/post"
       }
     },
@@ -6451,7 +7322,7 @@
         }
       },
       "provenance": {
-        "documentHash": "74ffe6435132ad7f0c9d03658a13eff64eb64eb248946716d7138f8f92d6b256",
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
         "pointer": "/paths/~1api~1v1~1traceability~1{traceCode}/get"
       }
     },
@@ -6502,7 +7373,7 @@
         }
       },
       "provenance": {
-        "documentHash": "74ffe6435132ad7f0c9d03658a13eff64eb64eb248946716d7138f8f92d6b256",
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
         "pointer": "/paths/~1api~1v1~1users/get"
       }
     },
@@ -6540,7 +7411,7 @@
         }
       },
       "provenance": {
-        "documentHash": "74ffe6435132ad7f0c9d03658a13eff64eb64eb248946716d7138f8f92d6b256",
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
         "pointer": "/paths/~1api~1v1~1users/post"
       }
     },
@@ -6588,7 +7459,7 @@
         }
       },
       "provenance": {
-        "documentHash": "74ffe6435132ad7f0c9d03658a13eff64eb64eb248946716d7138f8f92d6b256",
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
         "pointer": "/paths/~1api~1v1~1users~1{userId}/put"
       }
     },
@@ -6636,7 +7507,7 @@
         }
       },
       "provenance": {
-        "documentHash": "74ffe6435132ad7f0c9d03658a13eff64eb64eb248946716d7138f8f92d6b256",
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
         "pointer": "/paths/~1api~1v1~1users~1{userId}~1roles/put"
       }
     },
@@ -6684,7 +7555,7 @@
         }
       },
       "provenance": {
-        "documentHash": "74ffe6435132ad7f0c9d03658a13eff64eb64eb248946716d7138f8f92d6b256",
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
         "pointer": "/paths/~1api~1v1~1users~1{userId}~1scopes/put"
       }
     },
@@ -6732,7 +7603,7 @@
         }
       },
       "provenance": {
-        "documentHash": "74ffe6435132ad7f0c9d03658a13eff64eb64eb248946716d7138f8f92d6b256",
+        "documentHash": "0d203012254f5fecfb3265659b5da8b147b4d5d508c18a2f28fab37debf64258",
         "pointer": "/paths/~1api~1v1~1users~1{userId}~1status/post"
       }
     }

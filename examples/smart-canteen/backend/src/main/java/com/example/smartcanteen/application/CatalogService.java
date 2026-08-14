@@ -1,10 +1,12 @@
 package com.example.smartcanteen.application;
 
 import com.example.smartcanteen.application.port.OperationalStore;
+import com.example.smartcanteen.application.port.IngredientUnitStore;
 import com.example.smartcanteen.domain.CanteenScope;
 import com.example.smartcanteen.domain.Dish;
 import com.example.smartcanteen.domain.DishIngredient;
 import com.example.smartcanteen.domain.Ingredient;
+import com.example.smartcanteen.domain.IngredientUnit;
 import com.example.smartcanteen.domain.PageResult;
 import com.example.smartcanteen.domain.UnitConverter;
 import java.math.BigDecimal;
@@ -19,11 +21,16 @@ import org.springframework.transaction.annotation.Transactional;
 public class CatalogService {
 
     private final OperationalStore store;
-    private final UnitConverter units;
+    private final IngredientQuantityConverter quantityConverter;
+    private final IngredientUnitStore ingredientUnits;
 
-    public CatalogService(OperationalStore store, UnitConverter units) {
+    public CatalogService(
+            OperationalStore store,
+            IngredientQuantityConverter quantityConverter,
+            IngredientUnitStore ingredientUnits) {
         this.store = store;
-        this.units = units;
+        this.quantityConverter = quantityConverter;
+        this.ingredientUnits = ingredientUnits;
     }
 
     @Transactional(readOnly = true)
@@ -34,14 +41,35 @@ public class CatalogService {
 
     @Transactional
     public Ingredient saveIngredient(CanteenScope scope, Ingredient ingredient, boolean create) {
+        return saveIngredient(scope, ingredient, create, null);
+    }
+
+    @Transactional
+    public Ingredient saveIngredient(
+            CanteenScope scope,
+            Ingredient ingredient,
+            boolean create,
+            List<IngredientUnit> configuredUnits) {
         validateIngredientUnit(ingredient.baseUnit());
         if (create) {
             store.createIngredient(scope, ingredient);
         } else {
             store.updateIngredient(scope, ingredient);
         }
+        if (create || configuredUnits != null) {
+            ingredientUnits.replaceIngredientUnits(
+                    scope, ingredient.id(), normalizeUnits(ingredient, configuredUnits));
+        }
         return store.findIngredient(scope, ingredient.id())
                 .orElseThrow(() -> new IllegalStateException("Ingredient was not persisted"));
+    }
+
+    @Transactional(readOnly = true)
+    public List<IngredientUnit> listIngredientUnits(
+            CanteenScope scope, String ingredientId) {
+        store.findIngredient(scope, ingredientId)
+                .orElseThrow(() -> new IllegalArgumentException("Ingredient not found: " + ingredientId));
+        return ingredientUnits.listIngredientUnits(scope, ingredientId);
     }
 
     @Transactional(readOnly = true)
@@ -65,12 +93,7 @@ public class CatalogService {
                     .filter(Ingredient::active)
                     .orElseThrow(() -> new IllegalArgumentException(
                             "Unknown or disabled ingredient: " + recipe.ingredientId()));
-            String recipeBaseUnit = units.convert(BigDecimal.ONE, recipe.unit()).unit();
-            String ingredientBaseUnit = units.convert(BigDecimal.ONE, ingredient.baseUnit()).unit();
-            if (!recipeBaseUnit.equals(ingredientBaseUnit)) {
-                throw new IllegalArgumentException(
-                        "Recipe unit is incompatible with ingredient " + recipe.ingredientId());
-            }
+            quantityConverter.requireCompatible(scope, ingredient, recipe.unit());
         }
         if (create) {
             store.createDish(scope, dish);
@@ -86,6 +109,38 @@ public class CatalogService {
     }
 
     private void validateIngredientUnit(String unit) {
-        units.convert(BigDecimal.ONE, unit);
+        new UnitConverter().convert(BigDecimal.ONE, unit);
+    }
+
+    private List<IngredientUnit> normalizeUnits(
+            Ingredient ingredient, List<IngredientUnit> configuredUnits) {
+        List<IngredientUnit> requested = configuredUnits == null || configuredUnits.isEmpty()
+                ? List.of(new IngredientUnit(
+                        ingredient.baseUnit(), ingredient.baseUnit(), BigDecimal.ONE, true))
+                : configuredUnits;
+        Set<String> codes = new HashSet<>();
+        List<IngredientUnit> normalized = requested.stream()
+                .map(unit -> {
+                    if (!codes.add(unit.unitCode())) {
+                        throw new IllegalArgumentException(
+                                "Duplicate ingredient business unit: " + unit.unitCode());
+                    }
+                    String expected = new UnitConverter()
+                            .convert(BigDecimal.ONE, ingredient.baseUnit()).unit();
+                    String actual = new UnitConverter()
+                            .convert(BigDecimal.ONE, unit.baseUnit()).unit();
+                    if (!expected.equals(actual)) {
+                        throw new IllegalArgumentException(
+                                "Business unit base is incompatible with ingredient " + ingredient.id());
+                    }
+                    return unit;
+                })
+                .toList();
+        if (normalized.stream().noneMatch(unit -> unit.unitCode().equals(ingredient.baseUnit()))) {
+            normalized = new java.util.ArrayList<>(normalized);
+            normalized.add(new IngredientUnit(
+                    ingredient.baseUnit(), ingredient.baseUnit(), BigDecimal.ONE, true));
+        }
+        return List.copyOf(normalized);
     }
 }

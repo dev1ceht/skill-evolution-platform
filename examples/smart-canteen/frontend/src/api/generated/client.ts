@@ -280,6 +280,21 @@ export type IngredientRequest = {
   carbohydrateG?: number;
   warningThreshold?: number;
   active?: boolean;
+  units?: Array<IngredientUnitRequest>;
+};
+
+export type IngredientUnit = {
+  unitCode: string;
+  baseUnit: string;
+  toBaseFactor: number;
+  active: boolean;
+};
+
+export type IngredientUnitRequest = {
+  unitCode: string;
+  baseUnit: string;
+  toBaseFactor: number;
+  active?: boolean;
 };
 
 export type DishIngredient = {
@@ -713,6 +728,53 @@ export type ProcurementPlan = {
   items: Array<ProcurementItem>;
 };
 
+export type ProcurementPlanAggregateItem = {
+  ingredientId: string;
+  requiredBaseQuantity: number;
+  inventoryBaseQuantity: number;
+  openOrderBaseQuantity: number;
+  shortageBaseQuantity: number;
+  plannedBaseQuantity: number;
+  baseUnit: string;
+};
+
+export type ProcurementPlanAggregate = {
+  id: string;
+  planNo: string;
+  periodStart: string;
+  periodEnd: string;
+  status: string;
+  version: number;
+  createdAt?: string;
+  sourceMenuIds: Array<string>;
+  items: Array<ProcurementPlanAggregateItem>;
+  orderIds: Array<string>;
+};
+
+export type GenerateProcurementRangeRequest = {
+  periodStart: string;
+  periodEnd: string;
+};
+
+export type AdjustProcurementPlanRequest = {
+  version: number;
+  items: Array<ProcurementPlanItemAdjustment>;
+};
+
+export type ProcurementPlanItemAdjustment = {
+  ingredientId: string;
+  quantity: number;
+  unit: string;
+};
+
+export type CreateProcurementOrderRequest = {
+  supplierId: string;
+  orderType: string;
+  expectedDeliveryAt?: string;
+  remark?: string;
+  items: Array<PurchaseOrderItemRequest>;
+};
+
 export type InventoryReceipt = {
   materialId: string;
   quantity: number;
@@ -856,6 +918,32 @@ export type ProcurementPlanResponse = {
   code: number;
   message: string;
   data: ProcurementPlan;
+};
+
+export type ProcurementPlanAggregateResponse = {
+  code: number;
+  message: string;
+  data: ProcurementPlanAggregate;
+};
+
+export type PageViewProcurementPlanAggregate = {
+  total: number;
+  pages: number;
+  current: number;
+  size: number;
+  records: Array<ProcurementPlanAggregate>;
+};
+
+export type ProcurementPlanAggregatePageResponse = {
+  code: number;
+  message: string;
+  data: PageViewProcurementPlanAggregate;
+};
+
+export type IngredientUnitListResponse = {
+  code: number;
+  message: string;
+  data: Array<IngredientUnit>;
 };
 
 export type RecipeResponse = {
@@ -1198,6 +1286,18 @@ export async function updateIngredient(ingredientId: string, schoolId: string, c
   return response.json() as Promise<IngredientResponse>;
 }
 
+export async function listIngredientUnits(ingredientId: string, schoolId: string, canteenId: string): Promise<IngredientUnitListResponse> {
+  const encodedIngredientId = encodeURIComponent(String(ingredientId));
+  let path = "/api/v1/ingredients/{ingredientId}/units";
+  path = path.replace("{ingredientId}", encodedIngredientId);
+  const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
+  const response = await fetch(url, { method: 'GET' });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<IngredientUnitListResponse>;
+}
+
 export async function listInventory(schoolId: string, canteenId: string, keyword?: string, warningOnly?: boolean, page?: number, size?: number): Promise<InventoryPageResponse> {
   const path = "/api/v1/inventory";
   const url = new URL(path, window.location.origin);
@@ -1379,6 +1479,19 @@ export async function listPermissions(): Promise<PermissionListResponse> {
   return response.json() as Promise<PermissionListResponse>;
 }
 
+export async function listProcurementPlans(schoolId: string, canteenId: string, status?: string, page?: number, size?: number): Promise<ProcurementPlanAggregatePageResponse> {
+  const path = "/api/v1/procurement-plans";
+  const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
+  if (status !== undefined) url.searchParams.set("status", String(status));
+  if (page !== undefined) url.searchParams.set("page", String(page));
+  if (size !== undefined) url.searchParams.set("size", String(size));
+  const response = await fetch(url, { method: 'GET' });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<ProcurementPlanAggregatePageResponse>;
+}
+
 export async function generateProcurementPlan(body: GenerateProcurementRequest, schoolId?: string, canteenId?: string): Promise<ProcurementPlanResponse> {
   const path = "/api/v1/procurement-plans/generate";
   const url = new URL(path, window.location.origin);
@@ -1389,6 +1502,84 @@ export async function generateProcurementPlan(body: GenerateProcurementRequest, 
   const response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body) });
   if (!response.ok) throw new Error(`API request failed: ${response.status}`);
   return response.json() as Promise<ProcurementPlanResponse>;
+}
+
+export async function generateProcurementPlanRange(idempotencyKey: string, schoolId: string, canteenId: string, body: GenerateProcurementRangeRequest): Promise<ProcurementPlanAggregateResponse> {
+  const path = "/api/v1/procurement-plans/generate-range";
+  const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
+  const headers: Record<string, string> = {};
+  headers["Idempotency-Key"] = String(idempotencyKey);
+  headers["Content-Type"] = "application/json";
+  const response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body) });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<ProcurementPlanAggregateResponse>;
+}
+
+export async function getProcurementPlan(planId: string, schoolId: string, canteenId: string): Promise<ProcurementPlanAggregateResponse> {
+  const encodedPlanId = encodeURIComponent(String(planId));
+  let path = "/api/v1/procurement-plans/{planId}";
+  path = path.replace("{planId}", encodedPlanId);
+  const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
+  const response = await fetch(url, { method: 'GET' });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<ProcurementPlanAggregateResponse>;
+}
+
+export async function cancelProcurementPlan(planId: string, schoolId: string, canteenId: string): Promise<ProcurementPlanAggregateResponse> {
+  const encodedPlanId = encodeURIComponent(String(planId));
+  let path = "/api/v1/procurement-plans/{planId}/cancel";
+  path = path.replace("{planId}", encodedPlanId);
+  const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
+  const response = await fetch(url, { method: 'POST' });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<ProcurementPlanAggregateResponse>;
+}
+
+export async function confirmProcurementPlan(planId: string, schoolId: string, canteenId: string): Promise<ProcurementPlanAggregateResponse> {
+  const encodedPlanId = encodeURIComponent(String(planId));
+  let path = "/api/v1/procurement-plans/{planId}/confirm";
+  path = path.replace("{planId}", encodedPlanId);
+  const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
+  const response = await fetch(url, { method: 'POST' });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<ProcurementPlanAggregateResponse>;
+}
+
+export async function adjustProcurementPlan(planId: string, schoolId: string, canteenId: string, body: AdjustProcurementPlanRequest): Promise<ProcurementPlanAggregateResponse> {
+  const encodedPlanId = encodeURIComponent(String(planId));
+  let path = "/api/v1/procurement-plans/{planId}/items";
+  path = path.replace("{planId}", encodedPlanId);
+  const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
+  const headers: Record<string, string> = {};
+  headers["Content-Type"] = "application/json";
+  const response = await fetch(url, { method: 'PUT', headers: headers, body: JSON.stringify(body) });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<ProcurementPlanAggregateResponse>;
+}
+
+export async function createPurchaseOrderFromPlan(planId: string, idempotencyKey: string, schoolId: string, canteenId: string, body: CreateProcurementOrderRequest): Promise<PurchaseOrderResponse> {
+  const encodedPlanId = encodeURIComponent(String(planId));
+  let path = "/api/v1/procurement-plans/{planId}/purchase-orders";
+  path = path.replace("{planId}", encodedPlanId);
+  const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
+  const headers: Record<string, string> = {};
+  headers["Idempotency-Key"] = String(idempotencyKey);
+  headers["Content-Type"] = "application/json";
+  const response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body) });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<PurchaseOrderResponse>;
 }
 
 export async function listPurchaseOrders(schoolId: string, canteenId: string, status?: string, page?: number, size?: number): Promise<PurchaseOrderPageResponse> {

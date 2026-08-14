@@ -13,6 +13,7 @@ import com.example.smartcanteen.domain.Dish;
 import com.example.smartcanteen.domain.DishIngredient;
 import com.example.smartcanteen.domain.DashboardSummary;
 import com.example.smartcanteen.domain.Ingredient;
+import com.example.smartcanteen.domain.IngredientUnit;
 import com.example.smartcanteen.domain.InventoryLine;
 import com.example.smartcanteen.domain.Nutrition;
 import com.example.smartcanteen.domain.OperationalLedgerRecord;
@@ -101,7 +102,8 @@ public class OperationalController {
         CanteenScope scope = scopes.require(request, schoolId, canteenId);
         Ingredient ingredient = body.toDomain(body.ingredientId() == null
                 ? "INGREDIENT-" + UUID.randomUUID() : body.ingredientId());
-        return ApiResponse.ok(catalog.saveIngredient(scope, ingredient, true));
+        return ApiResponse.ok(catalog.saveIngredient(
+                scope, ingredient, true, body.unitsDomain()));
     }
 
     @PutMapping("/ingredients/{ingredientId}")
@@ -113,7 +115,19 @@ public class OperationalController {
             @Valid @RequestBody IngredientRequest body) {
         roles.requireAny(request, Role.SYSTEM_ADMIN, Role.SCHOOL_ADMIN, Role.CANTEEN_STAFF);
         CanteenScope scope = scopes.require(request, schoolId, canteenId);
-        return ApiResponse.ok(catalog.saveIngredient(scope, body.toDomain(ingredientId), false));
+        return ApiResponse.ok(catalog.saveIngredient(
+                scope, body.toDomain(ingredientId), false, body.unitsDomain()));
+    }
+
+    @GetMapping("/ingredients/{ingredientId}/units")
+    public ApiResponse<List<IngredientUnit>> listIngredientUnits(
+            HttpServletRequest request,
+            @PathVariable String ingredientId,
+            @RequestParam String schoolId,
+            @RequestParam String canteenId) {
+        roles.requireReader(request);
+        return ApiResponse.ok(catalog.listIngredientUnits(
+                scopes.require(request, schoolId, canteenId), ingredientId));
     }
 
     @GetMapping("/dishes")
@@ -441,7 +455,8 @@ public class OperationalController {
             @DecimalMin("0") BigDecimal fatG,
             @DecimalMin("0") BigDecimal carbohydrateG,
             @DecimalMin("0") BigDecimal warningThreshold,
-            Boolean active) {
+            Boolean active,
+            List<@Valid IngredientUnitRequest> units) {
 
         Ingredient toDomain(String id) {
             return new Ingredient(
@@ -456,6 +471,27 @@ public class OperationalController {
                             defaultZero(fatG),
                             defaultZero(carbohydrateG)),
                     defaultZero(warningThreshold),
+                    active == null || active);
+        }
+
+        List<IngredientUnit> unitsDomain() {
+            return units == null ? null : units.stream()
+                    .map(IngredientUnitRequest::toDomain)
+                    .toList();
+        }
+    }
+
+    public record IngredientUnitRequest(
+            @NotBlank String unitCode,
+            @NotBlank String baseUnit,
+            @NotNull @DecimalMin(value = "0", inclusive = false) BigDecimal toBaseFactor,
+            Boolean active) {
+
+        IngredientUnit toDomain() {
+            return new IngredientUnit(
+                    unitCode,
+                    baseUnit,
+                    toBaseFactor,
                     active == null || active);
         }
     }

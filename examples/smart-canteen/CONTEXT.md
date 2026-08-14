@@ -33,11 +33,15 @@ _Avoid_: Daily menu（中文业务名称仍统一为食谱）
 **Procurement Plan（采购计划）**：根据已审批食谱、有效库存和未入库订单计算出的采购建议，不代表已经下单。
 _Avoid_: Purchase Order
 
+阶段 2 中，运营侧已发布的 `Daily Menu`（日期、餐次、菜品和预计份数）是新采购计划的需求输入；计划生成后保存需求、库存和未入库订单的计算快照。计划确认后才允许转成采购订单。
+
 **Purchase Order（采购订单）**：食堂向供应商提交的正式采购承诺，包含订单明细、价格、数量和履约状态。
 _Avoid_: Procurement Plan
 
 **Receipt（验收入库）**：对供应商实际送达商品进行数量、价格、批次、日期和资质确认后形成的入库事实。
 _Avoid_: Delivery（Delivery 只表示供应商送达，不表示食堂验收通过）
+
+验收可以分多次完成；每次验收只增加订单剩余量，全部订单明细完成后订单才进入 `RECEIVED`。为兼容现有 V5 状态机，部分验收期间订单仍保持 `CONFIRMED`，以 `received_quantity_base` 累计已验收基础量。
 
 **Inventory Batch（库存批次）**：一次验收入库形成的可独立追踪库存单元，具有批次、生产日期、到期日期和来源订单。
 _Avoid_: Inventory Item（库存汇总和批次必须区分）

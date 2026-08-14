@@ -12,12 +12,25 @@ import type {
   RiskAssessmentResponse,
   InventoryLine,
   InventoryPageResponse,
+  Supplier,
+  SupplierPageResponse,
   Menu,
   MenuResponse,
   Recipe,
   RecipeResponse,
   ProcurementPlan,
   ProcurementPlanResponse,
+  ProcurementPlanAggregate,
+  ProcurementPlanAggregateResponse,
+  ProcurementPlanAggregatePageResponse,
+  AdjustProcurementPlanRequest,
+  CreateProcurementOrderRequest,
+  PurchaseOrder,
+  PurchaseOrderPageResponse,
+  PurchaseOrderResponse,
+  ReceiveRequest,
+  ReceiveResponse,
+  ReceiveResult,
   Receipt,
   ReceiptResponse,
   AlertRecord,
@@ -103,6 +116,42 @@ export interface SmartCanteenApiPort {
   getDashboardSummary?(scope: CanteenScope, date?: string): Promise<DashboardSummary>;
   getDashboardRisk?(scope: CanteenScope, date?: string): Promise<RiskAssessment>;
   listInventory?(scope: CanteenScope, warningOnly?: boolean): Promise<InventoryLine[]>;
+  listSuppliers?(scope: CanteenScope, keyword?: string): Promise<Supplier[]>;
+  listPurchaseOrders?(scope: CanteenScope, status?: string): Promise<PurchaseOrder[]>;
+  transitionPurchaseOrder?(
+    orderId: string,
+    status: string,
+    scope: CanteenScope,
+  ): Promise<PurchaseOrder>;
+  receivePurchaseOrder?(
+    orderId: string,
+    idempotencyKey: string,
+    request: ReceiveRequest,
+    scope: CanteenScope,
+  ): Promise<ReceiveResult>;
+  listProcurementPlans?(scope: CanteenScope, status?: string): Promise<ProcurementPlanAggregate[]>;
+  generateProcurementPlanRange?(
+    periodStart: string,
+    periodEnd: string,
+    idempotencyKey: string,
+    scope: CanteenScope,
+  ): Promise<ProcurementPlanAggregate>;
+  adjustProcurementPlan?(
+    planId: string,
+    request: AdjustProcurementPlanRequest,
+    scope: CanteenScope,
+  ): Promise<ProcurementPlanAggregate>;
+  confirmProcurementPlan?(
+    planId: string,
+    scope: CanteenScope,
+  ): Promise<ProcurementPlanAggregate>;
+  createPurchaseOrderFromPlan?(
+    planId: string,
+    idempotencyKey: string,
+    request: CreateProcurementOrderRequest,
+    scope: CanteenScope,
+  ): Promise<import('./generated/client').PurchaseOrder>;
+  cancelProcurementPlan?(planId: string, scope: CanteenScope): Promise<ProcurementPlanAggregate>;
 }
 
 export class SmartCanteenApi implements SmartCanteenApiPort {
@@ -184,6 +233,123 @@ export class SmartCanteenApi implements SmartCanteenApiPort {
       params: { ...scope, warningOnly, page: 1, size: 100 },
     });
     return unwrap(response).records;
+  }
+
+  async listSuppliers(scope: CanteenScope, keyword?: string): Promise<Supplier[]> {
+    const response = await this.client.get<SupplierPageResponse>('/api/v1/suppliers', {
+      params: { ...scope, page: 1, size: 100, ...(keyword ? { keyword } : {}) },
+    });
+    return unwrap(response).records;
+  }
+
+  async listPurchaseOrders(scope: CanteenScope, status?: string): Promise<PurchaseOrder[]> {
+    const response = await this.client.get<PurchaseOrderPageResponse>('/api/v1/purchase-orders', {
+      params: { ...scope, page: 1, size: 100, ...(status ? { status } : {}) },
+    });
+    return unwrap(response).records;
+  }
+
+  async transitionPurchaseOrder(
+    orderId: string,
+    status: string,
+    scope: CanteenScope,
+  ): Promise<PurchaseOrder> {
+    const response = await this.client.post<PurchaseOrderResponse>(
+      `/api/v1/purchase-orders/${encodeURIComponent(orderId)}/status`,
+      { status },
+      { params: scope },
+    );
+    return unwrap(response);
+  }
+
+  async receivePurchaseOrder(
+    orderId: string,
+    idempotencyKey: string,
+    request: ReceiveRequest,
+    scope: CanteenScope,
+  ): Promise<ReceiveResult> {
+    const response = await this.client.post<ReceiveResponse>(
+      `/api/v1/purchase-orders/${encodeURIComponent(orderId)}/receive`,
+      request,
+      { headers: { 'Idempotency-Key': idempotencyKey }, params: scope },
+    );
+    return unwrap(response);
+  }
+
+  async listProcurementPlans(
+    scope: CanteenScope,
+    status?: string,
+  ): Promise<ProcurementPlanAggregate[]> {
+    const response = await this.client.get<ProcurementPlanAggregatePageResponse>(
+      '/api/v1/procurement-plans',
+      { params: { ...scope, page: 1, size: 50, ...(status ? { status } : {}) } },
+    );
+    return unwrap(response).records;
+  }
+
+  async generateProcurementPlanRange(
+    periodStart: string,
+    periodEnd: string,
+    idempotencyKey: string,
+    scope: CanteenScope,
+  ): Promise<ProcurementPlanAggregate> {
+    const response = await this.client.post<ProcurementPlanAggregateResponse>(
+      '/api/v1/procurement-plans/generate-range',
+      { periodStart, periodEnd },
+      { headers: { 'Idempotency-Key': idempotencyKey }, params: scope },
+    );
+    return unwrap(response);
+  }
+
+  async adjustProcurementPlan(
+    planId: string,
+    request: AdjustProcurementPlanRequest,
+    scope: CanteenScope,
+  ): Promise<ProcurementPlanAggregate> {
+    const response = await this.client.put<ProcurementPlanAggregateResponse>(
+      `/api/v1/procurement-plans/${encodeURIComponent(planId)}/items`,
+      request,
+      { params: scope },
+    );
+    return unwrap(response);
+  }
+
+  async confirmProcurementPlan(
+    planId: string,
+    scope: CanteenScope,
+  ): Promise<ProcurementPlanAggregate> {
+    const response = await this.client.post<ProcurementPlanAggregateResponse>(
+      `/api/v1/procurement-plans/${encodeURIComponent(planId)}/confirm`,
+      undefined,
+      { params: scope },
+    );
+    return unwrap(response);
+  }
+
+  async cancelProcurementPlan(
+    planId: string,
+    scope: CanteenScope,
+  ): Promise<ProcurementPlanAggregate> {
+    const response = await this.client.post<ProcurementPlanAggregateResponse>(
+      `/api/v1/procurement-plans/${encodeURIComponent(planId)}/cancel`,
+      undefined,
+      { params: scope },
+    );
+    return unwrap(response);
+  }
+
+  async createPurchaseOrderFromPlan(
+    planId: string,
+    idempotencyKey: string,
+    request: CreateProcurementOrderRequest,
+    scope: CanteenScope,
+  ): Promise<import('./generated/client').PurchaseOrder> {
+    const response = await this.client.post<import('./generated/client').PurchaseOrderResponse>(
+      `/api/v1/procurement-plans/${encodeURIComponent(planId)}/purchase-orders`,
+      request,
+      { headers: { 'Idempotency-Key': idempotencyKey }, params: scope },
+    );
+    return unwrap(response);
   }
 
   setSession(tokens: AuthTokens): void {

@@ -3,6 +3,8 @@ import axios from 'axios';
 import { computed, ref } from 'vue';
 import LoginPanel from './components/LoginPanel.vue';
 import OperationsOverview from './components/OperationsOverview.vue';
+import ProcurementPlanWorkspace from './components/ProcurementPlanWorkspace.vue';
+import PurchaseOrderWorkspace from './components/PurchaseOrderWorkspace.vue';
 import WorkflowDashboard from './components/WorkflowDashboard.vue';
 import type { AuthSession, CanteenScope } from './api/smartCanteenApi';
 import { SmartCanteenApi } from './api/smartCanteenApi';
@@ -43,6 +45,8 @@ function scopeFromSession(value: AuthSession | null): CanteenScope {
       <button type="button" @click="signOut">退出登录</button>
     </header>
     <OperationsOverview :api="api" :scope="scope" />
+    <ProcurementPlanWorkspace :api="api" :scope="scope" />
+    <PurchaseOrderWorkspace :api="api" :scope="scope" />
     <WorkflowDashboard :api="api" :scope="scope" />
   </main>
 </template>

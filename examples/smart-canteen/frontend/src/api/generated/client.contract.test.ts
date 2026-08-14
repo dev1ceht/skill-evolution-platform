@@ -197,6 +197,12 @@ describe("Smart Canteen Workflow API contract", () => {
     expect(options.headers["Content-Type"]).toBe("application/json");
     expect(JSON.parse(options.body)).toEqual({});
   });
+  it("listIngredientUnits sends GET /api/v1/ingredients/{ingredientId}/units", async () => {
+    await client.listIngredientUnits('fixture', 'fixture', 'fixture');
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/ingredients/fixture/units");
+    expect(options.method).toBe("GET");
+  });
   it("listInventory sends GET /api/v1/inventory", async () => {
     await client.listInventory('fixture', 'fixture', undefined, undefined, undefined, undefined);
     const [requestUrl, options] = fetchMock.mock.calls[0];
@@ -305,11 +311,61 @@ describe("Smart Canteen Workflow API contract", () => {
     expect(new URL(requestUrl).pathname).toBe("/api/v1/permissions");
     expect(options.method).toBe("GET");
   });
+  it("listProcurementPlans sends GET /api/v1/procurement-plans", async () => {
+    await client.listProcurementPlans('fixture', 'fixture', undefined, undefined, undefined);
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/procurement-plans");
+    expect(options.method).toBe("GET");
+  });
   it("generateProcurementPlan sends POST /api/v1/procurement-plans/generate", async () => {
     await client.generateProcurementPlan({} as never, undefined, undefined);
     const [requestUrl, options] = fetchMock.mock.calls[0];
     expect(new URL(requestUrl).pathname).toBe("/api/v1/procurement-plans/generate");
     expect(options.method).toBe("POST");
+    expect(options.headers["Content-Type"]).toBe("application/json");
+    expect(JSON.parse(options.body)).toEqual({});
+  });
+  it("generateProcurementPlanRange sends POST /api/v1/procurement-plans/generate-range", async () => {
+    await client.generateProcurementPlanRange('fixture', 'fixture', 'fixture', {} as never);
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/procurement-plans/generate-range");
+    expect(options.method).toBe("POST");
+    expect(options.headers["Idempotency-Key"]).toBe('fixture');
+    expect(options.headers["Content-Type"]).toBe("application/json");
+    expect(JSON.parse(options.body)).toEqual({});
+  });
+  it("getProcurementPlan sends GET /api/v1/procurement-plans/{planId}", async () => {
+    await client.getProcurementPlan('fixture', 'fixture', 'fixture');
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/procurement-plans/fixture");
+    expect(options.method).toBe("GET");
+  });
+  it("cancelProcurementPlan sends POST /api/v1/procurement-plans/{planId}/cancel", async () => {
+    await client.cancelProcurementPlan('fixture', 'fixture', 'fixture');
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/procurement-plans/fixture/cancel");
+    expect(options.method).toBe("POST");
+  });
+  it("confirmProcurementPlan sends POST /api/v1/procurement-plans/{planId}/confirm", async () => {
+    await client.confirmProcurementPlan('fixture', 'fixture', 'fixture');
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/procurement-plans/fixture/confirm");
+    expect(options.method).toBe("POST");
+  });
+  it("adjustProcurementPlan sends PUT /api/v1/procurement-plans/{planId}/items", async () => {
+    await client.adjustProcurementPlan('fixture', 'fixture', 'fixture', {} as never);
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/procurement-plans/fixture/items");
+    expect(options.method).toBe("PUT");
+    expect(options.headers["Content-Type"]).toBe("application/json");
+    expect(JSON.parse(options.body)).toEqual({});
+  });
+  it("createPurchaseOrderFromPlan sends POST /api/v1/procurement-plans/{planId}/purchase-orders", async () => {
+    await client.createPurchaseOrderFromPlan('fixture', 'fixture', 'fixture', 'fixture', {} as never);
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/procurement-plans/fixture/purchase-orders");
+    expect(options.method).toBe("POST");
+    expect(options.headers["Idempotency-Key"]).toBe('fixture');
     expect(options.headers["Content-Type"]).toBe("application/json");
     expect(JSON.parse(options.body)).toEqual({});
   });
