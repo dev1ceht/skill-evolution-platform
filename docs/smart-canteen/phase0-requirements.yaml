@@ -1,0 +1,193 @@
+schema_version: "1.0"
+project: smart-canteen
+phase: phase-0-requirements-and-domain-baseline
+source_documents:
+  - id: overview-design
+    path: "智慧食堂项目概要设计文档.pdf"
+    sha256: "200A5F09EAB0D1D4ADBA11396E3925E41DADF54E9A9ECA84BA01FBA522F12473"
+  - id: phase2-design
+    path: "智慧食堂二期-系统设计.pdf"
+    sha256: "6209C740D106924F4FB17B546407E82CFB753075EDB51636CA61726161692376"
+
+requirements:
+  - id: BASELINE-001
+    priority: P0
+    category: architecture
+    statement: "后续业务统一使用学校、食堂和角色授权范围，运营数据不得跨食堂混用。"
+    source:
+      - document: overview-design
+        section: "2.3 逻辑架构; 5.6.2 授权控制"
+      - document: phase2-design
+        section: "3.2.5 基础单位统一; 3.2.19 供应商评价"
+    acceptance:
+      - "所有菜单、采购、库存、台账、预警和溯源聚合都带 schoolId + canteenId。"
+      - "监管查询必须显式使用区域授权，不得通过普通食堂接口绕过范围。"
+
+  - id: BASELINE-002
+    priority: P0
+    category: architecture
+    statement: "日食谱、采购计划、采购订单、验收入库、库存批次、出库和溯源组成唯一核心写链路。"
+    source:
+      - document: overview-design
+        section: "3.4 食谱; 3.6 采购; 3.8 食品溯源"
+      - document: phase2-design
+        section: "3.2.13 采购管理; 3.2.14 食品安全溯源码"
+    acceptance:
+      - "已审批日食谱可以生成采购计划。"
+      - "验收入库可以形成库存批次，并可被出库和溯源码查询引用。"
+      - "后续新功能不再新增旧 menus/recipe_requirements 写入。"
+
+  - id: IAM-001
+    priority: P0
+    category: identity
+    statement: "系统支持子账号、角色、权限、状态和操作审计。"
+    source:
+      - document: overview-design
+        section: "3.2 系统管理; 4.3 用户/角色/权限表"
+    acceptance:
+      - "管理员可以创建、停用和授权子账号。"
+      - "用户只能访问授权学校、食堂或监管区域。"
+      - "关键写操作记录操作人、时间、范围和结果。"
+
+  - id: RECIPE-001
+    priority: P0
+    category: recipe
+    statement: "食材、营养、菜品、配方和人群用量可以维护，并支持统一单位。"
+    source:
+      - document: overview-design
+        section: "3.4 食谱管理; 4.3 食材/菜品/配方表"
+      - document: phase2-design
+        section: "3.2.5 基础单位统一"
+    acceptance:
+      - "菜品配方只引用存在且启用的食材。"
+      - "基础单位和业务单位转换可追溯。"
+      - "营养分析可以按食谱和就餐对象计算。"
+
+  - id: MENU-APPROVAL-001
+    priority: P0
+    category: menu
+    statement: "日食谱按日期和餐次编辑，带量食谱经审批后才能公示。"
+    source:
+      - document: overview-design
+        section: "3.4.4 食谱编辑流程"
+      - document: phase2-design
+        section: "3.2.16 食谱管理"
+    acceptance:
+      - "同一食堂同一日期同一餐次只能有一份有效食谱。"
+      - "草稿可修改，已发布食谱不可静默修改。"
+      - "审批驳回必须保留原因并允许重新提交。"
+
+  - id: PROCUREMENT-PLAN-001
+    priority: P0
+    category: procurement
+    statement: "系统根据已审批食谱、库存和未入库订单生成可调整采购计划。"
+    source:
+      - document: overview-design
+        section: "3.6.2 采购计划; 3.6.4 采购计划生成流程"
+    acceptance:
+      - "采购计划记录计算输入的食谱版本和计算时间。"
+      - "管理员调整后才能确认生成订单。"
+      - "重复生成不会重复产生未确认订单。"
+
+  - id: PROCUREMENT-LIFECYCLE-001
+    priority: P0
+    category: procurement
+    statement: "线上和线下采购覆盖下单、确认、发货、送达、验收、入库和取消。"
+    source:
+      - document: overview-design
+        section: "3.6 采购管理"
+      - document: phase2-design
+        section: "3.2.13 采购管理"
+    acceptance:
+      - "订单状态只能按允许的状态机迁移。"
+      - "订单金额由服务端根据明细计算。"
+      - "验收数量、批次、日期、票证和图片形成持久化记录。"
+
+  - id: INVENTORY-TRACE-001
+    priority: P0
+    category: inventory
+    statement: "库存按基础单位和批次管理，出库扣减库存并形成完整溯源链。"
+    source:
+      - document: overview-design
+        section: "3.6.2 库存管理; 3.8.2 食品溯源信息"
+      - document: phase2-design
+        section: "3.2.14 食品安全溯源码"
+    acceptance:
+      - "库存不足、单位不兼容和过期批次使用被拒绝。"
+      - "库存变更与出库记录处于同一事务。"
+      - "扫描溯源码可以查询菜品、批次、订单、供应商、验收、出库和留样信息。"
+
+  - id: LEDGER-CONFIG-001
+    priority: P0
+    category: ledger
+    statement: "台账类型、频次、模板、必填字段和责任人可以配置，周期内未完成项可以动态跟踪。"
+    source:
+      - document: overview-design
+        section: "3.5 台账管理"
+      - document: phase2-design
+        section: "3.2.18 台账预警"
+    acceptance:
+      - "周期开始自动生成应完成台账和当前预警。"
+      - "完成一项后只移除该项，全部完成后清除预警。"
+      - "记录支持内容、照片、责任人和提交时间。"
+
+  - id: SAFETY-001
+    priority: P1
+    category: food-safety
+    statement: "证照、健康证、管理制度、供应商资质和厨余企业信息可维护并支持临期提醒。"
+    source:
+      - document: overview-design
+        section: "3.3 基础信息模块"
+    acceptance:
+      - "许可证和健康证具有有效期、附件、审核状态和变更记录。"
+      - "临期和过期记录自动进入预警中心。"
+
+  - id: ALERT-001
+    priority: P1
+    category: alert
+    statement: "预警支持规则配置、生成、通知、处置、附件和统计。"
+    source:
+      - document: phase2-design
+        section: "3.2.4 预警中心"
+    acceptance:
+      - "规则按学校、预警类别、通知人员和通知方式配置。"
+      - "同一外部事件重复上送不重复建档。"
+      - "处置记录包含操作人、时间、内容和附件。"
+
+  - id: REPORT-001
+    priority: P1
+    category: statistics
+    statement: "学校端和监管端可以查询采购、库存、台账、风险、评分和趋势统计。"
+    source:
+      - document: overview-design
+        section: "3.7 采购统计; 3.8 综合统计; 3.9 市级数据中心"
+      - document: phase2-design
+        section: "3.2.10 智慧食堂大屏; 3.2.12 主食材价格监管"
+    acceptance:
+      - "统计可按时间、学校、食堂、供应商、食材和状态筛选。"
+      - "导出数据与页面统计口径一致。"
+      - "监管端只能查看授权区域。"
+
+  - id: EXTERNAL-001
+    priority: P2
+    category: integration
+    statement: "明厨亮灶、区县平台、晨检仪、电子秤、标签打印机和通知服务通过可替换适配器接入。"
+    source:
+      - document: phase2-design
+        section: "3.2.1～3.2.11 外部平台与设备"
+    acceptance:
+      - "没有凭据时适配器返回明确配置错误，不伪装为已连接。"
+      - "外部数据先归一化再进入核心领域。"
+      - "外部调用具备超时、重试、幂等和原始报文审计。"
+
+  - id: EVALUATION-001
+    priority: P2
+    category: evaluation
+    statement: "系统支持食堂满意度调查、供应商评价、食堂百科和批量食谱导入审批。"
+    source:
+      - document: phase2-design
+        section: "3.2.15～3.2.19"
+    acceptance:
+      - "评价周期、问卷、题目、答卷、得分和排名可查询。"
+      - "批量导入有模板、校验和失败明细。"
+      - "知识内容支持教育局发布和学校下钻查看。"
