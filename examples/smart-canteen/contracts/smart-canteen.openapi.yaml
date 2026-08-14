@@ -917,6 +917,355 @@ paths:
                 $ref: '#/components/schemas/TraceabilityResponse'
         '404':
           $ref: '#/components/responses/NotFoundError'
+  /api/v1/schools:
+    get:
+      operationId: listSchools
+      tags: [platform-foundation]
+      parameters:
+        - name: keyword
+          in: query
+          required: false
+          schema: { type: string }
+        - name: includeInactive
+          in: query
+          required: false
+          schema: { type: boolean, default: false }
+      responses:
+        '200':
+          description: Schools
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SchoolListResponse'
+        '400':
+          $ref: '#/components/responses/BusinessError'
+    post:
+      operationId: createSchool
+      tags: [platform-foundation]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SchoolRequest'
+      responses:
+        '200':
+          description: Created school
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SchoolResponse'
+        '400':
+          $ref: '#/components/responses/BusinessError'
+  /api/v1/schools/{schoolId}:
+    put:
+      operationId: updateSchool
+      tags: [platform-foundation]
+      parameters:
+        - $ref: '#/components/parameters/SchoolIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SchoolRequest'
+      responses:
+        '200':
+          description: Updated school
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SchoolResponse'
+        '400':
+          $ref: '#/components/responses/BusinessError'
+  /api/v1/schools/{schoolId}/status:
+    post:
+      operationId: updateSchoolStatus
+      tags: [platform-foundation]
+      parameters:
+        - $ref: '#/components/parameters/SchoolIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FoundationStatusRequest'
+      responses:
+        '200':
+          description: Updated school status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SchoolResponse'
+        '400':
+          $ref: '#/components/responses/BusinessError'
+  /api/v1/canteens:
+    get:
+      operationId: listCanteens
+      tags: [platform-foundation]
+      parameters:
+        - $ref: '#/components/parameters/SchoolIdQuery'
+        - name: keyword
+          in: query
+          required: false
+          schema: { type: string }
+        - name: includeInactive
+          in: query
+          required: false
+          schema: { type: boolean, default: false }
+      responses:
+        '200':
+          description: Canteens
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CanteenListResponse'
+        '400':
+          $ref: '#/components/responses/BusinessError'
+    post:
+      operationId: createCanteen
+      tags: [platform-foundation]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CanteenRequest'
+      responses:
+        '200':
+          description: Created canteen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CanteenResponse'
+        '400':
+          $ref: '#/components/responses/BusinessError'
+  /api/v1/canteens/{canteenId}:
+    put:
+      operationId: updateCanteen
+      tags: [platform-foundation]
+      parameters:
+        - $ref: '#/components/parameters/CanteenIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CanteenRequest'
+      responses:
+        '200':
+          description: Updated canteen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CanteenResponse'
+        '400':
+          $ref: '#/components/responses/BusinessError'
+  /api/v1/canteens/{canteenId}/status:
+    post:
+      operationId: updateCanteenStatus
+      tags: [platform-foundation]
+      parameters:
+        - $ref: '#/components/parameters/CanteenIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FoundationStatusRequest'
+      responses:
+        '200':
+          description: Updated canteen status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CanteenResponse'
+        '400':
+          $ref: '#/components/responses/BusinessError'
+  /api/v1/roles:
+    get:
+      operationId: listRoles
+      tags: [platform-foundation]
+      responses:
+        '200':
+          description: Roles
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoleListResponse'
+  /api/v1/permissions:
+    get:
+      operationId: listPermissions
+      tags: [platform-foundation]
+      responses:
+        '200':
+          description: Permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PermissionListResponse'
+  /api/v1/roles/{roleCode}/permissions:
+    put:
+      operationId: replaceRolePermissions
+      tags: [platform-foundation]
+      parameters:
+        - name: roleCode
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RolePermissionRequest'
+      responses:
+        '200':
+          description: Updated role
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoleResponse'
+        '400':
+          $ref: '#/components/responses/BusinessError'
+  /api/v1/users:
+    get:
+      operationId: listUsers
+      tags: [platform-foundation]
+      parameters:
+        - $ref: '#/components/parameters/SchoolIdQuery'
+        - $ref: '#/components/parameters/CanteenIdQuery'
+        - name: active
+          in: query
+          required: false
+          schema: { type: boolean }
+      responses:
+        '200':
+          description: Managed users
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagedUserListResponse'
+    post:
+      operationId: createUser
+      tags: [platform-foundation]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '200':
+          description: Created user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagedUserResponse'
+        '400':
+          $ref: '#/components/responses/BusinessError'
+  /api/v1/users/{userId}:
+    put:
+      operationId: updateUser
+      tags: [platform-foundation]
+      parameters:
+        - $ref: '#/components/parameters/UserIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagedUserResponse'
+        '400':
+          $ref: '#/components/responses/BusinessError'
+  /api/v1/users/{userId}/status:
+    post:
+      operationId: updateUserStatus
+      tags: [platform-foundation]
+      parameters:
+        - $ref: '#/components/parameters/UserIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FoundationStatusRequest'
+      responses:
+        '200':
+          description: Updated user status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagedUserResponse'
+        '400':
+          $ref: '#/components/responses/BusinessError'
+  /api/v1/users/{userId}/roles:
+    put:
+      operationId: replaceUserRoles
+      tags: [platform-foundation]
+      parameters:
+        - $ref: '#/components/parameters/UserIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoleAssignmentRequest'
+      responses:
+        '200':
+          description: Updated user roles
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagedUserResponse'
+        '400':
+          $ref: '#/components/responses/BusinessError'
+  /api/v1/users/{userId}/scopes:
+    put:
+      operationId: replaceUserScopes
+      tags: [platform-foundation]
+      parameters:
+        - $ref: '#/components/parameters/UserIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScopeAssignmentRequest'
+      responses:
+        '200':
+          description: Updated user scopes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagedUserResponse'
+        '400':
+          $ref: '#/components/responses/BusinessError'
+  /api/v1/audit-logs:
+    get:
+      operationId: listAuditLogs
+      tags: [platform-foundation]
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+      responses:
+        '200':
+          description: Recent audit logs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditLogListResponse'
+        '400':
+          $ref: '#/components/responses/BusinessError'
 components:
   securitySchemes:
     bearerAuth:
@@ -930,6 +1279,39 @@ components:
       required: true
       schema:
         type: string
+    SchoolIdPath:
+      name: schoolId
+      in: path
+      required: true
+      schema:
+        type: string
+        minLength: 1
+    SchoolIdQuery:
+      name: schoolId
+      in: query
+      required: false
+      schema:
+        type: string
+    CanteenIdPath:
+      name: canteenId
+      in: path
+      required: true
+      schema:
+        type: string
+        minLength: 1
+    CanteenIdQuery:
+      name: canteenId
+      in: query
+      required: false
+      schema:
+        type: string
+    UserIdPath:
+      name: userId
+      in: path
+      required: true
+      schema:
+        type: string
+        minLength: 1
     SchoolId:
       name: schoolId
       in: query
@@ -1090,6 +1472,9 @@ components:
         username: { type: string }
         nickname: { type: string }
         role: { type: string }
+        roles:
+          type: array
+          items: { type: string }
         schoolId: { type: string, nullable: true }
         canteenId: { type: string, nullable: true }
     AuthTokens:
@@ -1103,12 +1488,18 @@ components:
           $ref: '#/components/schemas/AuthUserInfo'
     CurrentUser:
       type: object
-      required: [userId, username, nickname, role]
+      required: [userId, username, nickname, role, roles, permissions]
       properties:
         userId: { type: string }
         username: { type: string }
         nickname: { type: string }
         role: { type: string }
+        roles:
+          type: array
+          items: { type: string }
+        permissions:
+          type: array
+          items: { type: string }
         schoolId: { type: string, nullable: true }
         canteenId: { type: string, nullable: true }
     EmptyResponse:
@@ -1134,6 +1525,257 @@ components:
         message: { type: string }
         data:
           $ref: '#/components/schemas/CurrentUser'
+    School:
+      type: object
+      required: [id, name, regionCode, active]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        regionCode: { type: string }
+        active: { type: boolean }
+    SchoolRequest:
+      type: object
+      required: [name, regionCode]
+      properties:
+        id: { type: string, nullable: true }
+        name: { type: string, minLength: 1 }
+        regionCode: { type: string, minLength: 1 }
+        active: { type: boolean, default: true }
+    Canteen:
+      type: object
+      required: [id, schoolId, name, regionCode, active]
+      properties:
+        id: { type: string }
+        schoolId: { type: string }
+        name: { type: string }
+        address: { type: string, nullable: true }
+        regionCode: { type: string }
+        active: { type: boolean }
+    CanteenRequest:
+      type: object
+      required: [name]
+      properties:
+        id: { type: string, nullable: true }
+        schoolId: { type: string, nullable: true }
+        name: { type: string, minLength: 1 }
+        address: { type: string, nullable: true }
+        active: { type: boolean, default: true }
+    FoundationStatusRequest:
+      type: object
+      required: [active]
+      properties:
+        active: { type: boolean }
+    RoleDefinition:
+      type: object
+      required: [code, name, systemRole, active, permissions]
+      properties:
+        code: { type: string }
+        name: { type: string }
+        description: { type: string, nullable: true }
+        systemRole: { type: boolean }
+        active: { type: boolean }
+        permissions:
+          type: array
+          items: { type: string }
+    PermissionDefinition:
+      type: object
+      required: [code, name, resource, action]
+      properties:
+        code: { type: string }
+        name: { type: string }
+        resource: { type: string }
+        action: { type: string }
+        description: { type: string, nullable: true }
+    RolePermissionRequest:
+      type: object
+      properties:
+        permissionCodes:
+          type: array
+          items: { type: string }
+    ScopeGrant:
+      type: object
+      required: [assignmentId, userId, type]
+      properties:
+        assignmentId: { type: string }
+        userId: { type: string }
+        type: { type: string, enum: [REGION, SCHOOL, CANTEEN] }
+        regionCode: { type: string, nullable: true }
+        schoolId: { type: string, nullable: true }
+        canteenId: { type: string, nullable: true }
+    ScopeGrantRequest:
+      type: object
+      required: [type]
+      properties:
+        assignmentId: { type: string, nullable: true }
+        type: { type: string, enum: [REGION, SCHOOL, CANTEEN] }
+        regionCode: { type: string, nullable: true }
+        schoolId: { type: string, nullable: true }
+        canteenId: { type: string, nullable: true }
+    ManagedUser:
+      type: object
+      required: [userId, username, displayName, primaryRole, roles, active, scopeGrants]
+      properties:
+        userId: { type: string }
+        username: { type: string }
+        displayName: { type: string }
+        primaryRole: { type: string }
+        roles:
+          type: array
+          items: { type: string }
+        schoolId: { type: string, nullable: true }
+        canteenId: { type: string, nullable: true }
+        active: { type: boolean }
+        scopeGrants:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScopeGrant'
+    CreateUserRequest:
+      type: object
+      required: [username, password, displayName, primaryRole]
+      properties:
+        username: { type: string, minLength: 1 }
+        password: { type: string, minLength: 1, format: password }
+        displayName: { type: string, minLength: 1 }
+        primaryRole: { type: string }
+        roles:
+          type: array
+          items: { type: string }
+        schoolId: { type: string, nullable: true }
+        canteenId: { type: string, nullable: true }
+        active: { type: boolean, default: true }
+        scopeGrants:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScopeGrantRequest'
+    UpdateUserRequest:
+      type: object
+      properties:
+        displayName: { type: string, nullable: true }
+        primaryRole: { type: string, nullable: true }
+        roles:
+          type: array
+          items: { type: string }
+        schoolId: { type: string, nullable: true }
+        canteenId: { type: string, nullable: true }
+        active: { type: boolean, nullable: true }
+        password: { type: string, nullable: true, format: password }
+        scopeGrants:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScopeGrantRequest'
+    RoleAssignmentRequest:
+      type: object
+      required: [roles]
+      properties:
+        roles:
+          type: array
+          minItems: 1
+          items: { type: string }
+    ScopeAssignmentRequest:
+      type: object
+      required: [scopeGrants]
+      properties:
+        scopeGrants:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScopeGrantRequest'
+    AuditLog:
+      type: object
+      required: [auditId, action, resourceType, outcome, createdAt]
+      properties:
+        auditId: { type: string }
+        actorUserId: { type: string, nullable: true }
+        action: { type: string }
+        resourceType: { type: string }
+        resourceId: { type: string, nullable: true }
+        schoolId: { type: string, nullable: true }
+        canteenId: { type: string, nullable: true }
+        outcome: { type: string, enum: [SUCCESS, FAILURE] }
+        detail: { type: string, nullable: true }
+        requestId: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+    SchoolListResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code: { type: integer }
+        message: { type: string }
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/School' }
+    SchoolResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code: { type: integer }
+        message: { type: string }
+        data: { $ref: '#/components/schemas/School' }
+    CanteenListResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code: { type: integer }
+        message: { type: string }
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/Canteen' }
+    CanteenResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code: { type: integer }
+        message: { type: string }
+        data: { $ref: '#/components/schemas/Canteen' }
+    RoleListResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code: { type: integer }
+        message: { type: string }
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/RoleDefinition' }
+    PermissionListResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code: { type: integer }
+        message: { type: string }
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/PermissionDefinition' }
+    RoleResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code: { type: integer }
+        message: { type: string }
+        data: { $ref: '#/components/schemas/RoleDefinition' }
+    ManagedUserListResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code: { type: integer }
+        message: { type: string }
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/ManagedUser' }
+    ManagedUserResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code: { type: integer }
+        message: { type: string }
+        data: { $ref: '#/components/schemas/ManagedUser' }
+    AuditLogListResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code: { type: integer }
+        message: { type: string }
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/AuditLog' }
     Nutrition:
       type: object
       required: [energyKcal, proteinG, fatG, carbohydrateG]

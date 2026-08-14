@@ -5,6 +5,8 @@ import com.example.smartcanteen.security.Role;
 import com.example.smartcanteen.security.UserAccount;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.Optional;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -39,6 +41,16 @@ public class JdbcAuthStore implements AuthStore {
                         userId)
                 .stream()
                 .findFirst();
+    }
+
+    @Override
+    public Set<Role> findRolesForUser(String userId) {
+        return jdbc.query(
+                        "SELECT role_code FROM user_roles WHERE user_id = ?",
+                        (result, row) -> Role.valueOf(result.getString("role_code")),
+                        userId)
+                .stream()
+                .collect(Collectors.toUnmodifiableSet());
     }
 
     @Override
@@ -93,17 +105,27 @@ public class JdbcAuthStore implements AuthStore {
         } catch (DuplicateKeyException ignored) {
             // Bootstrap is intentionally create-once; it never overwrites a live password.
         }
+        try {
+            jdbc.update(
+                    "INSERT INTO user_roles (user_id, role_code) VALUES (?, 'SYSTEM_ADMIN')",
+                    "USER-BOOTSTRAP-ADMIN");
+        } catch (DuplicateKeyException ignored) {
+            // The compatibility role assignment is also create-once.
+        }
     }
 
     private UserAccount mapAccount(java.sql.ResultSet result, int row) throws java.sql.SQLException {
+        Role primaryRole = Role.valueOf(result.getString("role"));
+        Set<Role> roles = findRolesForUser(result.getString("user_id"));
         return new UserAccount(
                 result.getString("user_id"),
                 result.getString("username"),
                 result.getString("password_hash"),
                 result.getString("display_name"),
-                Role.valueOf(result.getString("role")),
+                primaryRole,
                 result.getString("school_id"),
                 result.getString("canteen_id"),
-                "ACTIVE".equals(result.getString("status")));
+                "ACTIVE".equals(result.getString("status")),
+                roles.isEmpty() ? Set.of(primaryRole) : roles);
     }
 }

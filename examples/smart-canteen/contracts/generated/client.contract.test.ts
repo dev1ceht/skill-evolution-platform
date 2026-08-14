@@ -55,10 +55,167 @@ describe("Smart Canteen Workflow API contract", () => {
     expect(options.headers["Content-Type"]).toBe("application/json");
     expect(JSON.parse(options.body)).toEqual({});
   });
+  it("listAuditLogs sends GET /api/v1/audit-logs", async () => {
+    await client.listAuditLogs(undefined);
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/audit-logs");
+    expect(options.method).toBe("GET");
+  });
+  it("login sends POST /api/v1/auth/login", async () => {
+    await client.login({} as never);
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/auth/login");
+    expect(options.method).toBe("POST");
+    expect(options.headers["Content-Type"]).toBe("application/json");
+    expect(JSON.parse(options.body)).toEqual({});
+  });
+  it("logout sends POST /api/v1/auth/logout", async () => {
+    await client.logout({} as never);
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/auth/logout");
+    expect(options.method).toBe("POST");
+    expect(options.headers["Content-Type"]).toBe("application/json");
+    expect(JSON.parse(options.body)).toEqual({});
+  });
+  it("currentUser sends GET /api/v1/auth/me", async () => {
+    await client.currentUser();
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/auth/me");
+    expect(options.method).toBe("GET");
+  });
+  it("refreshToken sends POST /api/v1/auth/refresh-token", async () => {
+    await client.refreshToken({} as never);
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/auth/refresh-token");
+    expect(options.method).toBe("POST");
+    expect(options.headers["Content-Type"]).toBe("application/json");
+    expect(JSON.parse(options.body)).toEqual({});
+  });
+  it("listCanteens sends GET /api/v1/canteens", async () => {
+    await client.listCanteens(undefined, undefined, undefined);
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/canteens");
+    expect(options.method).toBe("GET");
+  });
+  it("createCanteen sends POST /api/v1/canteens", async () => {
+    await client.createCanteen({} as never);
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/canteens");
+    expect(options.method).toBe("POST");
+    expect(options.headers["Content-Type"]).toBe("application/json");
+    expect(JSON.parse(options.body)).toEqual({});
+  });
+  it("updateCanteen sends PUT /api/v1/canteens/{canteenId}", async () => {
+    await client.updateCanteen('fixture', {} as never);
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/canteens/fixture");
+    expect(options.method).toBe("PUT");
+    expect(options.headers["Content-Type"]).toBe("application/json");
+    expect(JSON.parse(options.body)).toEqual({});
+  });
+  it("updateCanteenStatus sends POST /api/v1/canteens/{canteenId}/status", async () => {
+    await client.updateCanteenStatus('fixture', {} as never);
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/canteens/fixture/status");
+    expect(options.method).toBe("POST");
+    expect(options.headers["Content-Type"]).toBe("application/json");
+    expect(JSON.parse(options.body)).toEqual({});
+  });
+  it("listDailyMenus sends GET /api/v1/daily-menus", async () => {
+    await client.listDailyMenus('fixture', 'fixture', undefined, undefined, undefined, undefined);
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/daily-menus");
+    expect(options.method).toBe("GET");
+  });
+  it("saveDailyMenu sends POST /api/v1/daily-menus", async () => {
+    await client.saveDailyMenu('fixture', 'fixture', {} as never);
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/daily-menus");
+    expect(options.method).toBe("POST");
+    expect(options.headers["Content-Type"]).toBe("application/json");
+    expect(JSON.parse(options.body)).toEqual({});
+  });
+  it("publishDailyMenu sends POST /api/v1/daily-menus/{menuId}/publish", async () => {
+    await client.publishDailyMenu('fixture', 'fixture', 'fixture');
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/daily-menus/fixture/publish");
+    expect(options.method).toBe("POST");
+  });
+  it("getDashboardRisk sends GET /api/v1/dashboard/risk", async () => {
+    await client.getDashboardRisk('fixture', 'fixture', undefined);
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/dashboard/risk");
+    expect(options.method).toBe("GET");
+  });
+  it("getDashboardSummary sends GET /api/v1/dashboard/summary", async () => {
+    await client.getDashboardSummary('fixture', 'fixture', undefined);
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/dashboard/summary");
+    expect(options.method).toBe("GET");
+  });
+  it("listDishes sends GET /api/v1/dishes", async () => {
+    await client.listDishes('fixture', 'fixture', undefined, undefined, undefined, undefined);
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/dishes");
+    expect(options.method).toBe("GET");
+  });
+  it("createDish sends POST /api/v1/dishes", async () => {
+    await client.createDish('fixture', 'fixture', {} as never);
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/dishes");
+    expect(options.method).toBe("POST");
+    expect(options.headers["Content-Type"]).toBe("application/json");
+    expect(JSON.parse(options.body)).toEqual({});
+  });
+  it("updateDish sends PUT /api/v1/dishes/{dishId}", async () => {
+    await client.updateDish('fixture', 'fixture', 'fixture', {} as never);
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/dishes/fixture");
+    expect(options.method).toBe("PUT");
+    expect(options.headers["Content-Type"]).toBe("application/json");
+    expect(JSON.parse(options.body)).toEqual({});
+  });
+  it("listIngredients sends GET /api/v1/ingredients", async () => {
+    await client.listIngredients('fixture', 'fixture', undefined, undefined, undefined, undefined);
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/ingredients");
+    expect(options.method).toBe("GET");
+  });
+  it("createIngredient sends POST /api/v1/ingredients", async () => {
+    await client.createIngredient('fixture', 'fixture', {} as never);
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/ingredients");
+    expect(options.method).toBe("POST");
+    expect(options.headers["Content-Type"]).toBe("application/json");
+    expect(JSON.parse(options.body)).toEqual({});
+  });
+  it("updateIngredient sends PUT /api/v1/ingredients/{ingredientId}", async () => {
+    await client.updateIngredient('fixture', 'fixture', 'fixture', {} as never);
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/ingredients/fixture");
+    expect(options.method).toBe("PUT");
+    expect(options.headers["Content-Type"]).toBe("application/json");
+    expect(JSON.parse(options.body)).toEqual({});
+  });
+  it("listInventory sends GET /api/v1/inventory", async () => {
+    await client.listInventory('fixture', 'fixture', undefined, undefined, undefined, undefined);
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/inventory");
+    expect(options.method).toBe("GET");
+  });
   it("receiveInventory sends POST /api/v1/inventory/receipts", async () => {
     await client.receiveInventory('fixture', {} as never, undefined, undefined);
     const [requestUrl, options] = fetchMock.mock.calls[0];
     expect(new URL(requestUrl).pathname).toBe("/api/v1/inventory/receipts");
+    expect(options.method).toBe("POST");
+    expect(options.headers["Idempotency-Key"]).toBe('fixture');
+    expect(options.headers["Content-Type"]).toBe("application/json");
+    expect(JSON.parse(options.body)).toEqual({});
+  });
+  it("stockOutInventory sends POST /api/v1/inventory/stock-outs", async () => {
+    await client.stockOutInventory('fixture', 'fixture', 'fixture', {} as never);
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/inventory/stock-outs");
     expect(options.method).toBe("POST");
     expect(options.headers["Idempotency-Key"]).toBe('fixture');
     expect(options.headers["Content-Type"]).toBe("application/json");
@@ -100,6 +257,26 @@ describe("Smart Canteen Workflow API contract", () => {
     expect(options.headers["Content-Type"]).toBe("application/json");
     expect(JSON.parse(options.body)).toEqual({});
   });
+  it("listOperationalLedgerRecords sends GET /api/v1/ledger/records", async () => {
+    await client.listOperationalLedgerRecords('fixture', 'fixture', undefined, undefined, undefined, undefined, undefined, undefined, undefined);
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/ledger/records");
+    expect(options.method).toBe("GET");
+  });
+  it("saveOperationalLedgerRecord sends POST /api/v1/ledger/records", async () => {
+    await client.saveOperationalLedgerRecord('fixture', 'fixture', {} as never);
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/ledger/records");
+    expect(options.method).toBe("POST");
+    expect(options.headers["Content-Type"]).toBe("application/json");
+    expect(JSON.parse(options.body)).toEqual({});
+  });
+  it("getOperationalLedgerStats sends GET /api/v1/ledger/stats", async () => {
+    await client.getOperationalLedgerStats('fixture', 'fixture', undefined, undefined);
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/ledger/stats");
+    expect(options.method).toBe("GET");
+  });
   it("decideMenuApproval sends POST /api/v1/menu-approvals/{menuId}/decision", async () => {
     await client.decideMenuApproval('fixture', {} as never, undefined, undefined);
     const [requestUrl, options] = fetchMock.mock.calls[0];
@@ -122,10 +299,158 @@ describe("Smart Canteen Workflow API contract", () => {
     expect(new URL(requestUrl).pathname).toBe("/api/v1/menus/fixture/submit");
     expect(options.method).toBe("POST");
   });
+  it("listPermissions sends GET /api/v1/permissions", async () => {
+    await client.listPermissions();
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/permissions");
+    expect(options.method).toBe("GET");
+  });
   it("generateProcurementPlan sends POST /api/v1/procurement-plans/generate", async () => {
     await client.generateProcurementPlan({} as never, undefined, undefined);
     const [requestUrl, options] = fetchMock.mock.calls[0];
     expect(new URL(requestUrl).pathname).toBe("/api/v1/procurement-plans/generate");
+    expect(options.method).toBe("POST");
+    expect(options.headers["Content-Type"]).toBe("application/json");
+    expect(JSON.parse(options.body)).toEqual({});
+  });
+  it("listPurchaseOrders sends GET /api/v1/purchase-orders", async () => {
+    await client.listPurchaseOrders('fixture', 'fixture', undefined, undefined, undefined);
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/purchase-orders");
+    expect(options.method).toBe("GET");
+  });
+  it("createPurchaseOrder sends POST /api/v1/purchase-orders", async () => {
+    await client.createPurchaseOrder('fixture', 'fixture', 'fixture', {} as never);
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/purchase-orders");
+    expect(options.method).toBe("POST");
+    expect(options.headers["Idempotency-Key"]).toBe('fixture');
+    expect(options.headers["Content-Type"]).toBe("application/json");
+    expect(JSON.parse(options.body)).toEqual({});
+  });
+  it("receivePurchaseOrder sends POST /api/v1/purchase-orders/{orderId}/receive", async () => {
+    await client.receivePurchaseOrder('fixture', 'fixture', 'fixture', 'fixture', {} as never);
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/purchase-orders/fixture/receive");
+    expect(options.method).toBe("POST");
+    expect(options.headers["Idempotency-Key"]).toBe('fixture');
+    expect(options.headers["Content-Type"]).toBe("application/json");
+    expect(JSON.parse(options.body)).toEqual({});
+  });
+  it("transitionPurchaseOrder sends POST /api/v1/purchase-orders/{orderId}/status", async () => {
+    await client.transitionPurchaseOrder('fixture', 'fixture', 'fixture', {} as never);
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/purchase-orders/fixture/status");
+    expect(options.method).toBe("POST");
+    expect(options.headers["Content-Type"]).toBe("application/json");
+    expect(JSON.parse(options.body)).toEqual({});
+  });
+  it("listRoles sends GET /api/v1/roles", async () => {
+    await client.listRoles();
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/roles");
+    expect(options.method).toBe("GET");
+  });
+  it("replaceRolePermissions sends PUT /api/v1/roles/{roleCode}/permissions", async () => {
+    await client.replaceRolePermissions('fixture', {} as never);
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/roles/fixture/permissions");
+    expect(options.method).toBe("PUT");
+    expect(options.headers["Content-Type"]).toBe("application/json");
+    expect(JSON.parse(options.body)).toEqual({});
+  });
+  it("listSchools sends GET /api/v1/schools", async () => {
+    await client.listSchools(undefined, undefined);
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/schools");
+    expect(options.method).toBe("GET");
+  });
+  it("createSchool sends POST /api/v1/schools", async () => {
+    await client.createSchool({} as never);
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/schools");
+    expect(options.method).toBe("POST");
+    expect(options.headers["Content-Type"]).toBe("application/json");
+    expect(JSON.parse(options.body)).toEqual({});
+  });
+  it("updateSchool sends PUT /api/v1/schools/{schoolId}", async () => {
+    await client.updateSchool('fixture', {} as never);
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/schools/fixture");
+    expect(options.method).toBe("PUT");
+    expect(options.headers["Content-Type"]).toBe("application/json");
+    expect(JSON.parse(options.body)).toEqual({});
+  });
+  it("updateSchoolStatus sends POST /api/v1/schools/{schoolId}/status", async () => {
+    await client.updateSchoolStatus('fixture', {} as never);
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/schools/fixture/status");
+    expect(options.method).toBe("POST");
+    expect(options.headers["Content-Type"]).toBe("application/json");
+    expect(JSON.parse(options.body)).toEqual({});
+  });
+  it("listSuppliers sends GET /api/v1/suppliers", async () => {
+    await client.listSuppliers('fixture', 'fixture', undefined, undefined, undefined);
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/suppliers");
+    expect(options.method).toBe("GET");
+  });
+  it("createSupplier sends POST /api/v1/suppliers", async () => {
+    await client.createSupplier('fixture', 'fixture', {} as never);
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/suppliers");
+    expect(options.method).toBe("POST");
+    expect(options.headers["Content-Type"]).toBe("application/json");
+    expect(JSON.parse(options.body)).toEqual({});
+  });
+  it("traceIngredientBatch sends GET /api/v1/traceability/{traceCode}", async () => {
+    await client.traceIngredientBatch('fixture', 'fixture', 'fixture');
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/traceability/fixture");
+    expect(options.method).toBe("GET");
+  });
+  it("listUsers sends GET /api/v1/users", async () => {
+    await client.listUsers(undefined, undefined, undefined);
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/users");
+    expect(options.method).toBe("GET");
+  });
+  it("createUser sends POST /api/v1/users", async () => {
+    await client.createUser({} as never);
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/users");
+    expect(options.method).toBe("POST");
+    expect(options.headers["Content-Type"]).toBe("application/json");
+    expect(JSON.parse(options.body)).toEqual({});
+  });
+  it("updateUser sends PUT /api/v1/users/{userId}", async () => {
+    await client.updateUser('fixture', {} as never);
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/users/fixture");
+    expect(options.method).toBe("PUT");
+    expect(options.headers["Content-Type"]).toBe("application/json");
+    expect(JSON.parse(options.body)).toEqual({});
+  });
+  it("replaceUserRoles sends PUT /api/v1/users/{userId}/roles", async () => {
+    await client.replaceUserRoles('fixture', {} as never);
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/users/fixture/roles");
+    expect(options.method).toBe("PUT");
+    expect(options.headers["Content-Type"]).toBe("application/json");
+    expect(JSON.parse(options.body)).toEqual({});
+  });
+  it("replaceUserScopes sends PUT /api/v1/users/{userId}/scopes", async () => {
+    await client.replaceUserScopes('fixture', {} as never);
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/users/fixture/scopes");
+    expect(options.method).toBe("PUT");
+    expect(options.headers["Content-Type"]).toBe("application/json");
+    expect(JSON.parse(options.body)).toEqual({});
+  });
+  it("updateUserStatus sends POST /api/v1/users/{userId}/status", async () => {
+    await client.updateUserStatus('fixture', {} as never);
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/users/fixture/status");
     expect(options.method).toBe("POST");
     expect(options.headers["Content-Type"]).toBe("application/json");
     expect(JSON.parse(options.body)).toEqual({});

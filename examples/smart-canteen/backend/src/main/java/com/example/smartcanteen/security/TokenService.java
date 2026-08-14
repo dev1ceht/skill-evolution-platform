@@ -9,8 +9,10 @@ import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.Base64;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import org.springframework.beans.factory.annotation.Value;
@@ -45,6 +47,7 @@ public class TokenService {
         claims.put("username", account.username());
         claims.put("displayName", account.displayName());
         claims.put("role", account.role().name());
+        claims.put("roles", account.roles().stream().map(Role::name).toList());
         claims.put("schoolId", account.schoolId());
         claims.put("canteenId", account.canteenId());
         claims.put("iat", issuedAt.getEpochSecond());
@@ -91,13 +94,23 @@ public class TokenService {
             if (expiresAt <= Instant.now().getEpochSecond()) {
                 throw new IllegalArgumentException("access token expired");
             }
+            Role primaryRole = Role.valueOf(requiredClaim(claims, "role"));
+            EnumSet<Role> roles = EnumSet.of(primaryRole);
+            JsonNode roleClaims = claims.get("roles");
+            if (roleClaims != null && roleClaims.isArray()) {
+                for (JsonNode roleClaim : roleClaims) {
+                    roles.add(Role.valueOf(roleClaim.asText()));
+                }
+            }
+            Set<Role> immutableRoles = Set.copyOf(roles);
             return new AuthPrincipal(
                     requiredClaim(claims, "sub"),
                     requiredClaim(claims, "username"),
                     requiredClaim(claims, "displayName"),
-                    Role.valueOf(requiredClaim(claims, "role")),
+                    primaryRole,
                     nullableClaim(claims, "schoolId"),
-                    nullableClaim(claims, "canteenId"));
+                    nullableClaim(claims, "canteenId"),
+                    immutableRoles);
         } catch (JsonProcessingException | IllegalArgumentException exception) {
             throw new IllegalArgumentException("invalid access token", exception);
         }

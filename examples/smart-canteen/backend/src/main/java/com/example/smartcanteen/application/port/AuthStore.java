@@ -1,7 +1,9 @@
 package com.example.smartcanteen.application.port;
 
 import com.example.smartcanteen.security.UserAccount;
+import com.example.smartcanteen.security.Role;
 import java.time.Instant;
+import java.util.Set;
 import java.util.Optional;
 
 public interface AuthStore {
@@ -9,6 +11,8 @@ public interface AuthStore {
     Optional<UserAccount> findByUsername(String username);
 
     Optional<UserAccount> findById(String userId);
+
+    Set<Role> findRolesForUser(String userId);
 
     void saveRefreshSession(String sessionId, String userId, String tokenHash, Instant expiresAt);
 

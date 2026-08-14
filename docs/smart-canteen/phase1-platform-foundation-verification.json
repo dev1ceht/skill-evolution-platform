@@ -1,0 +1,50 @@
+{
+  "phase": "phase-1-platform-foundation",
+  "status": "passed",
+  "captured_at": "2026-08-14T19:12:00+08:00",
+  "base_commit": "f4395f430602a10cb7ef0239299b53e5aa4b5513",
+  "commands": [
+    "mvn -q test (examples/smart-canteen/backend)",
+    "npm test -- --run (examples/smart-canteen/frontend)",
+    "npm run build (examples/smart-canteen/frontend)",
+    "python skills/frontend-api-integration/scripts/normalize_openapi.py ..."
+  ],
+  "observed_results": {
+    "backend_tests": "56 passed, 1 skipped MySQL integration test, 0 failures",
+    "frontend_tests": "70 passed",
+    "frontend_build": "passed",
+    "openapi_operations": 61,
+    "migration": "Flyway v6 applied successfully on H2"
+  },
+  "checks": [
+    {
+      "name": "V6 migration and H2 startup",
+      "result": "passed",
+      "evidence": "PlatformFoundationHttpTest (9 tests); Flyway v6 applied successfully on H2"
+    },
+    {
+      "name": "organization and authorization boundaries",
+      "result": "passed",
+      "evidence": "PlatformFoundationHttpTest: region/canteen scope, target-user, scope revocation, unknown scope, disabled-organization and external-alert boundaries returned expected 403"
+    },
+    {
+      "name": "audit transaction",
+      "result": "passed",
+      "evidence": "PlatformFoundationHttpTest: create/update/status/role/scope writes and GET /api/v1/audit-logs"
+    },
+    {
+      "name": "API contract",
+      "result": "passed",
+      "evidence": "61 normalized operations; generated frontend contract tests and 70 frontend tests passed; frontend build passed"
+    }
+  ],
+  "known_open_inputs": [
+    "production MySQL migration rehearsal and rollback drill (the integration test remains skipped without a configured MySQL instance)",
+    "production identity provider and MFA contract",
+    "real WeChat OAuth credentials",
+    "organization hierarchy import and education-authority region master data",
+    "management-list pagination and batch loading optimization",
+    "OpenAPI per-operation 401/403/404, idempotency and concurrency annotations"
+  ],
+  "next_phase": "phase-2-recipe-and-procurement-domain"
+}

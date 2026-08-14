@@ -41,6 +41,14 @@ class AuthModuleTest {
                 "DELETE FROM alert_records WHERE third_warn_id IN (?, ?)",
                 "AUTH-ALERT-OWN",
                 "AUTH-ALERT-FOREIGN");
+        jdbc.update("DELETE FROM canteens WHERE id = ?", "CANTEEN-AUTH");
+        jdbc.update("DELETE FROM schools WHERE id = ?", "SCHOOL-AUTH");
+        jdbc.update(
+                "INSERT INTO schools (id, name, region_code, status) VALUES (?, ?, ?, 'ACTIVE')",
+                "SCHOOL-AUTH", "Auth School", "AUTH-REGION");
+        jdbc.update(
+                "INSERT INTO canteens (id, school_id, name, status) VALUES (?, ?, ?, 'ACTIVE')",
+                "CANTEEN-AUTH", "SCHOOL-AUTH", "Auth Canteen");
         jdbc.update("DELETE FROM auth_refresh_sessions WHERE user_id = ?", "USER-AUTH-TEST");
         jdbc.update("DELETE FROM app_users WHERE user_id = ?", "USER-AUTH-TEST");
         jdbc.update("DELETE FROM auth_refresh_sessions WHERE user_id = ?", "USER-AUTH-SUPPLIER");
@@ -147,6 +155,22 @@ class AuthModuleTest {
                         .header("Authorization", "Bearer " + supplierToken))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value(40300));
+    }
+
+    @Test
+    void disabling_an_account_invalidates_an_existing_access_token() throws Exception {
+        MvcResult login = mvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\":\"auth-test\",\"password\":\"correct-password\"}"))
+                .andExpect(status().isOk())
+                .andReturn();
+        String token = JsonPath.read(login.getResponse().getContentAsString(), "$.data.token");
+
+        jdbc.update("UPDATE app_users SET status = 'DISABLED' WHERE user_id = ?", "USER-AUTH-TEST");
+
+        mvc.perform(get("/api/v1/auth/me").header("Authorization", "Bearer " + token))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value(40100));
     }
 
     @Test

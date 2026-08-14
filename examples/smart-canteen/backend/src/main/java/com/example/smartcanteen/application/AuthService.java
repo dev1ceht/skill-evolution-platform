@@ -8,6 +8,7 @@ import com.example.smartcanteen.security.TokenService;
 import com.example.smartcanteen.security.UserAccount;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.stream.Collectors;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -56,7 +57,13 @@ public class AuthService {
     }
 
     public AuthPrincipal principalFromAccessToken(String token) {
-        return tokens.verifyAccess(token);
+        AuthPrincipal principal = tokens.verifyAccess(token);
+        UserAccount account = store.findById(principal.userId())
+                .orElseThrow(() -> new IllegalArgumentException("User account no longer exists"));
+        if (!account.active()) {
+            throw new IllegalArgumentException("User account is disabled");
+        }
+        return principal;
     }
 
     private AuthTokens issue(UserAccount account) {
@@ -77,7 +84,10 @@ public class AuthService {
                         account.displayName(),
                         account.role().name(),
                         account.schoolId(),
-                        account.canteenId()));
+                        account.canteenId(),
+                        account.roles().stream()
+                                .map(Enum::name)
+                                .collect(Collectors.toUnmodifiableSet())));
     }
 
     private static String require(String value, String name) {

@@ -1,11 +1,14 @@
 package com.example.smartcanteen.http;
 
 import com.example.smartcanteen.application.AuthService;
+import com.example.smartcanteen.application.AuthorizationService;
 import com.example.smartcanteen.security.AuthPrincipal;
 import com.example.smartcanteen.security.AuthTokens;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -17,9 +20,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final AuthService auth;
+    private final AuthorizationService authorization;
 
-    public AuthController(AuthService auth) {
+    public AuthController(AuthService auth, AuthorizationService authorization) {
         this.auth = auth;
+        this.authorization = authorization;
     }
 
     @PostMapping("/login")
@@ -49,7 +54,7 @@ public class AuthController {
         if (!(value instanceof AuthPrincipal principal)) {
             throw new IllegalArgumentException("Authentication is required");
         }
-        return ApiResponse.ok(CurrentUser.from(principal));
+        return ApiResponse.ok(CurrentUser.from(principal, authorization));
     }
 
     public record LoginRequest(
@@ -70,16 +75,22 @@ public class AuthController {
             String nickname,
             String role,
             String schoolId,
-            String canteenId) {
+            String canteenId,
+            Set<String> roles,
+            Set<String> permissions) {
 
-        static CurrentUser from(AuthPrincipal principal) {
+        static CurrentUser from(AuthPrincipal principal, AuthorizationService authorization) {
             return new CurrentUser(
                     principal.userId(),
                     principal.username(),
                     principal.displayName(),
                     principal.role().name(),
                     principal.schoolId(),
-                    principal.canteenId());
+                    principal.canteenId(),
+                    authorization.rolesFor(principal).stream()
+                            .map(Enum::name)
+                            .collect(Collectors.toUnmodifiableSet()),
+                    authorization.permissionsFor(principal));
         }
     }
 }

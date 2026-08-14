@@ -1,6 +1,8 @@
 package com.example.smartcanteen.security;
 
+import com.example.smartcanteen.application.AuthorizationService;
 import com.example.smartcanteen.application.AuthService;
+import com.example.smartcanteen.domain.CanteenScope;
 import com.example.smartcanteen.http.ApiResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
@@ -17,14 +19,17 @@ public class AuthenticationInterceptor implements HandlerInterceptor {
 
     private final AuthService auth;
     private final ObjectMapper objectMapper;
+    private final AuthorizationService authorization;
     private final boolean enabled;
 
     public AuthenticationInterceptor(
             AuthService auth,
             ObjectMapper objectMapper,
+            AuthorizationService authorization,
             @Value("${smart-canteen.security.enabled:true}") boolean enabled) {
         this.auth = auth;
         this.objectMapper = objectMapper;
+        this.authorization = authorization;
         this.enabled = enabled;
     }
 
@@ -42,23 +47,33 @@ public class AuthenticationInterceptor implements HandlerInterceptor {
         }
         try {
             AuthPrincipal principal = auth.principalFromAccessToken(header.substring(7).trim());
+            request.setAttribute(AuthPrincipal.class.getName(), principal);
             String schoolId = request.getParameter("schoolId");
             String canteenId = request.getParameter("canteenId");
-            if ((schoolId == null) != (canteenId == null)) {
+            if ((schoolId == null) != (canteenId == null)
+                    && !(schoolId != null && canteenId == null && allowsSchoolOnlyScope(request))) {
                 return reject(
                         response,
                         HttpServletResponse.SC_BAD_REQUEST,
                         40001,
                         "schoolId and canteenId must be provided together");
             }
-            if (schoolId != null && !principal.canAccess(schoolId, canteenId)) {
+            if (schoolId != null && canteenId == null
+                    && !authorization.canAccessSchool(principal, schoolId)) {
+                return reject(
+                        response,
+                        HttpServletResponse.SC_FORBIDDEN,
+                        40300,
+                        "User is outside the requested school scope");
+            }
+            if (schoolId != null && canteenId != null && !authorization.canAccess(
+                    principal, new CanteenScope(schoolId, canteenId))) {
                 return reject(
                         response,
                         HttpServletResponse.SC_FORBIDDEN,
                         40300,
                         "User is outside the requested school/canteen scope");
             }
-            request.setAttribute(AuthPrincipal.class.getName(), principal);
             return true;
         } catch (IllegalArgumentException exception) {
             return reject(
@@ -93,5 +108,10 @@ public class AuthenticationInterceptor implements HandlerInterceptor {
                 || path.equals("/api/v1/auth/logout")
                 || path.startsWith("/actuator/")
                 || path.equals("/error");
+    }
+
+    private static boolean allowsSchoolOnlyScope(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        return path.equals("/api/v1/canteens") || path.equals("/api/v1/users");
     }
 }

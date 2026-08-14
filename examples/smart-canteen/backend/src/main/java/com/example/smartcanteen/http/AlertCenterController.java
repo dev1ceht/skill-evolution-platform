@@ -1,6 +1,8 @@
 package com.example.smartcanteen.http;
 
 import com.example.smartcanteen.application.port.AlertCenter;
+import com.example.smartcanteen.application.AuthorizationService;
+import com.example.smartcanteen.application.OrganizationService;
 import com.example.smartcanteen.domain.AlertDisposal;
 import com.example.smartcanteen.domain.AlertQuery;
 import com.example.smartcanteen.domain.AlertRecord;
@@ -8,6 +10,7 @@ import com.example.smartcanteen.domain.AlertReport;
 import com.example.smartcanteen.domain.AlertSource;
 import com.example.smartcanteen.domain.AlertStatus;
 import com.example.smartcanteen.security.AuthPrincipal;
+import com.example.smartcanteen.security.ForbiddenException;
 import com.example.smartcanteen.security.Role;
 import com.example.smartcanteen.security.RoleAccess;
 import com.example.smartcanteen.security.ScopeAccess;
@@ -42,12 +45,17 @@ public class AlertCenterController {
     private final AlertCenter alerts;
     private final ScopeAccess scopes;
     private final RoleAccess roles;
+    private final AuthorizationService authorization;
+    private final OrganizationService organization;
 
     public AlertCenterController(
-            AlertCenter alerts, ScopeAccess scopes, RoleAccess roles) {
+            AlertCenter alerts, ScopeAccess scopes, RoleAccess roles,
+            AuthorizationService authorization, OrganizationService organization) {
         this.alerts = alerts;
         this.scopes = scopes;
         this.roles = roles;
+        this.authorization = authorization;
+        this.organization = organization;
     }
 
     @PostMapping("/api/v1/alerts")
@@ -68,6 +76,7 @@ public class AlertCenterController {
             HttpServletRequest httpRequest,
             @Valid @RequestBody ExternalAlertReportRequest request) {
         roles.requireAny(httpRequest, Role.SYSTEM_ADMIN, Role.REGULATOR);
+        requireExternalPayloadScope(httpRequest, request.schoolId(), request.canteenId());
         AlertRecord record = alerts.report(request.toDomain());
         return ApiResponse.ok(AlertView.from(record));
     }
@@ -100,8 +109,12 @@ public class AlertCenterController {
                     : AlertSource.from(request.source);
             warnId = source.name() + ":" + request.thirdWarnId.trim();
         }
+        String resolvedWarnId = warnId.trim();
+        AlertRecord existing = alerts.find(resolvedWarnId)
+                .orElseThrow(() -> new IllegalArgumentException("Alert not found: " + resolvedWarnId));
+        requireAlertAccess(httpRequest, existing);
         return ApiResponse.ok(AlertView.from(alerts.dispose(
-                warnId.trim(), request.toDomain())));
+                resolvedWarnId, request.toDomain())));
     }
 
     @GetMapping({"/api/v1/alerts", "/alarmWarn/school/queryPage"})
@@ -121,10 +134,14 @@ public class AlertCenterController {
         roles.requireReader(httpRequest);
         AuthPrincipal principal = principal(httpRequest);
         if (schoolId == null && canteenId == null && principal != null
-                && principal.role() != Role.SYSTEM_ADMIN
-                && principal.role() != Role.REGULATOR) {
+                && !authorization.hasRole(principal, Role.SYSTEM_ADMIN)
+                && !authorization.hasRole(principal, Role.REGULATOR)) {
             schoolId = principal.schoolId();
             canteenId = principal.canteenId();
+        }
+        if (schoolId == null && canteenId == null
+                && authorization.hasRole(principal, Role.REGULATOR)) {
+            throw new ForbiddenException("Regulator queries require an authorized school/canteen scope");
         }
         String statusValue = status == null ? warnStatus : status;
         AlertCenter.AlertPage page = alerts.query(new AlertQuery(
@@ -143,17 +160,63 @@ public class AlertCenterController {
 
     private void requirePayloadScope(
             HttpServletRequest httpRequest, String schoolId, String canteenId) {
+        AuthPrincipal current = principal(httpRequest);
+        if (current == null) {
+            return;
+        }
         if (canteenId == null || canteenId.isBlank()) {
-            roles.requireAny(httpRequest, Role.SYSTEM_ADMIN, Role.REGULATOR);
+            if (schoolId == null || schoolId.isBlank()) {
+                throw new IllegalArgumentException("schoolId is required");
+            }
+            if (organization.findSchool(schoolId).map(school -> !school.active()).orElse(true)) {
+                throw new ForbiddenException("The requested school scope is disabled or missing");
+            }
+            if (!authorization.hasRole(current, Role.SYSTEM_ADMIN)
+                    && !authorization.canAccessSchool(current, schoolId)) {
+                throw new ForbiddenException("User is outside the requested school scope");
+            }
             return;
         }
         scopes.require(httpRequest, schoolId, canteenId);
     }
 
+    private void requireExternalPayloadScope(
+            HttpServletRequest httpRequest, String schoolId, String canteenId) {
+        AuthPrincipal current = principal(httpRequest);
+        if (current == null) {
+            return;
+        }
+        if (schoolId == null || schoolId.isBlank()) {
+            throw new IllegalArgumentException("schoolId is required");
+        }
+        if (canteenId != null && !canteenId.isBlank()) {
+            scopes.require(httpRequest, schoolId, canteenId);
+            return;
+        }
+        if (organization.findSchool(schoolId).map(school -> !school.active()).orElse(true)) {
+            throw new ForbiddenException("The requested school scope is disabled or missing");
+        }
+        if (!authorization.hasRole(current, Role.SYSTEM_ADMIN)
+                && !authorization.canAccessSchool(current, schoolId)) {
+            throw new ForbiddenException("User is outside the requested school scope");
+        }
+    }
+
     private void requireAlertAccess(HttpServletRequest httpRequest, AlertRecord record) {
         roles.requireReader(httpRequest);
+        AuthPrincipal current = principal(httpRequest);
+        if (current == null) {
+            return;
+        }
         if (record.canteenId() == null || record.canteenId().isBlank()) {
             roles.requireAny(httpRequest, Role.SYSTEM_ADMIN, Role.REGULATOR);
+            if (organization.findSchool(record.schoolId()).map(school -> !school.active()).orElse(true)) {
+                throw new ForbiddenException("The alert school scope is disabled or missing");
+            }
+            if (!authorization.hasRole(current, Role.SYSTEM_ADMIN)
+                    && !authorization.canAccessSchool(current, record.schoolId())) {
+                throw new ForbiddenException("User is outside the alert school scope");
+            }
             return;
         }
         scopes.require(httpRequest, record.schoolId(), record.canteenId());

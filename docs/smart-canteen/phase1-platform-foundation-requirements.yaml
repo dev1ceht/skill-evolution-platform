@@ -1,0 +1,71 @@
+schema_version: "1.0"
+project: smart-canteen
+phase: phase-1-platform-foundation
+source_documents:
+  - id: overview-design
+    path: "智慧食堂项目概要设计文档.pdf"
+    sha256: "200A5F09EAB0D1D4ADBA11396E3925E41DADF54E9A9ECA84BA01FBA522F12473"
+    sections: "3.2 系统管理; 4.3 用户/角色/权限表; 5.6.2 授权控制"
+  - id: phase2-design
+    path: "智慧食堂二期-系统设计.pdf"
+    sha256: "6209C740D106924F4FB17B546407E82CFB753075EDB51636CA61726161692376"
+    sections: "3.2.5 基础单位统一; 3.2.19 供应商评价"
+
+requirements:
+  - id: ORG-001
+    priority: P0
+    category: organization
+    statement: "系统维护学校和食堂主数据，食堂必须归属于学校，并支持启用/停用和区域归属。"
+    source:
+      - document: overview-design
+        section: "3.2 系统管理; 4.3 基础组织表"
+    acceptance:
+      - "可以创建、查询、修改和停用学校及食堂；不存在学校的食堂不能创建。"
+      - "停用组织不能作为新运营数据范围，历史数据仍可查询。"
+      - "学校具有 regionCode，食堂列表不会跨学校混淆。"
+
+  - id: IAM-001
+    priority: P0
+    category: identity
+    statement: "系统支持子账号、角色、权限、状态和操作审计，兼容已有账号密码登录。"
+    source:
+      - document: overview-design
+        section: "3.2 系统管理; 4.3 用户/角色/权限表"
+    acceptance:
+      - "管理员可以创建、停用和查询子账号，并为账号分配一个或多个角色。"
+      - "角色可以查看和更新权限码，当前用户接口返回角色集合。"
+      - "密码只保存 PBKDF2 哈希，停用账号不能登录或刷新令牌。"
+
+  - id: AUTHZ-001
+    priority: P0
+    category: authorization
+    statement: "运营数据访问由学校、食堂或区域范围授权决定，监管角色不能绕过行级范围校验。"
+    source:
+      - document: overview-design
+        section: "2.3 逻辑架构; 5.6.2 授权控制"
+    acceptance:
+      - "普通账号只能访问其学校/食堂范围；显式传入其他范围返回 403。"
+      - "监管账号必须拥有 SCHOOL、CANTEEN 或 REGION 授权；未授权范围返回 403。"
+      - "同一个用户的授权变更无需重新签发令牌即可影响下一次请求。"
+
+  - id: AUDIT-001
+    priority: P1
+    category: audit
+    statement: "组织、账号、角色和范围授权等关键管理写操作生成可查询的审计日志。"
+    source:
+      - document: overview-design
+        section: "2.3 日志审计; 6.3.4 日志与审计"
+    acceptance:
+      - "日志记录操作者、动作、资源类型/标识、学校/食堂范围、结果和时间。"
+      - "业务写入和对应审计记录处于同一事务，失败操作不能留下成功日志。"
+
+  - id: API-FOUNDATION-001
+    priority: P1
+    category: api
+    statement: "组织、账号、角色、权限和审计资源使用统一 /api/v1 路径和 {code,message,data} 包络。"
+    source:
+      - document: overview-design
+        section: "5.4 接口规范; 5.6 安全设计"
+    acceptance:
+      - "OpenAPI、生成客户端和后端路由的路径、请求字段、权限错误码保持一致。"
+      - "接口契约测试覆盖鉴权缺失、越权和成功响应。"

@@ -19,6 +19,7 @@ export type AuthUserInfo = {
   username: string;
   nickname: string;
   role: string;
+  roles?: Array<string>;
   schoolId?: string;
   canteenId?: string;
 };
@@ -35,6 +36,8 @@ export type CurrentUser = {
   username: string;
   nickname: string;
   role: string;
+  roles: Array<string>;
+  permissions: Array<string>;
   schoolId?: string;
   canteenId?: string;
 };
@@ -55,6 +58,196 @@ export type CurrentUserResponse = {
   code: number;
   message: string;
   data: CurrentUser;
+};
+
+export type School = {
+  id: string;
+  name: string;
+  regionCode: string;
+  active: boolean;
+};
+
+export type SchoolRequest = {
+  id?: string;
+  name: string;
+  regionCode: string;
+  active?: boolean;
+};
+
+export type Canteen = {
+  id: string;
+  schoolId: string;
+  name: string;
+  address?: string;
+  regionCode: string;
+  active: boolean;
+};
+
+export type CanteenRequest = {
+  id?: string;
+  schoolId?: string;
+  name: string;
+  address?: string;
+  active?: boolean;
+};
+
+export type FoundationStatusRequest = {
+  active: boolean;
+};
+
+export type RoleDefinition = {
+  code: string;
+  name: string;
+  description?: string;
+  systemRole: boolean;
+  active: boolean;
+  permissions: Array<string>;
+};
+
+export type PermissionDefinition = {
+  code: string;
+  name: string;
+  resource: string;
+  action: string;
+  description?: string;
+};
+
+export type RolePermissionRequest = {
+  permissionCodes?: Array<string>;
+};
+
+export type ScopeGrant = {
+  assignmentId: string;
+  userId: string;
+  "type": string;
+  regionCode?: string;
+  schoolId?: string;
+  canteenId?: string;
+};
+
+export type ScopeGrantRequest = {
+  assignmentId?: string;
+  "type": string;
+  regionCode?: string;
+  schoolId?: string;
+  canteenId?: string;
+};
+
+export type ManagedUser = {
+  userId: string;
+  username: string;
+  displayName: string;
+  primaryRole: string;
+  roles: Array<string>;
+  schoolId?: string;
+  canteenId?: string;
+  active: boolean;
+  scopeGrants: Array<ScopeGrant>;
+};
+
+export type CreateUserRequest = {
+  username: string;
+  password: string;
+  displayName: string;
+  primaryRole: string;
+  roles?: Array<string>;
+  schoolId?: string;
+  canteenId?: string;
+  active?: boolean;
+  scopeGrants?: Array<ScopeGrantRequest>;
+};
+
+export type UpdateUserRequest = {
+  displayName?: string;
+  primaryRole?: string;
+  roles?: Array<string>;
+  schoolId?: string;
+  canteenId?: string;
+  active?: boolean;
+  password?: string;
+  scopeGrants?: Array<ScopeGrantRequest>;
+};
+
+export type RoleAssignmentRequest = {
+  roles: Array<string>;
+};
+
+export type ScopeAssignmentRequest = {
+  scopeGrants: Array<ScopeGrantRequest>;
+};
+
+export type AuditLog = {
+  auditId: string;
+  actorUserId?: string;
+  action: string;
+  resourceType: string;
+  resourceId?: string;
+  schoolId?: string;
+  canteenId?: string;
+  outcome: string;
+  detail?: string;
+  requestId?: string;
+  createdAt: string;
+};
+
+export type SchoolListResponse = {
+  code: number;
+  message: string;
+  data: Array<School>;
+};
+
+export type SchoolResponse = {
+  code: number;
+  message: string;
+  data: School;
+};
+
+export type CanteenListResponse = {
+  code: number;
+  message: string;
+  data: Array<Canteen>;
+};
+
+export type CanteenResponse = {
+  code: number;
+  message: string;
+  data: Canteen;
+};
+
+export type RoleListResponse = {
+  code: number;
+  message: string;
+  data: Array<RoleDefinition>;
+};
+
+export type PermissionListResponse = {
+  code: number;
+  message: string;
+  data: Array<PermissionDefinition>;
+};
+
+export type RoleResponse = {
+  code: number;
+  message: string;
+  data: RoleDefinition;
+};
+
+export type ManagedUserListResponse = {
+  code: number;
+  message: string;
+  data: Array<ManagedUser>;
+};
+
+export type ManagedUserResponse = {
+  code: number;
+  message: string;
+  data: ManagedUser;
+};
+
+export type AuditLogListResponse = {
+  code: number;
+  message: string;
+  data: Array<AuditLog>;
 };
 
 export type Nutrition = {
@@ -773,6 +966,15 @@ export async function disposeAlert(warnId: string, body: AlertDisposalRequest): 
   return response.json() as Promise<AlertResponse>;
 }
 
+export async function listAuditLogs(limit?: number): Promise<AuditLogListResponse> {
+  const path = "/api/v1/audit-logs";
+  const url = new URL(path, window.location.origin);
+  if (limit !== undefined) url.searchParams.set("limit", String(limit));
+  const response = await fetch(url, { method: 'GET' });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<AuditLogListResponse>;
+}
+
 export async function login(body: LoginRequest): Promise<AuthTokensResponse> {
   const path = "/api/v1/auth/login";
   const url = new URL(path, window.location.origin);
@@ -809,6 +1011,51 @@ export async function refreshToken(body: RefreshTokenRequest): Promise<AuthToken
   const response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body) });
   if (!response.ok) throw new Error(`API request failed: ${response.status}`);
   return response.json() as Promise<AuthTokensResponse>;
+}
+
+export async function listCanteens(schoolId?: string, keyword?: string, includeInactive?: boolean): Promise<CanteenListResponse> {
+  const path = "/api/v1/canteens";
+  const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (keyword !== undefined) url.searchParams.set("keyword", String(keyword));
+  if (includeInactive !== undefined) url.searchParams.set("includeInactive", String(includeInactive));
+  const response = await fetch(url, { method: 'GET' });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<CanteenListResponse>;
+}
+
+export async function createCanteen(body: CanteenRequest): Promise<CanteenResponse> {
+  const path = "/api/v1/canteens";
+  const url = new URL(path, window.location.origin);
+  const headers: Record<string, string> = {};
+  headers["Content-Type"] = "application/json";
+  const response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body) });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<CanteenResponse>;
+}
+
+export async function updateCanteen(canteenId: string, body: CanteenRequest): Promise<CanteenResponse> {
+  const encodedCanteenId = encodeURIComponent(String(canteenId));
+  let path = "/api/v1/canteens/{canteenId}";
+  path = path.replace("{canteenId}", encodedCanteenId);
+  const url = new URL(path, window.location.origin);
+  const headers: Record<string, string> = {};
+  headers["Content-Type"] = "application/json";
+  const response = await fetch(url, { method: 'PUT', headers: headers, body: JSON.stringify(body) });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<CanteenResponse>;
+}
+
+export async function updateCanteenStatus(canteenId: string, body: FoundationStatusRequest): Promise<CanteenResponse> {
+  const encodedCanteenId = encodeURIComponent(String(canteenId));
+  let path = "/api/v1/canteens/{canteenId}/status";
+  path = path.replace("{canteenId}", encodedCanteenId);
+  const url = new URL(path, window.location.origin);
+  const headers: Record<string, string> = {};
+  headers["Content-Type"] = "application/json";
+  const response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body) });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<CanteenResponse>;
 }
 
 export async function listDailyMenus(schoolId: string, canteenId: string, startDate?: string, endDate?: string, page?: number, size?: number): Promise<DailyMenuPageResponse> {
@@ -1124,6 +1371,14 @@ export async function submitMenu(menuId: string, schoolId?: string, canteenId?: 
   return response.json() as Promise<MenuResponse>;
 }
 
+export async function listPermissions(): Promise<PermissionListResponse> {
+  const path = "/api/v1/permissions";
+  const url = new URL(path, window.location.origin);
+  const response = await fetch(url, { method: 'GET' });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<PermissionListResponse>;
+}
+
 export async function generateProcurementPlan(body: GenerateProcurementRequest, schoolId?: string, canteenId?: string): Promise<ProcurementPlanResponse> {
   const path = "/api/v1/procurement-plans/generate";
   const url = new URL(path, window.location.origin);
@@ -1191,6 +1446,70 @@ export async function transitionPurchaseOrder(orderId: string, schoolId: string,
   return response.json() as Promise<PurchaseOrderResponse>;
 }
 
+export async function listRoles(): Promise<RoleListResponse> {
+  const path = "/api/v1/roles";
+  const url = new URL(path, window.location.origin);
+  const response = await fetch(url, { method: 'GET' });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<RoleListResponse>;
+}
+
+export async function replaceRolePermissions(roleCode: string, body: RolePermissionRequest): Promise<RoleResponse> {
+  const encodedRoleCode = encodeURIComponent(String(roleCode));
+  let path = "/api/v1/roles/{roleCode}/permissions";
+  path = path.replace("{roleCode}", encodedRoleCode);
+  const url = new URL(path, window.location.origin);
+  const headers: Record<string, string> = {};
+  headers["Content-Type"] = "application/json";
+  const response = await fetch(url, { method: 'PUT', headers: headers, body: JSON.stringify(body) });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<RoleResponse>;
+}
+
+export async function listSchools(keyword?: string, includeInactive?: boolean): Promise<SchoolListResponse> {
+  const path = "/api/v1/schools";
+  const url = new URL(path, window.location.origin);
+  if (keyword !== undefined) url.searchParams.set("keyword", String(keyword));
+  if (includeInactive !== undefined) url.searchParams.set("includeInactive", String(includeInactive));
+  const response = await fetch(url, { method: 'GET' });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<SchoolListResponse>;
+}
+
+export async function createSchool(body: SchoolRequest): Promise<SchoolResponse> {
+  const path = "/api/v1/schools";
+  const url = new URL(path, window.location.origin);
+  const headers: Record<string, string> = {};
+  headers["Content-Type"] = "application/json";
+  const response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body) });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<SchoolResponse>;
+}
+
+export async function updateSchool(schoolId: string, body: SchoolRequest): Promise<SchoolResponse> {
+  const encodedSchoolId = encodeURIComponent(String(schoolId));
+  let path = "/api/v1/schools/{schoolId}";
+  path = path.replace("{schoolId}", encodedSchoolId);
+  const url = new URL(path, window.location.origin);
+  const headers: Record<string, string> = {};
+  headers["Content-Type"] = "application/json";
+  const response = await fetch(url, { method: 'PUT', headers: headers, body: JSON.stringify(body) });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<SchoolResponse>;
+}
+
+export async function updateSchoolStatus(schoolId: string, body: FoundationStatusRequest): Promise<SchoolResponse> {
+  const encodedSchoolId = encodeURIComponent(String(schoolId));
+  let path = "/api/v1/schools/{schoolId}/status";
+  path = path.replace("{schoolId}", encodedSchoolId);
+  const url = new URL(path, window.location.origin);
+  const headers: Record<string, string> = {};
+  headers["Content-Type"] = "application/json";
+  const response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body) });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<SchoolResponse>;
+}
+
 export async function listSuppliers(schoolId: string, canteenId: string, keyword?: string, page?: number, size?: number): Promise<SupplierPageResponse> {
   const path = "/api/v1/suppliers";
   const url = new URL(path, window.location.origin);
@@ -1226,4 +1545,73 @@ export async function traceIngredientBatch(traceCode: string, schoolId: string, 
   const response = await fetch(url, { method: 'GET' });
   if (!response.ok) throw new Error(`API request failed: ${response.status}`);
   return response.json() as Promise<TraceabilityResponse>;
+}
+
+export async function listUsers(schoolId?: string, canteenId?: string, active?: boolean): Promise<ManagedUserListResponse> {
+  const path = "/api/v1/users";
+  const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
+  if (active !== undefined) url.searchParams.set("active", String(active));
+  const response = await fetch(url, { method: 'GET' });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<ManagedUserListResponse>;
+}
+
+export async function createUser(body: CreateUserRequest): Promise<ManagedUserResponse> {
+  const path = "/api/v1/users";
+  const url = new URL(path, window.location.origin);
+  const headers: Record<string, string> = {};
+  headers["Content-Type"] = "application/json";
+  const response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body) });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<ManagedUserResponse>;
+}
+
+export async function updateUser(userId: string, body: UpdateUserRequest): Promise<ManagedUserResponse> {
+  const encodedUserId = encodeURIComponent(String(userId));
+  let path = "/api/v1/users/{userId}";
+  path = path.replace("{userId}", encodedUserId);
+  const url = new URL(path, window.location.origin);
+  const headers: Record<string, string> = {};
+  headers["Content-Type"] = "application/json";
+  const response = await fetch(url, { method: 'PUT', headers: headers, body: JSON.stringify(body) });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<ManagedUserResponse>;
+}
+
+export async function replaceUserRoles(userId: string, body: RoleAssignmentRequest): Promise<ManagedUserResponse> {
+  const encodedUserId = encodeURIComponent(String(userId));
+  let path = "/api/v1/users/{userId}/roles";
+  path = path.replace("{userId}", encodedUserId);
+  const url = new URL(path, window.location.origin);
+  const headers: Record<string, string> = {};
+  headers["Content-Type"] = "application/json";
+  const response = await fetch(url, { method: 'PUT', headers: headers, body: JSON.stringify(body) });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<ManagedUserResponse>;
+}
+
+export async function replaceUserScopes(userId: string, body: ScopeAssignmentRequest): Promise<ManagedUserResponse> {
+  const encodedUserId = encodeURIComponent(String(userId));
+  let path = "/api/v1/users/{userId}/scopes";
+  path = path.replace("{userId}", encodedUserId);
+  const url = new URL(path, window.location.origin);
+  const headers: Record<string, string> = {};
+  headers["Content-Type"] = "application/json";
+  const response = await fetch(url, { method: 'PUT', headers: headers, body: JSON.stringify(body) });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<ManagedUserResponse>;
+}
+
+export async function updateUserStatus(userId: string, body: FoundationStatusRequest): Promise<ManagedUserResponse> {
+  const encodedUserId = encodeURIComponent(String(userId));
+  let path = "/api/v1/users/{userId}/status";
+  path = path.replace("{userId}", encodedUserId);
+  const url = new URL(path, window.location.origin);
+  const headers: Record<string, string> = {};
+  headers["Content-Type"] = "application/json";
+  const response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body) });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<ManagedUserResponse>;
 }
