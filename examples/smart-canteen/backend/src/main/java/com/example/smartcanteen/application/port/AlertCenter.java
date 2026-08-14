@@ -5,11 +5,14 @@ import com.example.smartcanteen.domain.AlertQuery;
 import com.example.smartcanteen.domain.AlertRecord;
 import com.example.smartcanteen.domain.AlertReport;
 import java.util.List;
+import java.util.Optional;
 
 /** Public deep-module seam for normalized alert ingestion and disposal. */
 public interface AlertCenter {
 
     AlertRecord report(AlertReport report);
+
+    Optional<AlertRecord> find(String warnId);
 
     AlertRecord dispose(String warnId, AlertDisposal disposal);
 

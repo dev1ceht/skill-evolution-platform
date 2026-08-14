@@ -12,6 +12,10 @@ import com.example.smartcanteen.domain.IngredientRequirement;
 import com.example.smartcanteen.domain.Menu;
 import com.example.smartcanteen.domain.ProcurementItem;
 import com.example.smartcanteen.domain.CanteenScope;
+import com.example.smartcanteen.security.AuthPrincipal;
+import com.example.smartcanteen.security.Role;
+import com.example.smartcanteen.security.ScopeAccess;
+import com.example.smartcanteen.security.RoleAccess;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
@@ -23,6 +27,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -37,44 +42,55 @@ import org.springframework.web.bind.annotation.RestController;
 public class SmartCanteenController {
 
     private final SmartCanteenWorkflow workflow;
+    private final ScopeAccess scopes;
+    private final RoleAccess roles;
 
-    public SmartCanteenController(SmartCanteenWorkflow workflow) {
+    public SmartCanteenController(
+            SmartCanteenWorkflow workflow, ScopeAccess scopes, RoleAccess roles) {
         this.workflow = workflow;
+        this.scopes = scopes;
+        this.roles = roles;
     }
 
     @PostMapping("/menus/{menuId}/submit")
     public ApiResponse<MenuView> submit(
+            HttpServletRequest request,
             @PathVariable String menuId,
             @RequestParam(required = false) String schoolId,
             @RequestParam(required = false) String canteenId) {
+        roles.requireAny(request, Role.SYSTEM_ADMIN, Role.SCHOOL_ADMIN, Role.CANTEEN_STAFF);
         return ApiResponse.ok(MenuView.from(workflow.submitMenu(
-                scope(schoolId, canteenId), menuId)));
+                scope(request, schoolId, canteenId), menuId)));
     }
 
     @PostMapping("/menu-approvals/{menuId}/decision")
     public ApiResponse<MenuView> decide(
+            HttpServletRequest request,
             @PathVariable String menuId,
             @RequestParam(required = false) String schoolId,
             @RequestParam(required = false) String canteenId,
-            @Valid @RequestBody ApprovalDecision request) {
+            @Valid @RequestBody ApprovalDecision body) {
+        roles.requireAny(request, Role.SYSTEM_ADMIN, Role.SCHOOL_ADMIN, Role.CANTEEN_STAFF);
         return ApiResponse.ok(MenuView.from(
                 workflow.decideMenu(
-                        scope(schoolId, canteenId),
+                        scope(request, schoolId, canteenId),
                         menuId,
-                        request.decision(),
-                request.comment())));
+                        body.decision(),
+                body.comment())));
     }
 
     @PostMapping("/menus/{menuId}/recipe")
     public ApiResponse<RecipeView> importRecipe(
+            HttpServletRequest request,
             @PathVariable String menuId,
             @RequestParam(required = false) String schoolId,
             @RequestParam(required = false) String canteenId,
-            @Valid @RequestBody RecipeImportRequest request) {
+            @Valid @RequestBody RecipeImportRequest body) {
+        roles.requireAny(request, Role.SYSTEM_ADMIN, Role.SCHOOL_ADMIN, Role.CANTEEN_STAFF);
         RecipeImport.RecipeResult result = workflow.importRecipe(
-                scope(schoolId, canteenId),
+                scope(request, schoolId, canteenId),
                 menuId,
-                request.requirements().stream()
+                body.requirements().stream()
                         .map(item -> new IngredientRequirement(
                                 item.materialId(), item.quantity(), item.unit()))
                         .toList());
@@ -83,34 +99,49 @@ public class SmartCanteenController {
 
     @PostMapping("/procurement-plans/generate")
     public ApiResponse<ProcurementPlanView> generate(
+            HttpServletRequest request,
             @RequestParam(required = false) String schoolId,
             @RequestParam(required = false) String canteenId,
-            @Valid @RequestBody GenerateProcurement request) {
+            @Valid @RequestBody GenerateProcurement body) {
+        roles.requireAny(request, Role.SYSTEM_ADMIN, Role.SCHOOL_ADMIN, Role.CANTEEN_STAFF);
         return ApiResponse.ok(new ProcurementPlanView(
-                request.menuId(), workflow.generateProcurement(
-                        scope(schoolId, canteenId), request.menuId())));
+                body.menuId(), workflow.generateProcurement(
+                scope(request, schoolId, canteenId), body.menuId())));
     }
 
     @PostMapping("/inventory/receipts")
     public ApiResponse<ReceiptResult> receive(
+            HttpServletRequest request,
             @RequestHeader("Idempotency-Key") String idempotencyKey,
             @RequestParam(required = false) String schoolId,
             @RequestParam(required = false) String canteenId,
-            @Valid @RequestBody InventoryReceipt request) {
+            @Valid @RequestBody InventoryReceipt body) {
+        roles.requireAny(request, Role.SYSTEM_ADMIN, Role.SCHOOL_ADMIN, Role.CANTEEN_STAFF);
         return ApiResponse.ok(workflow.receive(
-                scope(schoolId, canteenId),
-                idempotencyKey, request.materialId(), request.quantity(), request.unit()));
+                scope(request, schoolId, canteenId),
+                idempotencyKey, body.materialId(), body.quantity(), body.unit()));
     }
 
     @PostMapping("/ledger-records")
-    public ApiResponse<LedgerAlert> completeLedger(@Valid @RequestBody LedgerRecord request) {
-        return ApiResponse.ok(workflow.completeLedger(request.ledgerCode()));
+    public ApiResponse<LedgerAlert> completeLedger(
+            HttpServletRequest servletRequest,
+            @RequestParam(required = false) String schoolId,
+            @RequestParam(required = false) String canteenId,
+            @Valid @RequestBody LedgerRecord request) {
+        roles.requireAny(servletRequest, Role.SYSTEM_ADMIN, Role.SCHOOL_ADMIN, Role.CANTEEN_STAFF);
+        return ApiResponse.ok(workflow.completeLedger(
+                scope(servletRequest, schoolId, canteenId), request.ledgerCode()));
     }
 
     @PostMapping("/ledger-cycles")
     public ApiResponse<LedgerAlert> startLedgerCycle(
+            HttpServletRequest servletRequest,
             @Valid @RequestBody StartLedgerCycle request) {
-        LedgerScope scope = new LedgerScope(request.schoolId(), request.canteenId(), request.cycleId());
+        roles.requireAny(servletRequest, Role.SYSTEM_ADMIN, Role.SCHOOL_ADMIN, Role.CANTEEN_STAFF);
+        CanteenScope canteenScope = scopes.require(
+                servletRequest, request.schoolId(), request.canteenId());
+        LedgerScope scope = new LedgerScope(
+                canteenScope.schoolId(), canteenScope.canteenId(), request.cycleId());
         Set<LedgerCode> codes = request.ledgerCodes().stream()
                 .map(LedgerCode::from)
                 .collect(Collectors.toCollection(LinkedHashSet::new));
@@ -126,25 +157,37 @@ public class SmartCanteenController {
 
     @PostMapping("/ledger-cycles/{cycleId}/records")
     public ApiResponse<LedgerAlert> completeScopedLedger(
+            HttpServletRequest servletRequest,
             @PathVariable String cycleId,
             @Valid @RequestBody ScopedLedgerRecord request) {
+        roles.requireAny(servletRequest, Role.SYSTEM_ADMIN, Role.SCHOOL_ADMIN, Role.CANTEEN_STAFF);
+        CanteenScope canteenScope = scopes.require(
+                servletRequest, request.schoolId(), request.canteenId());
         return ApiResponse.ok(workflow.completeLedger(new LedgerRecordCommand(
-                new LedgerScope(request.schoolId(), request.canteenId(), cycleId),
+                new LedgerScope(canteenScope.schoolId(), canteenScope.canteenId(), cycleId),
                 LedgerCode.from(request.ledgerCode()))));
     }
 
     @GetMapping("/ledger-cycles/{cycleId}/alerts/current")
     public ApiResponse<LedgerAlert> currentScopedLedgerAlert(
+            HttpServletRequest servletRequest,
             @PathVariable String cycleId,
             @RequestParam String schoolId,
             @RequestParam String canteenId) {
+        roles.requireReader(servletRequest);
+        CanteenScope canteenScope = scopes.require(servletRequest, schoolId, canteenId);
         return ApiResponse.ok(workflow.currentLedgerAlert(
-                new LedgerScope(schoolId, canteenId, cycleId)));
+                new LedgerScope(canteenScope.schoolId(), canteenScope.canteenId(), cycleId)));
     }
 
     @GetMapping("/ledger-alerts/current")
-    public ApiResponse<LedgerAlert> currentLedgerAlert() {
-        return ApiResponse.ok(workflow.currentLedgerAlert());
+    public ApiResponse<LedgerAlert> currentLedgerAlert(
+            HttpServletRequest servletRequest,
+            @RequestParam(required = false) String schoolId,
+            @RequestParam(required = false) String canteenId) {
+        roles.requireReader(servletRequest);
+        return ApiResponse.ok(workflow.currentLedgerAlert(
+                scope(servletRequest, schoolId, canteenId)));
     }
 
     public record MenuView(String id, String status, String decisionComment) {
@@ -208,13 +251,21 @@ public class SmartCanteenController {
             @NotBlank String ledgerCode) {
     }
 
-    private static CanteenScope scope(String schoolId, String canteenId) {
+    private CanteenScope scope(
+            HttpServletRequest request, String schoolId, String canteenId) {
         if ((schoolId == null) != (canteenId == null)) {
             throw new IllegalArgumentException(
                     "schoolId and canteenId must be provided together");
         }
-        return new CanteenScope(
-                schoolId == null ? CanteenScope.DEFAULT.schoolId() : schoolId,
-                canteenId == null ? CanteenScope.DEFAULT.canteenId() : canteenId);
+        if (schoolId != null) {
+            return scopes.require(request, schoolId, canteenId);
+        }
+        Object value = request.getAttribute(AuthPrincipal.class.getName());
+        if (value instanceof AuthPrincipal principal
+                && principal.schoolId() != null && principal.canteenId() != null) {
+            return scopes.require(request, principal.schoolId(), principal.canteenId());
+        }
+        return scopes.require(
+                request, CanteenScope.DEFAULT.schoolId(), CanteenScope.DEFAULT.canteenId());
     }
 }

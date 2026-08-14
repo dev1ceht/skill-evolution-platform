@@ -66,6 +66,11 @@ public class JdbcAlertStore implements AlertStore {
     }
 
     @Override
+    public Optional<AlertRecord> find(String warnId) {
+        return findByWarnId(warnId);
+    }
+
+    @Override
     public AlertRecord dispose(String warnId, AlertDisposal disposal) {
         AlertRecord existing = findByWarnId(warnId)
                 .orElseThrow(() -> new IllegalArgumentException("Alert not found: " + warnId));

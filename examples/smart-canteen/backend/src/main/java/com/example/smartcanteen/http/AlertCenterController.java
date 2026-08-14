@@ -7,6 +7,10 @@ import com.example.smartcanteen.domain.AlertRecord;
 import com.example.smartcanteen.domain.AlertReport;
 import com.example.smartcanteen.domain.AlertSource;
 import com.example.smartcanteen.domain.AlertStatus;
+import com.example.smartcanteen.security.AuthPrincipal;
+import com.example.smartcanteen.security.Role;
+import com.example.smartcanteen.security.RoleAccess;
+import com.example.smartcanteen.security.ScopeAccess;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
@@ -23,6 +27,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.List;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -35,35 +40,55 @@ import org.springframework.web.bind.annotation.RestController;
 public class AlertCenterController {
 
     private final AlertCenter alerts;
+    private final ScopeAccess scopes;
+    private final RoleAccess roles;
 
-    public AlertCenterController(AlertCenter alerts) {
+    public AlertCenterController(
+            AlertCenter alerts, ScopeAccess scopes, RoleAccess roles) {
         this.alerts = alerts;
+        this.scopes = scopes;
+        this.roles = roles;
     }
 
     @PostMapping("/api/v1/alerts")
-    public ApiResponse<AlertView> report(@Valid @RequestBody AlertReportRequest request) {
+    public ApiResponse<AlertView> report(
+            HttpServletRequest httpRequest,
+            @Valid @RequestBody AlertReportRequest request) {
+        // Internal callers must be both operationally privileged and inside the payload scope.
+        // The external adapter below is deliberately reserved for trusted integration roles.
+        roles.requireAny(
+                httpRequest, Role.SYSTEM_ADMIN, Role.SCHOOL_ADMIN, Role.CANTEEN_STAFF);
+        requirePayloadScope(httpRequest, request.schoolId(), request.canteenId());
         AlertRecord record = alerts.report(request.toDomain());
         return ApiResponse.ok(AlertView.from(record));
     }
 
     @PostMapping("/alarmApi/warn/report")
     public ApiResponse<AlertView> reportExternal(
+            HttpServletRequest httpRequest,
             @Valid @RequestBody ExternalAlertReportRequest request) {
+        roles.requireAny(httpRequest, Role.SYSTEM_ADMIN, Role.REGULATOR);
         AlertRecord record = alerts.report(request.toDomain());
         return ApiResponse.ok(AlertView.from(record));
     }
 
     @PostMapping("/api/v1/alerts/{warnId}/disposal")
     public ApiResponse<AlertView> dispose(
+            HttpServletRequest httpRequest,
             @PathVariable String warnId,
             @Valid @RequestBody AlertDisposalRequest request) {
+        AlertRecord existing = alerts.find(warnId)
+                .orElseThrow(() -> new IllegalArgumentException("Alert not found: " + warnId));
+        requireAlertAccess(httpRequest, existing);
         return ApiResponse.ok(AlertView.from(alerts.dispose(
                 warnId, request.toDomain())));
     }
 
     @PostMapping("/alarmApi/warnResult/report")
     public ApiResponse<AlertView> disposeExternal(
+            HttpServletRequest httpRequest,
             @Valid @RequestBody AlertDisposalRequest request) {
+        roles.requireAny(httpRequest, Role.SYSTEM_ADMIN, Role.REGULATOR);
         String warnId = request.warnId;
         if (warnId == null || warnId.isBlank()) {
             if (request.thirdWarnId == null || request.thirdWarnId.isBlank()) {
@@ -81,6 +106,7 @@ public class AlertCenterController {
 
     @GetMapping({"/api/v1/alerts", "/alarmWarn/school/queryPage"})
     public ApiResponse<AlertPageView> query(
+            HttpServletRequest httpRequest,
             @RequestParam(required = false) String schoolId,
             @RequestParam(required = false) String canteenId,
             @RequestParam(required = false) String source,
@@ -92,6 +118,14 @@ public class AlertCenterController {
             @RequestParam(required = false) String endDate,
             @RequestParam(defaultValue = "1") int pageNum,
             @RequestParam(defaultValue = "20") int pageSize) {
+        roles.requireReader(httpRequest);
+        AuthPrincipal principal = principal(httpRequest);
+        if (schoolId == null && canteenId == null && principal != null
+                && principal.role() != Role.SYSTEM_ADMIN
+                && principal.role() != Role.REGULATOR) {
+            schoolId = principal.schoolId();
+            canteenId = principal.canteenId();
+        }
         String statusValue = status == null ? warnStatus : status;
         AlertCenter.AlertPage page = alerts.query(new AlertQuery(
                 schoolId,
@@ -105,6 +139,29 @@ public class AlertCenterController {
                 pageNum,
                 pageSize));
         return ApiResponse.ok(AlertPageView.from(page));
+    }
+
+    private void requirePayloadScope(
+            HttpServletRequest httpRequest, String schoolId, String canteenId) {
+        if (canteenId == null || canteenId.isBlank()) {
+            roles.requireAny(httpRequest, Role.SYSTEM_ADMIN, Role.REGULATOR);
+            return;
+        }
+        scopes.require(httpRequest, schoolId, canteenId);
+    }
+
+    private void requireAlertAccess(HttpServletRequest httpRequest, AlertRecord record) {
+        roles.requireReader(httpRequest);
+        if (record.canteenId() == null || record.canteenId().isBlank()) {
+            roles.requireAny(httpRequest, Role.SYSTEM_ADMIN, Role.REGULATOR);
+            return;
+        }
+        scopes.require(httpRequest, record.schoolId(), record.canteenId());
+    }
+
+    private static AuthPrincipal principal(HttpServletRequest request) {
+        Object value = request.getAttribute(AuthPrincipal.class.getName());
+        return value instanceof AuthPrincipal authPrincipal ? authPrincipal : null;
     }
 
     private static Instant parseDateTime(String value, boolean endOfDay) {

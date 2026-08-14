@@ -136,6 +136,11 @@ class AlertCenterModuleTest {
         }
 
         @Override
+        public Optional<AlertRecord> find(String warnId) {
+            return Optional.ofNullable(records.get(warnId));
+        }
+
+        @Override
         public AlertRecord dispose(String warnId, AlertDisposal disposal) {
             AlertRecord existing = Optional.ofNullable(records.get(warnId))
                     .orElseThrow(() -> new IllegalArgumentException("Alert not found: " + warnId));

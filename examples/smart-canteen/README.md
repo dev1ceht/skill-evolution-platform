@@ -49,6 +49,21 @@ InventoryReceiving  → 单位换算 / 入库幂等
 
 计划、追溯和验证记录见 [`phase3-plan.json`](../../docs/smart-canteen/phase3-plan.json)、[`phase3-traceability.md`](../../docs/smart-canteen/phase3-traceability.md) 和 [`phase3-verification.json`](../../docs/smart-canteen/phase3-verification.json)。
 
+## 第五阶段：可持久化日常运营核心
+
+第五阶段依据两份设计文档补齐了可运行的日常运营闭环：账号认证与角色范围、食材/菜品/营养资料、日食谱草稿与发布、供应商和采购订单、批次验收入库、库存预警与出库、台账记录/统计、首页摘要、风险因素和食品溯源。新增核心表由 `V5__create_operational_core.sql` 以追加迁移建立，所有核心读写都带 `schoolId + canteenId`。
+
+生产环境必须显式配置认证密钥和首个管理员密码；系统不会写入默认管理员密码：
+
+```powershell
+$env:SMART_CANTEEN_AUTH_ENABLED='true'
+$env:SMART_CANTEEN_JWT_SECRET='replace-with-a-random-secret-at-least-32-characters'
+$env:SMART_CANTEEN_BOOTSTRAP_ADMIN_USERNAME='admin'
+$env:SMART_CANTEEN_BOOTSTRAP_ADMIN_PASSWORD='replace-with-a-strong-password'
+```
+
+前端打开后先登录，再查看运营概览和原有审批演示。真实微信/SSO、明厨亮灶视频、晨检设备、区级平台、对象存储、短信、Redis/RabbitMQ 异步投递和统计导出仍保留为适配端口或后续范围；没有厂商地址和凭据时不会伪装成已接通。
+
 ## 启动项目
 
 先启动中间件。需要 Docker Desktop 或兼容的 Docker Engine；每个中间件都由仓库内 Dockerfile 构建：
@@ -82,6 +97,10 @@ cd examples/smart-canteen/backend
 $env:SMART_CANTEEN_DB_URL='jdbc:mysql://localhost:3306/smart_canteen?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai'
 $env:SMART_CANTEEN_DB_USERNAME='smart_canteen'
 $env:SMART_CANTEEN_DB_PASSWORD='<与 infra/.env 中 MYSQL_PASSWORD 一致>'
+$env:SMART_CANTEEN_AUTH_ENABLED='true'
+$env:SMART_CANTEEN_JWT_SECRET='replace-with-a-random-secret-at-least-32-characters'
+$env:SMART_CANTEEN_BOOTSTRAP_ADMIN_USERNAME='admin'
+$env:SMART_CANTEEN_BOOTSTRAP_ADMIN_PASSWORD='replace-with-a-strong-password'
 mvn spring-boot:run
 ```
 
@@ -94,6 +113,8 @@ npm run dev
 ```
 
 浏览器打开 `http://localhost:5173`，依次操作“提交审批”“审批通过”“生成采购计划”“模拟入库”“完成采购验收台账”。Vite 会把 `/api` 代理到 `http://localhost:8080`。
+
+默认后端认证已开启；登录后前端会自动携带 access token，并在浏览器本地保存可轮换的 refresh token 会话。测试环境可设置 `SMART_CANTEEN_AUTH_ENABLED=false`，但不要把它用于生产。
 
 停止中间件使用 `docker compose down`。数据默认保留在命名卷中；只有明确需要清空本地业务数据时才使用 `docker compose down -v`。
 

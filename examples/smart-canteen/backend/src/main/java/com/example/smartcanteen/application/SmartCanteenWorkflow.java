@@ -116,6 +116,13 @@ public class SmartCanteenWorkflow {
     }
 
     @Transactional
+    public LedgerAlert completeLedger(CanteenScope scope, String ledgerCode) {
+        return completeLedger(new LedgerRecordCommand(
+                new LedgerScope(scope.schoolId(), scope.canteenId(), "CYCLE-001"),
+                LedgerCode.from(ledgerCode)));
+    }
+
+    @Transactional
     public LedgerAlert completeLedger(LedgerRecordCommand command) {
         return ledgerMonitoring.completeLedger(command);
     }
@@ -123,6 +130,12 @@ public class SmartCanteenWorkflow {
     @Transactional(readOnly = true)
     public LedgerAlert currentLedgerAlert() {
         return currentLedgerAlert(DEFAULT_LEDGER_SCOPE);
+    }
+
+    @Transactional(readOnly = true)
+    public LedgerAlert currentLedgerAlert(CanteenScope scope) {
+        return currentLedgerAlert(new LedgerScope(
+                scope.schoolId(), scope.canteenId(), "CYCLE-001"));
     }
 
     @Transactional(readOnly = true)

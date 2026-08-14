@@ -1,0 +1,57 @@
+{
+  "phase": "phase-5-operational-core",
+  "objective": "在现有菜单审批、采购缺口、入库和预警切片之上，补齐一套可持久化、可验证、可继续接入前端的智慧食堂日常运营核心闭环。",
+  "source_hashes": {
+    "overview-design": "200A5F09EAB0D1D4ADBA11396E3925E41DADF54E9A9ECA84BA01FBA522F12473",
+    "phase2-design": "6209C740D106924F4FB17B546407E82CFB753075EDB51636CA61726161692376"
+  },
+  "included": [
+    "PBKDF2 password login, refresh-token rotation, logout and current-user API",
+    "scoped ingredient, dish and dish-recipe catalog",
+    "scoped daily menu draft/list/publish workflow",
+    "scoped ledger record submission, query and statistics on top of ledger cycles",
+    "supplier and purchase-order lifecycle with calculated totals",
+    "idempotent batch receiving, inventory warning query and validated stock-out",
+    "dashboard summary, deterministic risk factors and traceability lookup",
+    "OpenAPI, generated TypeScript client and frontend operational dashboard states",
+    "fresh domain, HTTP, H2 persistence and contract evidence"
+  ],
+  "deferred": [
+    "real WeChat OAuth, vendor SSO and camera/HLS playback",
+    "real district platform, morning-inspection device and notification network clients",
+    "object-storage upload, OCR, SMS, RabbitMQ event delivery and Redis cache",
+    "full education-authority multi-school analytics, supplier survey and satisfaction pages",
+    "Excel/PDF export, electronic weighing/label-printer device control and production deployment topology"
+  ],
+  "module_boundaries": {
+    "auth": "AuthService -> AuthStore -> JdbcAuthStore",
+    "catalog": "CatalogService -> OperationalStore -> JdbcOperationalStore",
+    "daily_menu": "DailyMenuService -> OperationalStore -> JdbcOperationalStore",
+    "ledger": "OperationalLedgerService -> OperationalStore -> JdbcOperationalStore",
+    "procurement": "ProcurementOperationsService -> OperationalStore -> JdbcOperationalStore",
+    "dashboard": "DashboardService -> OperationalStore -> JdbcOperationalStore",
+    "external": "DistrictPlatformGateway, BrightKitchenGateway, MorningInspectionGateway"
+  },
+  "invariants": [
+    "all new core reads and writes carry schoolId + canteenId",
+    "published daily menus are immutable",
+    "order totals are calculated from persisted line items",
+    "receipt and stock-out writes are transactionally idempotent",
+    "refresh tokens are stored hashed and revoked on rotation/logout",
+    "no external integration is reported as connected without credentials"
+  ],
+  "migration": {
+    "file": "examples/smart-canteen/backend/src/main/resources/db/migration/V5__create_operational_core.sql",
+    "strategy": "additive expand; existing V1-V4 remain unchanged",
+    "rollback": "restore database backup or deploy a forward repair; no destructive contract in this phase"
+  },
+  "verification": [
+    "OperationalCoreHttpTest",
+    "OperationalCoreHttpTest",
+    "AuthModuleTest",
+    "H2 persistence/restart coverage",
+    "OpenAPI normalize/generate/contract tests",
+    "frontend typecheck, component tests and production build",
+    "real MySQL workflow when SMART_CANTEEN_DB_* is available"
+  ]
+}

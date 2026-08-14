@@ -9,6 +9,7 @@ import com.example.smartcanteen.domain.AlertReport;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.Objects;
+import java.util.Optional;
 
 @Service
 public class AlertCenterService implements AlertCenter {
@@ -23,6 +24,15 @@ public class AlertCenterService implements AlertCenter {
     @Transactional
     public AlertRecord report(AlertReport report) {
         return store.report(Objects.requireNonNull(report, "report is required"));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<AlertRecord> find(String warnId) {
+        if (warnId == null || warnId.isBlank()) {
+            return Optional.empty();
+        }
+        return store.find(warnId.trim());
     }
 
     @Override

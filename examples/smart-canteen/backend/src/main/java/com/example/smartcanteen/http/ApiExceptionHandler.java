@@ -9,6 +9,7 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import com.example.smartcanteen.security.ForbiddenException;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
@@ -17,6 +18,12 @@ public class ApiExceptionHandler {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ApiResponse<Void> handleBusinessRule(RuntimeException exception) {
         return ApiResponse.error(exception.getMessage());
+    }
+
+    @ExceptionHandler(ForbiddenException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public ApiResponse<Void> handleForbidden(ForbiddenException exception) {
+        return new ApiResponse<>(40300, exception.getMessage(), null);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

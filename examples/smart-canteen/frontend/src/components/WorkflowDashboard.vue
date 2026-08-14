@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import type { LedgerAlert, ProcurementItem } from '../api/generated/client';
-import type { SmartCanteenApiPort } from '../api/smartCanteenApi';
+import type { CanteenScope, SmartCanteenApiPort } from '../api/smartCanteenApi';
 
-const props = defineProps<{ api: SmartCanteenApiPort }>();
+const props = defineProps<{ api: SmartCanteenApiPort; scope?: CanteenScope }>();
 
 const menuId = 'MENU-001';
 const menuStatus = ref('DRAFT');
@@ -38,7 +38,9 @@ async function loadAlert(): Promise<void> {
   loading.value = true;
   error.value = '';
   try {
-    ledgerAlert.value = await props.api.getCurrentLedgerAlert();
+    ledgerAlert.value = props.scope
+      ? await props.api.getCurrentLedgerAlert(props.scope)
+      : await props.api.getCurrentLedgerAlert();
   } catch (reason) {
     error.value = messageOf(reason);
   } finally {
@@ -48,7 +50,9 @@ async function loadAlert(): Promise<void> {
 
 async function submitMenu(): Promise<void> {
   await perform(async () => {
-    const menu = await props.api.submitMenu(menuId);
+    const menu = props.scope
+      ? await props.api.submitMenu(menuId, props.scope)
+      : await props.api.submitMenu(menuId);
     menuStatus.value = menu.status;
     notice.value = '菜单已进入审批队列';
   });
@@ -56,11 +60,14 @@ async function submitMenu(): Promise<void> {
 
 async function approveMenu(): Promise<void> {
   await perform(async () => {
-    const menu = await props.api.decideMenuApproval(
-      menuId,
-      'APPROVE',
-      '页面审批通过',
-    );
+    const menu = props.scope
+      ? await props.api.decideMenuApproval(
+          menuId,
+          'APPROVE',
+          '页面审批通过',
+          props.scope,
+        )
+      : await props.api.decideMenuApproval(menuId, 'APPROVE', '页面审批通过');
     menuStatus.value = menu.status;
     notice.value = '菜单审批通过，可以生成采购缺口';
   });
@@ -68,7 +75,9 @@ async function approveMenu(): Promise<void> {
 
 async function generatePlan(): Promise<void> {
   await perform(async () => {
-    const plan = await props.api.generateProcurementPlan(menuId);
+    const plan = props.scope
+      ? await props.api.generateProcurementPlan(menuId, props.scope)
+      : await props.api.generateProcurementPlan(menuId);
     procurementItems.value = plan.items;
     notice.value = plan.items.length ? '采购缺口已生成' : '当前库存充足';
   });
@@ -76,12 +85,17 @@ async function generatePlan(): Promise<void> {
 
 async function receiveFlour(): Promise<void> {
   await perform(async () => {
-    await props.api.receiveInventory(
-      `receipt-${menuId}-FLOUR`,
-      'FLOUR',
-      1.5,
-      'kg',
-    );
+    if (props.scope) {
+      await props.api.receiveInventory(
+        `receipt-${menuId}-FLOUR`,
+        'FLOUR',
+        1.5,
+        'kg',
+        props.scope,
+      );
+    } else {
+      await props.api.receiveInventory(`receipt-${menuId}-FLOUR`, 'FLOUR', 1.5, 'kg');
+    }
     procurementItems.value = [];
     notice.value = '面粉已入库并换算为基础单位';
   });
@@ -89,7 +103,9 @@ async function receiveFlour(): Promise<void> {
 
 async function completeLedger(): Promise<void> {
   await perform(async () => {
-    ledgerAlert.value = await props.api.completeLedgerRecord('PURCHASE_ACCEPTANCE');
+    ledgerAlert.value = props.scope
+      ? await props.api.completeLedgerRecord('PURCHASE_ACCEPTANCE', props.scope)
+      : await props.api.completeLedgerRecord('PURCHASE_ACCEPTANCE');
     notice.value = '采购验收台账已完成，预警已重新计算';
   });
 }

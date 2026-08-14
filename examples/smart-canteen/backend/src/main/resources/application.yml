@@ -22,3 +22,8 @@ management:
       probes:
         enabled: true
       show-details: when_authorized
+
+smart-canteen:
+  security:
+    enabled: ${SMART_CANTEEN_AUTH_ENABLED:true}
+    jwt-secret: ${SMART_CANTEEN_JWT_SECRET}

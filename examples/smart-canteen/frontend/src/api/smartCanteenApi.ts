@@ -1,7 +1,17 @@
 import type { AxiosInstance, AxiosResponse } from 'axios';
 import type {
+  AuthTokens,
+  AuthTokensResponse,
+  CurrentUser,
+  CurrentUserResponse,
+  DashboardSummary,
+  DashboardSummaryResponse,
   LedgerAlert,
   LedgerAlertResponse,
+  RiskAssessment,
+  RiskAssessmentResponse,
+  InventoryLine,
+  InventoryPageResponse,
   Menu,
   MenuResponse,
   Recipe,
@@ -29,6 +39,13 @@ export interface CanteenScope {
   canteenId: string;
 }
 
+export interface AuthSession {
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number;
+  userInfo: AuthTokens['userInfo'];
+}
+
 export class ApiBusinessError extends Error {
   readonly code: number;
 
@@ -48,7 +65,7 @@ function unwrap<T>(response: AxiosResponse<ApiEnvelope<T>>): T {
 }
 
 export interface SmartCanteenApiPort {
-  getCurrentLedgerAlert(): Promise<LedgerAlert>;
+  getCurrentLedgerAlert(scope?: CanteenScope): Promise<LedgerAlert>;
   submitMenu(menuId: string, scope?: CanteenScope): Promise<Menu>;
   importMenuRecipe(
     menuId: string,
@@ -69,7 +86,7 @@ export interface SmartCanteenApiPort {
     unit: string,
     scope?: CanteenScope,
   ): Promise<Receipt>;
-  completeLedgerRecord(ledgerCode: string): Promise<LedgerAlert>;
+  completeLedgerRecord(ledgerCode: string, scope?: CanteenScope): Promise<LedgerAlert>;
   reportAlert?(request: AlertReportRequest): Promise<AlertRecord>;
   disposeAlert?(warnId: string, request: AlertDisposalRequest): Promise<AlertRecord>;
   queryAlerts?(filters?: {
@@ -83,14 +100,119 @@ export interface SmartCanteenApiPort {
     pageNum?: number;
     pageSize?: number;
   }): Promise<AlertPage>;
+  getDashboardSummary?(scope: CanteenScope, date?: string): Promise<DashboardSummary>;
+  getDashboardRisk?(scope: CanteenScope, date?: string): Promise<RiskAssessment>;
+  listInventory?(scope: CanteenScope, warningOnly?: boolean): Promise<InventoryLine[]>;
 }
 
 export class SmartCanteenApi implements SmartCanteenApiPort {
-  constructor(private readonly client: AxiosInstance) {}
+  private accessToken: string | null = null;
+  private session: AuthSession | null = null;
 
-  async getCurrentLedgerAlert(): Promise<LedgerAlert> {
+  constructor(private readonly client: AxiosInstance) {
+    this.session = readSession();
+    this.accessToken = this.session?.accessToken ?? null;
+    const requestInterceptor = this.client.interceptors?.request;
+    if (requestInterceptor?.use) {
+      requestInterceptor.use((config) => {
+        if (this.accessToken) {
+          config.headers = config.headers ?? {};
+          config.headers.Authorization = `Bearer ${this.accessToken}`;
+        }
+        return config;
+      });
+    }
+  }
+
+  hasSession(): boolean {
+    return Boolean(this.accessToken);
+  }
+
+  getSession(): AuthSession | null {
+    return this.session;
+  }
+
+  async login(username: string, password: string): Promise<AuthSession> {
+    const response = await this.client.post<AuthTokensResponse>('/api/v1/auth/login', {
+      username,
+      password,
+      loginType: 'account',
+    });
+    const tokens = unwrap(response);
+    this.setSession(tokens);
+    return this.sessionOf(tokens);
+  }
+
+  async refreshSession(refreshToken: string): Promise<AuthSession> {
+    const response = await this.client.post<AuthTokensResponse>('/api/v1/auth/refresh-token', {
+      refreshToken,
+    });
+    const tokens = unwrap(response);
+    this.setSession(tokens);
+    return this.sessionOf(tokens);
+  }
+
+  async logout(refreshToken?: string): Promise<void> {
+    try {
+      await this.client.post('/api/v1/auth/logout', refreshToken ? { refreshToken } : undefined);
+    } finally {
+      this.clearSession();
+    }
+  }
+
+  async currentUser(): Promise<CurrentUser> {
+    const response = await this.client.get<CurrentUserResponse>('/api/v1/auth/me');
+    return unwrap(response);
+  }
+
+  async getDashboardSummary(scope: CanteenScope, date?: string): Promise<DashboardSummary> {
+    const response = await this.client.get<DashboardSummaryResponse>('/api/v1/dashboard/summary', {
+      params: { ...scope, ...(date ? { date } : {}) },
+    });
+    return unwrap(response);
+  }
+
+  async getDashboardRisk(scope: CanteenScope, date?: string): Promise<RiskAssessment> {
+    const response = await this.client.get<RiskAssessmentResponse>('/api/v1/dashboard/risk', {
+      params: { ...scope, ...(date ? { date } : {}) },
+    });
+    return unwrap(response);
+  }
+
+  async listInventory(scope: CanteenScope, warningOnly = false): Promise<InventoryLine[]> {
+    const response = await this.client.get<InventoryPageResponse>('/api/v1/inventory', {
+      params: { ...scope, warningOnly, page: 1, size: 100 },
+    });
+    return unwrap(response).records;
+  }
+
+  setSession(tokens: AuthTokens): void {
+    this.accessToken = tokens.token;
+    this.session = this.sessionOf(tokens);
+    writeSession(this.session);
+  }
+
+  clearSession(): void {
+    this.accessToken = null;
+    this.session = null;
+    if (typeof window !== 'undefined') {
+      window.localStorage.removeItem('smart-canteen.session');
+    }
+  }
+
+  private sessionOf(tokens: AuthTokens): AuthSession {
+    return {
+      accessToken: tokens.token,
+      refreshToken: tokens.refreshToken,
+      expiresIn: tokens.expiresIn,
+      userInfo: tokens.userInfo,
+    };
+  }
+
+  async getCurrentLedgerAlert(scope?: CanteenScope): Promise<LedgerAlert> {
     const response = await this.client.get<LedgerAlertResponse>(
       '/api/v1/ledger-alerts/current',
+      scope ? { params: scope } : undefined,
     );
     return unwrap(response);
   }
@@ -168,10 +290,11 @@ export class SmartCanteenApi implements SmartCanteenApiPort {
     return unwrap(response);
   }
 
-  async completeLedgerRecord(ledgerCode: string): Promise<LedgerAlert> {
+  async completeLedgerRecord(ledgerCode: string, scope?: CanteenScope): Promise<LedgerAlert> {
     const response = await this.client.post<LedgerAlertResponse>(
       '/api/v1/ledger-records',
       { ledgerCode },
+      scope ? { params: scope } : undefined,
     );
     return unwrap(response);
   }
@@ -206,4 +329,30 @@ export class SmartCanteenApi implements SmartCanteenApiPort {
     });
     return unwrap(response);
   }
+}
+
+function readSession(): AuthSession | null {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+  try {
+    const raw = window.localStorage.getItem('smart-canteen.session');
+    if (!raw) return null;
+    const session = JSON.parse(raw) as Partial<AuthSession>;
+    return typeof session.accessToken === 'string'
+        && session.accessToken.length > 0
+        && typeof session.refreshToken === 'string'
+        && session.userInfo
+      ? session as AuthSession
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeSession(session: AuthSession): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+  window.localStorage.setItem('smart-canteen.session', JSON.stringify(session));
 }
