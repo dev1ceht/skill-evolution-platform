@@ -1,6 +1,0 @@
-{
-  "eval_id": 0,
-  "eval_name": "解析参数引用并保留 wire 名称",
-  "prompt": "请使用 frontend-api-integration Skill 处理 `contracts/resource.openapi.yaml`，为资源详情页生成请求层和契约测试。\n\n必须解析本地 `components.parameters` 引用。请在 workspace 根目录生成：\n\n- `api-ir.json`；\n- `client.ts`；\n- `client.contract.test.ts`。\n\n`client.ts` 中的 TypeScript 参数名可以是安全的 camelCase 标识符，但 HTTP 请求必须保留原始 `resource-id` 路径占位符和 `Idempotency-Key` Header 名称；路径参数必须经过 `encodeURIComponent`。不要把 wire 名称改成 TypeScript 名称。\n",
-  "assertions": null
-}

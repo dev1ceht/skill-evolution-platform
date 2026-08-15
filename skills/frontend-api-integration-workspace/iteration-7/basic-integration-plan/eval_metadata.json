@@ -1,6 +1,0 @@
-{
-  "eval_id": 0,
-  "eval_name": "生成可追溯的前端 API 集成计划",
-  "prompt": "请使用已安装的 frontend-api-integration Skill，为 `MenuApprovalPage` 集成\n`contracts/menu.openapi.yaml` 中的菜单查询和提交接口。\n\n请先读取相关 references，并以契约为证据，不要补写契约中没有的字段或认证行为。\n在 workspace 根目录生成以下文件：\n\n- `api-ir.json`：包含 `documentHash`、每个 operation 的 JSON Pointer provenance；\n- `integration-plan.json`：包含页面名 `MenuApprovalPage`、依赖、loading/empty/error 状态、mock 工作和验证工作；\n- `handoff.md`：记录生成文件、假设、测试证据和剩余人工工作。\n\n保留现有 `src/api/httpClient.ts`，不要修改共享 HTTP 基础设施。\n",
-  "assertions": null
-}

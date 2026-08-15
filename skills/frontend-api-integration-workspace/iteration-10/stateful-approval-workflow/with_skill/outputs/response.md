@@ -1,1 +1,0 @@
-已确认 contract 只有四个 operation，且 `workflow.md` 要求的 `rejectRecipe` 不在 contract 中；我会把它作为明确的 contract gap 记录，绝不把 `reject` 伪装成 `approveRecipe`。现在先用 Skill 的生成器产出 contract-test 骨架，再补齐字段保持、重试 key 和页面状态断言所需的具体覆盖。

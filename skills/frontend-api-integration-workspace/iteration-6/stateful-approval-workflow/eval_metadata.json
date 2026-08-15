@@ -1,6 +1,0 @@
-{
-  "eval_id": 0,
-  "eval_name": "保持审批闭环中的状态转换与单位信息",
-  "prompt": "请使用 frontend-api-integration Skill，为 `RecipeApprovalPage` 集成\n`contracts/recipe-approval.openapi.yaml`，并读取 `src/features/recipeApproval/workflow.md`\n中已经确认的页面业务顺序。\n\n请先读取 references/api-ir.md、references/frontend-standards.md、\nreferences/testing-policy.md 和 references/versioning-policy.md。\n在 workspace 根目录生成：\n\n- `api-ir.json`：包含四个操作及其 JSON Pointer provenance；\n- `integration-plan.json`：明确列出从 getRecipeApproval 开始的页面数据边界，\n  `PENDING_APPROVAL` 下才能 approve/reject，approve 成功后才能 receiveInventory，\n  receiveInventory 成功后才允许 clearRecipeAlert；同时覆盖 loading、empty、error、retry、mock 和 test；\n- `client.contract.test.ts`：覆盖四个操作的 method/path、`expectedVersion`、`quantity`、`unit` 和\n  `Idempotency-Key`；\n- `handoff.md`：记录状态机、失败时不可越过的步骤、服务端返回的 normalizedQuantity/normalizedUnit，\n  以及剩余人工联调工作。\n\n不要把单位字段丢掉或擅自把数量转换成另一个单位；按 workflow.md 将用户输入的 quantity 和 unit\n发送给后端，并消费后端返回的 normalizedQuantity/normalizedUnit。相同用户动作的重试必须复用同一个\n`Idempotency-Key`。不要修改共享 HTTP 基础设施，也不要在失败步骤后自动清除告警。\n",
-  "assertions": null
-}

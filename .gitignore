@@ -7,6 +7,7 @@ __pycache__/
 .venv/
 .playwright-cli/
 work/
+skills/*-workspace/
 data/*.db
 data/*.db-*
 .idea/
