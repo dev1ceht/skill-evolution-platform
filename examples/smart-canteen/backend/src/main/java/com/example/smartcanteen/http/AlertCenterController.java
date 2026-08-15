@@ -26,9 +26,6 @@ import java.time.LocalTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -302,25 +299,19 @@ public class AlertCenterController {
                     ? (hasDeviceFields() ? AlertSource.BRIGHT_KITCHEN
                             : AlertSource.DISTRICT_PLATFORM)
                     : AlertSource.from(source);
-            String content = warnContent == null || warnContent.isBlank()
-                    ? alarmEventId
-                    : warnContent;
-            String resolvedThirdWarnId = thirdWarnId == null || thirdWarnId.isBlank()
-                    ? stableExternalId(resolvedSource, schoolId, alarmEventId,
-                            warnHappenTime, content)
-                    : thirdWarnId;
-            return new AlertReport(
+            Instant occurredAt = parseDateTime(warnHappenTime, false);
+            return AlertReport.fromExternal(
                     resolvedSource,
-                    resolvedThirdWarnId,
+                    thirdWarnId,
                     schoolId,
                     schoolName,
                     areaCode,
                     deviceId,
                     deviceName,
-                    parseDateTime(warnHappenTime, false),
+                    occurredAt,
                     alarmEventId,
                     warnFullPic,
-                    content,
+                    warnContent,
                     canteenId);
         }
 
@@ -348,27 +339,6 @@ public class AlertCenterController {
                     processUser,
                     processContent,
                     processFile);
-        }
-    }
-
-    private static String stableExternalId(
-            AlertSource source,
-            String schoolId,
-            String alarmEventId,
-            String warnHappenTime,
-            String warnContent) {
-        String input = String.join("|", source.name(), schoolId, alarmEventId,
-                warnHappenTime, warnContent);
-        try {
-            byte[] digest = MessageDigest.getInstance("SHA-256")
-                    .digest(input.getBytes(StandardCharsets.UTF_8));
-            StringBuilder result = new StringBuilder("generated-");
-            for (byte value : digest) {
-                result.append(String.format("%02x", value));
-            }
-            return result.toString();
-        } catch (NoSuchAlgorithmException impossible) {
-            throw new IllegalStateException("SHA-256 is unavailable", impossible);
         }
     }
 

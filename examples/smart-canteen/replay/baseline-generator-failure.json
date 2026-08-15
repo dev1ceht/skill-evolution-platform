@@ -5,7 +5,7 @@
   "contractHash": "e12bcf88be7dac5a8183c3338a480a9618997e4df652c6a2f40a1557fa8fd02a",
   "replaySource": {
     "sourceCommit": "2633cef",
-    "contractHash": "025519d5008f2ea104f25fd97bae942d5927d605d35eb9b2d124ebecd6c0d38f"
+    "contractHash": "d9ca3e2fb7115392b07627cba932b7f0fea220cf6d4a17f03f1b3b493b3aecfc"
   },
   "capturedStage": "generate-typescript-client",
   "failure": {

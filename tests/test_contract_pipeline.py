@@ -88,6 +88,25 @@ def test_normalization_resolves_reusable_parameter_components() -> None:
     }
 
 
+def test_smart_canteen_alert_schemas_include_compliance_source() -> None:
+    source = Path("examples/smart-canteen/contracts/smart-canteen.openapi.yaml").read_text(
+        encoding="utf-8"
+    )
+
+    ir = normalize_openapi(source)
+    schema_names = {
+        "AlertReportRequest",
+        "ExternalAlertReportRequest",
+        "AlertDisposalRequest",
+        "ExternalAlertDisposalRequest",
+        "AlertRecord",
+    }
+
+    for schema_name in schema_names:
+        source_values = ir["schemas"][schema_name]["properties"]["source"]["enum"]
+        assert "COMPLIANCE" in source_values
+
+
 def test_generated_client_maps_http_header_names_to_safe_identifiers() -> None:
     document = {
         "openapi": "3.0.3",

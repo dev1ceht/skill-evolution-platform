@@ -76,7 +76,7 @@ def test_smart_canteen_feedback_is_replayed_before_skill_promotion(tmp_path: Pat
     )
     assert provenance["replaySourceCommit"] == "2633cef"
     assert provenance["replayContractHash"] == (
-        "025519d5008f2ea104f25fd97bae942d5927d605d35eb9b2d124ebecd6c0d38f"
+        "d9ca3e2fb7115392b07627cba932b7f0fea220cf6d4a17f03f1b3b493b3aecfc"
     )
     assert set(provenance["candidateEvidence"]) == {
         "generatorSourceHash",

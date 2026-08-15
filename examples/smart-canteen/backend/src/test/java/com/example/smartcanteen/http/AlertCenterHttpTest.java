@@ -1,11 +1,13 @@
 package com.example.smartcanteen.http;
 
 import static org.hamcrest.Matchers.hasSize;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +26,9 @@ class AlertCenterHttpTest {
 
     @Autowired
     private JdbcTemplate jdbc;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @BeforeEach
     void cleanAlerts() {
@@ -112,6 +117,49 @@ class AlertCenterHttpTest {
     }
 
     @Test
+    void missing_external_id_uses_normalized_event_identity_and_conflicts_on_changed_payload()
+            throws Exception {
+        String first = """
+                {
+                  "source":"BRIGHT_KITCHEN",
+                  "schoolId":"SCHOOL-ALERT-HTTP",
+                  "canteenId":"CANTEEN-ALERT-HTTP",
+                  "deviceId":"CAM-HTTP-001",
+                  "warnHappenTime":"2026-08-12 03:00:00",
+                  "alarmEventId":"AI_CAPTURE",
+                  "warnContent":"temperature is abnormal"
+                }
+                """;
+
+        String firstWarnId = warnId(mvc.perform(post("/alarmApi/warn/report")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(first))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString());
+
+        String equivalentTime = first.replace(
+                "2026-08-12 03:00:00", "2026-08-12T03:00:00Z");
+        String secondWarnId = warnId(mvc.perform(post("/alarmApi/warn/report")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(equivalentTime))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString());
+
+        assertThat(secondWarnId).isEqualTo(firstWarnId);
+
+        mvc.perform(post("/alarmApi/warn/report")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(equivalentTime.replace(
+                                "temperature is abnormal", "temperature is normal")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(40000));
+    }
+
+    @Test
     void changed_payload_for_the_same_external_id_uses_the_unified_error_envelope()
             throws Exception {
         String first = """
@@ -136,5 +184,9 @@ class AlertCenterHttpTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value(40000))
                 .andExpect(jsonPath("$.data").value(org.hamcrest.Matchers.nullValue()));
+    }
+
+    private String warnId(String responseBody) throws Exception {
+        return objectMapper.readTree(responseBody).path("data").path("warnId").asText();
     }
 }

@@ -3453,7 +3453,7 @@ components:
       properties:
         source:
           type: string
-          enum: [DISTRICT_PLATFORM, BRIGHT_KITCHEN, MORNING_INSPECTION, LEDGER]
+          enum: [DISTRICT_PLATFORM, BRIGHT_KITCHEN, MORNING_INSPECTION, LEDGER, COMPLIANCE]
           default: BRIGHT_KITCHEN
         thirdWarnId:
           type: string
@@ -3487,11 +3487,11 @@ components:
     ExternalAlertReportRequest:
       type: object
       required: [schoolId, warnHappenTime, alarmEventId]
-      description: 设计文档外部入口的归一化输入；未提供 thirdWarnId 时由 source、学校、事件、时间和内容生成稳定 ID。
+      description: Compatibility input; when thirdWarnId is absent, a stable ID is derived from source, school, canteen, device identity, event ID and normalized occurrence time, excluding mutable content.
       properties:
         source:
           type: string
-          enum: [DISTRICT_PLATFORM, BRIGHT_KITCHEN, MORNING_INSPECTION, LEDGER]
+          enum: [DISTRICT_PLATFORM, BRIGHT_KITCHEN, MORNING_INSPECTION, LEDGER, COMPLIANCE]
         thirdWarnId:
           type: string
           nullable: true
@@ -3529,7 +3529,7 @@ components:
       properties:
         source:
           type: string
-          enum: [DISTRICT_PLATFORM, BRIGHT_KITCHEN, MORNING_INSPECTION, LEDGER]
+          enum: [DISTRICT_PLATFORM, BRIGHT_KITCHEN, MORNING_INSPECTION, LEDGER, COMPLIANCE]
         thirdWarnId:
           type: string
           nullable: true
@@ -3555,7 +3555,7 @@ components:
       properties:
         source:
           type: string
-          enum: [DISTRICT_PLATFORM, BRIGHT_KITCHEN, MORNING_INSPECTION, LEDGER]
+          enum: [DISTRICT_PLATFORM, BRIGHT_KITCHEN, MORNING_INSPECTION, LEDGER, COMPLIANCE]
         thirdWarnId:
           type: string
           nullable: true
@@ -3586,7 +3586,7 @@ components:
           type: string
         source:
           type: string
-          enum: [DISTRICT_PLATFORM, BRIGHT_KITCHEN, MORNING_INSPECTION, LEDGER]
+          enum: [DISTRICT_PLATFORM, BRIGHT_KITCHEN, MORNING_INSPECTION, LEDGER, COMPLIANCE]
         thirdWarnId:
           type: string
         schoolId:
