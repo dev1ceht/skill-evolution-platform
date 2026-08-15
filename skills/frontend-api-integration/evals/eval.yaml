@@ -1,0 +1,37 @@
+schema_version: v1alpha1
+
+environment:
+  type: none
+
+skills:
+  - source: local_path
+    path: .
+    include:
+      - SKILL.md
+      - references/**
+      - scripts/**
+      - agents/**
+
+engine:
+  name: codex
+
+cases:
+  files:
+    - evals/cases/basic-integration-plan.yaml
+    - evals/cases/ambiguous-contract-stops.yaml
+    - evals/cases/ref-parameters-and-wire-names.yaml
+    - evals/cases/breaking-contract-diff.yaml
+    - evals/cases/response-envelope-boundary.yaml
+    - evals/cases/stateful-approval-workflow.yaml
+    - evals/cases/external-ref-stops.yaml
+  defaults:
+    timeout_seconds: 240
+    max_turns: 10
+  parallelism: 1
+  retry_policy:
+    max_retries: 1
+    retry_on: [timeout, error]
+
+report:
+  formats: [json, html]
+  artifacts: [transcript]

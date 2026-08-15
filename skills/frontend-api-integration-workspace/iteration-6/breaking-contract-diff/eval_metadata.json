@@ -1,0 +1,6 @@
+{
+  "eval_id": 0,
+  "eval_name": "识别 breaking contract change 并先给出迁移计划",
+  "prompt": "请使用 frontend-api-integration Skill 比较 `contracts/old.openapi.yaml` 和 `contracts/new.openapi.yaml`。\n\n请先分别规范化两个契约，再在 workspace 根目录生成：\n\n- `api-ir.before.json`；\n- `api-ir.after.json`；\n- `contract-diff.json`：必须记录 `beforeHash`、`afterHash` 和 `breaking`；\n- `migration-plan.md`：必须列出受影响的页面、client、mock、tests、发布顺序和回滚注意事项。\n\n新契约把可选的 `status` 查询参数改成必填，并收窄了 enum。请将其分类为 breaking，在迁移任务完成或获得批准前不要直接更新 typed client。\n",
+  "assertions": null
+}

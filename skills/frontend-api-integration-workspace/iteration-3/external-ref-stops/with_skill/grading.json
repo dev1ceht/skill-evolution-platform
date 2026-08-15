@@ -1,0 +1,30 @@
+{
+  "expectations": [
+    {
+      "text": "expect.exit_code",
+      "passed": true,
+      "evidence": "all checks passed"
+    },
+    {
+      "text": "expect.files_exist",
+      "passed": false,
+      "evidence": "expected file \"review.md\" does not exist"
+    },
+    {
+      "text": "expect.files_not_exist",
+      "passed": true,
+      "evidence": "all checks passed"
+    },
+    {
+      "text": "expect.file_contains",
+      "passed": false,
+      "evidence": "cannot read file \"review.md\": open C:\\Users\\th\\AppData\\Local\\Temp\\skill-up-1538744499\\review.md: The system cannot find the file specified.; cannot read file \"review.md\": open C:\\Users\\th\\AppData\\Local\\Temp\\skill-up-1538744499\\review.md: The system cannot find the file specified.; cannot read file \"review.md\": open C:\\Users\\th\\AppData\\Local\\Temp\\skill-up-1538744499\\review.md: The system cannot find the file specified.; cannot read file \"review.md\": open C:\\Users\\th\\AppData\\Local\\Temp\\skill-up-1538744499\\review.md: The system cannot find the file specified.; cannot read file \"review.md\": open C:\\Users\\th\\AppData\\Local\\Temp\\skill-up-1538744499\\review.md: The system cannot find the file specified."
+    }
+  ],
+  "summary": {
+    "passed": 2,
+    "failed": 2,
+    "total": 4,
+    "pass_rate": 0.5
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "expectations": [
+    {
+      "text": "expect.exit_code",
+      "passed": true,
+      "evidence": "all checks passed"
+    },
+    {
+      "text": "expect.files_exist",
+      "passed": true,
+      "evidence": "all checks passed"
+    },
+    {
+      "text": "expect.file_contains",
+      "passed": true,
+      "evidence": "all checks passed"
+    },
+    {
+      "text": "files_exist: [api-ir.json client.ts client.contract.test.ts]",
+      "passed": true,
+      "evidence": "all required files exist"
+    },
+    {
+      "text": "output_contains{all:[encodeURIComponent Idempotency-Key resource-id client.contract.test.ts]}",
+      "passed": true,
+      "evidence": "output satisfies all contains checks (all:[encodeURIComponent Idempotency-Key resource-id client.contract.test.ts])"
+    }
+  ],
+  "summary": {
+    "passed": 5,
+    "failed": 0,
+    "total": 5,
+    "pass_rate": 1
+  }
+}

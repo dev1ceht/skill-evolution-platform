@@ -1,0 +1,106 @@
+{
+  "title": "Resource API",
+  "version": "1.0.0",
+  "documentHash": "b767a4052b1c8f39b9fab28b320bfea984172030f28ba40649b4fc91c39b8265",
+  "schemas": {
+    "ResourcePatch": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        }
+      }
+    },
+    "Resource": {
+      "type": "object",
+      "required": [
+        "id",
+        "name"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        }
+      }
+    },
+    "ResourceResponse": {
+      "type": "object",
+      "required": [
+        "code",
+        "message",
+        "data"
+      ],
+      "properties": {
+        "code": {
+          "type": "integer"
+        },
+        "message": {
+          "type": "string"
+        },
+        "data": {
+          "$ref": "#/components/schemas/Resource"
+        }
+      }
+    }
+  },
+  "operations": [
+    {
+      "operationId": "updateResource",
+      "method": "POST",
+      "path": "/api/v1/resources/{resource-id}",
+      "tags": [
+        "default"
+      ],
+      "parameters": [
+        {
+          "name": "resource-id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "Idempotency-Key",
+          "in": "header",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ResourcePatch"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "更新结果",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResourceResponse"
+              }
+            }
+          }
+        }
+      },
+      "provenance": {
+        "documentHash": "b767a4052b1c8f39b9fab28b320bfea984172030f28ba40649b4fc91c39b8265",
+        "pointer": "/paths/~1api~1v1~1resources~1{resource-id}/post"
+      }
+    }
+  ]
+}

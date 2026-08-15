@@ -1,0 +1,65 @@
+id: ambiguous-contract-stops
+title: 契约存在关键歧义时停止生成
+description: |
+  验证 Skill 不会从缺失的 operationId、成功响应 schema、认证要求和分页模式中猜测行为，而是输出待确认问题并停止生成客户端。
+
+input:
+  prompt: |
+    请使用 frontend-api-integration Skill 审查 `contracts/ambiguous.openapi.yaml`。
+
+    这个契约故意省略了 operationId、成功响应 schema、认证要求和明确的分页模式。
+    请不要生成 API client、API IR 或 integration plan，也不要自行推断这些信息。
+    只在 workspace 根目录生成 `review.md`，其中必须使用以下四个英文小节标题：
+    `operationId`、`success schema`、`authentication`、`pagination`。
+    每节说明缺失证据、风险和需要用户确认的问题。
+    最后回复必须包含：`operationId`、`pagination`、`确认`。
+
+context:
+  repo_fixture: evals/fixtures/runtime
+  files:
+    contracts/ambiguous.openapi.yaml: |
+      openapi: 3.0.3
+      info:
+        title: Ambiguous Menu API
+        version: 1.0.0
+      paths:
+        /api/v1/menus:
+          get:
+            responses:
+              '200':
+                description: 菜单结果
+                content:
+                  application/json: {}
+
+collect_artifacts:
+  - review.md
+
+expect:
+  exit_code: 0
+  files_exist:
+    - review.md
+  files_not_exist:
+    - api-ir.json
+    - client.ts
+    - integration-plan.json
+  file_contains:
+    - path: review.md
+      content: operationId
+    - path: review.md
+      content: success schema
+    - path: review.md
+      content: authentication
+    - path: review.md
+      content: pagination
+
+judge:
+  type: rule_based
+  success:
+    - files_exist:
+        - review.md
+    - files_not_exist:
+        - api-ir.json
+        - client.ts
+        - integration-plan.json
+    - output_contains:
+        all: [operationId, pagination, 确认]

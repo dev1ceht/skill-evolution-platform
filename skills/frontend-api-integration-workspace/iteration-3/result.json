@@ -1,0 +1,56 @@
+{
+  "skill_name": "frontend-api-integration",
+  "schema_version": "v1alpha1",
+  "engine_name": "codex",
+  "model_name": "",
+  "start_time": "2026-08-14T21:17:53.9685722+08:00",
+  "end_time": "2026-08-14T21:21:30.0340336+08:00",
+  "case_results": [
+    {
+      "case_id": "external-ref-stops",
+      "title": "无法解析外部引用时停止生成",
+      "status": "FAIL",
+      "duration_ms": 215893,
+      "turns": 1,
+      "input_tokens": 350100,
+      "output_tokens": 3428,
+      "grading": {
+        "status": "FAIL",
+        "turns_executed": 1,
+        "turns_total": 1,
+        "assertion_results": [
+          {
+            "text": "expect.exit_code",
+            "passed": true,
+            "evidence": "all checks passed"
+          },
+          {
+            "text": "expect.files_exist",
+            "passed": false,
+            "evidence": "expected file \"review.md\" does not exist"
+          },
+          {
+            "text": "expect.files_not_exist",
+            "passed": true,
+            "evidence": "all checks passed"
+          },
+          {
+            "text": "expect.file_contains",
+            "passed": false,
+            "evidence": "cannot read file \"review.md\": open C:\\Users\\th\\AppData\\Local\\Temp\\skill-up-1538744499\\review.md: The system cannot find the file specified.; cannot read file \"review.md\": open C:\\Users\\th\\AppData\\Local\\Temp\\skill-up-1538744499\\review.md: The system cannot find the file specified.; cannot read file \"review.md\": open C:\\Users\\th\\AppData\\Local\\Temp\\skill-up-1538744499\\review.md: The system cannot find the file specified.; cannot read file \"review.md\": open C:\\Users\\th\\AppData\\Local\\Temp\\skill-up-1538744499\\review.md: The system cannot find the file specified.; cannot read file \"review.md\": open C:\\Users\\th\\AppData\\Local\\Temp\\skill-up-1538744499\\review.md: The system cannot find the file specified."
+          }
+        ],
+        "summary": {
+          "passed": 2,
+          "failed": 2,
+          "total": 4,
+          "pass_rate": 0.5
+        }
+      },
+      "configuration": "with_skill",
+      "prompt": "请使用 frontend-api-integration Skill 审查 `contracts/external-ref.openapi.yaml`。\n`./common.yaml` 和 `./schemas.yaml` 是故意缺失的外部引用；请不要猜测它们的内容，\n也不要生成 api-ir.json、client.ts 或 integration-plan.json。\n\n只在 workspace 根目录生成 `review.md`。必须使用以下四个英文小节标题：\n`external reference`、`impact`、`required confirmation`、`next step`。\n在每一节中说明缺失引用的具体路径、为什么不能安全地生成 success schema/参数，\n以及补齐文件后才能继续的验证动作。\n",
+      "response": "无法完成：当前环境缺少 `codex-code-mode-host.exe`，本地读写工具均无法启动。因此未读取合同，也未生成任何文件。"
+    }
+  ],
+  "total_tokens": 353528
+}

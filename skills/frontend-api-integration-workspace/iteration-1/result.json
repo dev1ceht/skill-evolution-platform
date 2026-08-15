@@ -1,0 +1,25 @@
+{
+  "skill_name": "frontend-api-integration",
+  "schema_version": "v1alpha1",
+  "engine_name": "codex",
+  "model_name": "",
+  "start_time": "2026-08-14T21:11:09.3714293+08:00",
+  "end_time": "2026-08-14T21:11:12.1027007+08:00",
+  "case_results": [
+    {
+      "case_id": "external-ref-stops",
+      "title": "无法解析外部引用时停止生成",
+      "status": "ERROR",
+      "duration_ms": 212,
+      "turns": 1,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "error": "agent execution failed: codex run failed (exit 126): /usr/bin/bash: line 2: /c/Program Files/WindowsApps/OpenAI.Codex_26.803.10989.0_x64__2p2nqsd0c76g0/app/resources/codex: cannot execute binary file: Exec format error\n",
+      "grading": null,
+      "configuration": "with_skill",
+      "prompt": "请使用 frontend-api-integration Skill 审查 `contracts/external-ref.openapi.yaml`。\n`./common.yaml` 和 `./schemas.yaml` 是故意缺失的外部引用；请不要猜测它们的内容，\n也不要生成 api-ir.json、client.ts 或 integration-plan.json。\n\n只在 workspace 根目录生成 `review.md`。必须使用以下四个英文小节标题：\n`external reference`、`impact`、`required confirmation`、`next step`。\n在每一节中说明缺失引用的具体路径、为什么不能安全地生成 success schema/参数，\n以及补齐文件后才能继续的验证动作。\n",
+      "response": "/usr/bin/bash: line 2: /c/Program Files/WindowsApps/OpenAI.Codex_26.803.10989.0_x64__2p2nqsd0c76g0/app/resources/codex: cannot execute binary file: Exec format error\n"
+    }
+  ],
+  "total_tokens": 0
+}

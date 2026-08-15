@@ -1,0 +1,45 @@
+{
+  "expectations": [
+    {
+      "text": "expect.exit_code",
+      "passed": true,
+      "evidence": "all checks passed"
+    },
+    {
+      "text": "expect.files_exist",
+      "passed": true,
+      "evidence": "all checks passed"
+    },
+    {
+      "text": "expect.files_not_exist",
+      "passed": true,
+      "evidence": "all checks passed"
+    },
+    {
+      "text": "expect.file_contains",
+      "passed": true,
+      "evidence": "all checks passed"
+    },
+    {
+      "text": "files_exist: [review.md]",
+      "passed": true,
+      "evidence": "all required files exist"
+    },
+    {
+      "text": "files_not_exist: [api-ir.json client.ts integration-plan.json]",
+      "passed": true,
+      "evidence": "none of the forbidden files exist"
+    },
+    {
+      "text": "output_contains.all: missing [operationId pagination 确认]",
+      "passed": false,
+      "evidence": "output does not contain required keywords: [operationId pagination 确认]"
+    }
+  ],
+  "summary": {
+    "passed": 6,
+    "failed": 1,
+    "total": 7,
+    "pass_rate": 0.8571428571428571
+  }
+}

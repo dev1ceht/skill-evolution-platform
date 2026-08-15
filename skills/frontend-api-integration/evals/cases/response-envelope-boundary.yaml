@@ -1,0 +1,202 @@
+id: response-envelope-boundary
+title: 在现有 HTTP 边界适配统一响应包络
+description: |
+  验证 Skill 能依据 OpenAPI 契约生成类型化请求层，并在已有 HTTP 边界适配
+  {code, message, data} 成功包络和文档化业务错误，而不是让页面消费传输层包络。
+
+input:
+  prompt: |
+    请使用 frontend-api-integration Skill，为 `OrderListPage` 集成
+    `contracts/order.openapi.yaml` 中的订单查询和取消接口。
+
+    请先读取 references/api-ir.md、references/frontend-standards.md 和
+    references/testing-policy.md。以契约为证据，不要添加契约没有声明的字段、认证行为或错误码。
+    在 workspace 根目录生成：
+
+    - `api-ir.json`：记录 documentHash、两个 operation 以及 JSON Pointer provenance；
+    - `client.ts`：生成类型化请求层，复用现有 `src/api/httpClient.ts`，不要在 client.ts 中重新实现 raw fetch；
+    - `client.contract.test.ts`：覆盖 method、path、path/query 参数、成功包络和文档化的 401/409 错误；
+    - `handoff.md`：说明 `ApiEnvelope<T>` 在 HTTP 边界解包为页面使用的领域 data、业务错误如何保留，以及剩余人工工作。
+
+    成功响应严格按 `{code, message, data}` 处理，页面调用方应得到 `OrderPage` 或 `Order`，
+    不应被迫处理传输层包络。保留 `Authorization` bearer 认证这一契约事实，
+    但不要臆造 token 存储或刷新机制。请不要修改现有的 `src/api/httpClient.ts`。
+
+context:
+  repo_fixture: evals/fixtures/runtime
+  files:
+    contracts/order.openapi.yaml: |
+      openapi: 3.0.3
+      info:
+        title: Order API
+        version: 1.0.0
+      security:
+        - bearerAuth: []
+      paths:
+        /api/v1/orders:
+          get:
+            operationId: listOrders
+            tags: [orders]
+            parameters:
+              - name: page
+                in: query
+                required: false
+                schema:
+                  type: integer
+                  minimum: 1
+              - name: size
+                in: query
+                required: false
+                schema:
+                  type: integer
+                  minimum: 1
+            responses:
+              '200':
+                description: 分页订单
+                content:
+                  application/json:
+                    schema:
+                      $ref: '#/components/schemas/OrderPageResponse'
+              '401':
+                description: 未认证
+                content:
+                  application/json:
+                    schema:
+                      $ref: '#/components/schemas/ErrorResponse'
+        /api/v1/orders/{orderId}/cancel:
+          post:
+            operationId: cancelOrder
+            tags: [orders]
+            parameters:
+              - name: orderId
+                in: path
+                required: true
+                schema:
+                  type: string
+            requestBody:
+              required: true
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/CancelOrderRequest'
+            responses:
+              '200':
+                description: 取消结果
+                content:
+                  application/json:
+                    schema:
+                      $ref: '#/components/schemas/OrderResponse'
+              '409':
+                description: 订单状态冲突
+                content:
+                  application/json:
+                    schema:
+                      $ref: '#/components/schemas/ErrorResponse'
+      components:
+        securitySchemes:
+          bearerAuth:
+            type: http
+            scheme: bearer
+        schemas:
+          Order:
+            type: object
+            required: [id, status, total]
+            properties:
+              id: {type: string}
+              status: {type: string, enum: [PENDING, PAID, CANCELLED]}
+              total: {type: number}
+          OrderPage:
+            type: object
+            required: [items, total, page, size]
+            properties:
+              items:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Order'
+              total: {type: integer}
+              page: {type: integer}
+              size: {type: integer}
+          CancelOrderRequest:
+            type: object
+            required: [reason]
+            properties:
+              reason: {type: string}
+          OrderPageResponse:
+            type: object
+            required: [code, message, data]
+            properties:
+              code: {type: integer}
+              message: {type: string}
+              data:
+                $ref: '#/components/schemas/OrderPage'
+          OrderResponse:
+            type: object
+            required: [code, message, data]
+            properties:
+              code: {type: integer}
+              message: {type: string}
+              data:
+                $ref: '#/components/schemas/Order'
+          ErrorResponse:
+            type: object
+            required: [code, message]
+            properties:
+              code: {type: integer}
+              message: {type: string}
+    src/api/httpClient.ts: |
+      export type ApiEnvelope<T> = {
+        code: number;
+        message: string;
+        data?: T;
+      };
+
+      export async function request<T>(input: string, init?: RequestInit): Promise<ApiEnvelope<T>> {
+        const response = await fetch(input, init);
+        return response.json() as Promise<ApiEnvelope<T>>;
+      }
+
+collect_artifacts:
+  - api-ir.json
+  - client.ts
+  - client.contract.test.ts
+  - handoff.md
+
+expect:
+  exit_code: 0
+  files_exist:
+    - api-ir.json
+    - client.ts
+    - client.contract.test.ts
+    - handoff.md
+  file_contains:
+    - path: api-ir.json
+      content: listOrders
+    - path: api-ir.json
+      content: cancelOrder
+    - path: client.ts
+      content: ApiEnvelope
+    - path: client.ts
+      content: data
+    - path: client.ts
+      content: httpClient
+    - path: client.contract.test.ts
+      content: /api/v1/orders
+    - path: client.contract.test.ts
+      content: "401"
+    - path: client.contract.test.ts
+      content: "409"
+    - path: handoff.md
+      content: 业务错误
+
+judge:
+  type: rule_based
+  success:
+    - files_exist:
+        - api-ir.json
+        - client.ts
+        - client.contract.test.ts
+        - handoff.md
+    - files_not_exist:
+        - client.raw-fetch.ts
+    - output_contains:
+        all: [client.ts, httpClient, ApiEnvelope, "401", "409", data]

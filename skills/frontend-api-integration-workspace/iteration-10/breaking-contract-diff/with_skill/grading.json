@@ -1,0 +1,25 @@
+{
+  "expectations": [
+    {
+      "text": "expect.exit_code",
+      "passed": true,
+      "evidence": "all checks passed"
+    },
+    {
+      "text": "expect.files_exist",
+      "passed": true,
+      "evidence": "all checks passed"
+    },
+    {
+      "text": "expect.file_contains",
+      "passed": false,
+      "evidence": "file \"migration-plan.md\" does not contain \"rollback\""
+    }
+  ],
+  "summary": {
+    "passed": 2,
+    "failed": 1,
+    "total": 3,
+    "pass_rate": 0.6666666666666666
+  }
+}

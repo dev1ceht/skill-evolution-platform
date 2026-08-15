@@ -1,0 +1,415 @@
+{
+  "title": "Recipe Approval API",
+  "version": "1.0.0",
+  "documentHash": "fafbe9aca200c8135f0dc0f810f8e9c811deb250e3f9bea47bf1cf25788b14b3",
+  "schemas": {
+    "ApprovalState": {
+      "type": "string",
+      "enum": [
+        "DRAFT",
+        "PENDING_APPROVAL",
+        "APPROVED",
+        "REJECTED"
+      ]
+    },
+    "Alert": {
+      "type": "object",
+      "required": [
+        "id",
+        "code",
+        "status"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "code": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "OPEN",
+            "CLEARED"
+          ]
+        }
+      }
+    },
+    "RecipeApproval": {
+      "type": "object",
+      "required": [
+        "recipeId",
+        "state",
+        "version",
+        "alerts"
+      ],
+      "properties": {
+        "recipeId": {
+          "type": "string"
+        },
+        "state": {
+          "$ref": "#/components/schemas/ApprovalState"
+        },
+        "version": {
+          "type": "integer"
+        },
+        "alerts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/Alert"
+          }
+        }
+      }
+    },
+    "ApprovalDecision": {
+      "type": "object",
+      "required": [
+        "expectedVersion"
+      ],
+      "properties": {
+        "expectedVersion": {
+          "type": "integer"
+        },
+        "reason": {
+          "type": "string"
+        }
+      }
+    },
+    "InventoryReceiptRequest": {
+      "type": "object",
+      "required": [
+        "quantity",
+        "unit"
+      ],
+      "properties": {
+        "quantity": {
+          "type": "number"
+        },
+        "unit": {
+          "type": "string",
+          "enum": [
+            "GRAM",
+            "KILOGRAM"
+          ]
+        }
+      }
+    },
+    "InventoryReceipt": {
+      "type": "object",
+      "required": [
+        "recipeId",
+        "normalizedQuantity",
+        "normalizedUnit"
+      ],
+      "properties": {
+        "recipeId": {
+          "type": "string"
+        },
+        "normalizedQuantity": {
+          "type": "number"
+        },
+        "normalizedUnit": {
+          "type": "string",
+          "enum": [
+            "GRAM",
+            "KILOGRAM"
+          ]
+        }
+      }
+    },
+    "ApprovalResponse": {
+      "type": "object",
+      "required": [
+        "code",
+        "message",
+        "data"
+      ],
+      "properties": {
+        "code": {
+          "type": "integer"
+        },
+        "message": {
+          "type": "string"
+        },
+        "data": {
+          "$ref": "#/components/schemas/RecipeApproval"
+        }
+      }
+    },
+    "InventoryReceiptResponse": {
+      "type": "object",
+      "required": [
+        "code",
+        "message",
+        "data"
+      ],
+      "properties": {
+        "code": {
+          "type": "integer"
+        },
+        "message": {
+          "type": "string"
+        },
+        "data": {
+          "$ref": "#/components/schemas/InventoryReceipt"
+        }
+      }
+    },
+    "AlertResponse": {
+      "type": "object",
+      "required": [
+        "code",
+        "message",
+        "data"
+      ],
+      "properties": {
+        "code": {
+          "type": "integer"
+        },
+        "message": {
+          "type": "string"
+        },
+        "data": {
+          "$ref": "#/components/schemas/Alert"
+        }
+      }
+    },
+    "ErrorResponse": {
+      "type": "object",
+      "required": [
+        "code",
+        "message"
+      ],
+      "properties": {
+        "code": {
+          "type": "integer"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "operations": [
+    {
+      "operationId": "clearRecipeAlert",
+      "method": "POST",
+      "path": "/api/v1/recipes/{recipeId}/alerts/{alertId}/clear",
+      "tags": [
+        "default"
+      ],
+      "parameters": [
+        {
+          "name": "recipeId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "alertId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "Idempotency-Key",
+          "in": "header",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "requestBody": null,
+      "responses": {
+        "200": {
+          "description": "告警清除结果",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlertResponse"
+              }
+            }
+          }
+        },
+        "409": {
+          "description": "入库尚未完成",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ErrorResponse"
+              }
+            }
+          }
+        }
+      },
+      "provenance": {
+        "documentHash": "fafbe9aca200c8135f0dc0f810f8e9c811deb250e3f9bea47bf1cf25788b14b3",
+        "pointer": "/paths/~1api~1v1~1recipes~1{recipeId}~1alerts~1{alertId}~1clear/post"
+      }
+    },
+    {
+      "operationId": "getRecipeApproval",
+      "method": "GET",
+      "path": "/api/v1/recipes/{recipeId}/approval",
+      "tags": [
+        "default"
+      ],
+      "parameters": [
+        {
+          "name": "recipeId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "requestBody": null,
+      "responses": {
+        "200": {
+          "description": "审批详情",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApprovalResponse"
+              }
+            }
+          }
+        }
+      },
+      "provenance": {
+        "documentHash": "fafbe9aca200c8135f0dc0f810f8e9c811deb250e3f9bea47bf1cf25788b14b3",
+        "pointer": "/paths/~1api~1v1~1recipes~1{recipeId}~1approval/get"
+      }
+    },
+    {
+      "operationId": "approveRecipe",
+      "method": "POST",
+      "path": "/api/v1/recipes/{recipeId}/approval/approve",
+      "tags": [
+        "default"
+      ],
+      "parameters": [
+        {
+          "name": "recipeId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "Idempotency-Key",
+          "in": "header",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ApprovalDecision"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "审批通过",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApprovalResponse"
+              }
+            }
+          }
+        },
+        "409": {
+          "description": "版本或状态冲突",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ErrorResponse"
+              }
+            }
+          }
+        }
+      },
+      "provenance": {
+        "documentHash": "fafbe9aca200c8135f0dc0f810f8e9c811deb250e3f9bea47bf1cf25788b14b3",
+        "pointer": "/paths/~1api~1v1~1recipes~1{recipeId}~1approval~1approve/post"
+      }
+    },
+    {
+      "operationId": "receiveInventory",
+      "method": "POST",
+      "path": "/api/v1/recipes/{recipeId}/inventory/receive",
+      "tags": [
+        "default"
+      ],
+      "parameters": [
+        {
+          "name": "recipeId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "Idempotency-Key",
+          "in": "header",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/InventoryReceiptRequest"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "入库结果",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InventoryReceiptResponse"
+              }
+            }
+          }
+        },
+        "409": {
+          "description": "审批尚未通过或版本冲突",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ErrorResponse"
+              }
+            }
+          }
+        }
+      },
+      "provenance": {
+        "documentHash": "fafbe9aca200c8135f0dc0f810f8e9c811deb250e3f9bea47bf1cf25788b14b3",
+        "pointer": "/paths/~1api~1v1~1recipes~1{recipeId}~1inventory~1receive/post"
+      }
+    }
+  ]
+}

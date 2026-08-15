@@ -1,0 +1,263 @@
+{
+  "skill_name": "frontend-api-integration",
+  "schema_version": "v1alpha1",
+  "engine_name": "codex",
+  "model_name": "",
+  "start_time": "2026-08-15T14:56:15.5422079+08:00",
+  "end_time": "2026-08-15T15:29:27.1086208+08:00",
+  "case_results": [
+    {
+      "case_id": "basic-integration-plan",
+      "title": "生成可追溯的前端 API 集成计划",
+      "status": "ERROR",
+      "duration_ms": 242139,
+      "turns": 1,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "error": "agent execution failed: codex run failed: context deadline exceeded (case timeout 240s via cases.defaults.timeout_seconds)",
+      "grading": null,
+      "configuration": "with_skill",
+      "prompt": "请使用已安装的 frontend-api-integration Skill，为 `MenuApprovalPage` 集成\n`contracts/menu.openapi.yaml` 中的菜单查询和提交接口。\n\n请先读取相关 references，并以契约为证据，不要补写契约中没有的字段或认证行为。\n在 workspace 根目录生成以下文件：\n\n- `api-ir.json`：包含 `documentHash`、每个 operation 的 JSON Pointer provenance；\n- `integration-plan.json`：包含页面名 `MenuApprovalPage`、依赖、loading/empty/error 状态、mock 工作和验证工作；\n- `handoff.md`：记录生成文件、假设、测试证据和剩余人工工作。\n\n保留现有 `src/api/httpClient.ts`，不要修改共享 HTTP 基础设施。\n",
+      "response": "三个交付文件已生成：`api-ir.json` 由规范化脚本产生，`integration-plan.json` 明确记录两个接口及页面状态/mock/验证工作，`handoff.md` 记录了契约 hash、假设和缺失基础设施。现在进行 JSON、provenance、文档 hash 与 `httpClient.ts` 未修改核验。"
+    },
+    {
+      "case_id": "ambiguous-contract-stops",
+      "title": "契约存在关键歧义时停止生成",
+      "status": "PASS",
+      "duration_ms": 94461,
+      "turns": 1,
+      "input_tokens": 303431,
+      "output_tokens": 3999,
+      "grading": {
+        "status": "PASS",
+        "turns_executed": 1,
+        "turns_total": 1,
+        "assertion_results": [
+          {
+            "text": "expect.exit_code",
+            "passed": true,
+            "evidence": "all checks passed"
+          },
+          {
+            "text": "expect.files_exist",
+            "passed": true,
+            "evidence": "all checks passed"
+          },
+          {
+            "text": "expect.files_not_exist",
+            "passed": true,
+            "evidence": "all checks passed"
+          },
+          {
+            "text": "expect.file_contains",
+            "passed": true,
+            "evidence": "all checks passed"
+          },
+          {
+            "text": "files_exist: [review.md]",
+            "passed": true,
+            "evidence": "all required files exist"
+          },
+          {
+            "text": "files_not_exist: [api-ir.json client.ts integration-plan.json]",
+            "passed": true,
+            "evidence": "none of the forbidden files exist"
+          },
+          {
+            "text": "output_contains{all:[operationId pagination 确认]}",
+            "passed": true,
+            "evidence": "output satisfies all contains checks (all:[operationId pagination 确认])"
+          }
+        ],
+        "summary": {
+          "passed": 7,
+          "failed": 0,
+          "total": 7,
+          "pass_rate": 1
+        }
+      },
+      "configuration": "with_skill",
+      "prompt": "请使用 frontend-api-integration Skill 审查 `contracts/ambiguous.openapi.yaml`。\n\n这个契约故意省略了 operationId、成功响应 schema、认证要求和明确的分页模式。\n请不要生成 API client、API IR 或 integration plan，也不要自行推断这些信息。\n只在 workspace 根目录生成 `review.md`，其中必须使用以下四个英文小节标题：\n`operationId`、`success schema`、`authentication`、`pagination`。\n每节说明缺失证据、风险和需要用户确认的问题。\n最后回复必须包含：`operationId`、`pagination`、`确认`。\n",
+      "response": "已完成审查，结果写入 [review.md](\u003cC:/Users/th/AppData/Local/Temp/skill-up-3406675846/review.md\u003e)。\n\n文件包含四个指定小节：`operationId`、`success schema`、`authentication`、`pagination`，并分别说明了缺失证据、风险与待确认事项。未生成 API client、API IR 或 integration plan。"
+    },
+    {
+      "case_id": "ref-parameters-and-wire-names",
+      "title": "解析参数引用并保留 wire 名称",
+      "status": "PASS",
+      "duration_ms": 210721,
+      "turns": 1,
+      "input_tokens": 1048848,
+      "output_tokens": 10514,
+      "grading": {
+        "status": "PASS",
+        "turns_executed": 1,
+        "turns_total": 1,
+        "assertion_results": [
+          {
+            "text": "expect.exit_code",
+            "passed": true,
+            "evidence": "all checks passed"
+          },
+          {
+            "text": "expect.files_exist",
+            "passed": true,
+            "evidence": "all checks passed"
+          },
+          {
+            "text": "expect.file_contains",
+            "passed": true,
+            "evidence": "all checks passed"
+          },
+          {
+            "text": "files_exist: [api-ir.json client.ts client.contract.test.ts]",
+            "passed": true,
+            "evidence": "all required files exist"
+          },
+          {
+            "text": "output_contains{all:[encodeURIComponent Idempotency-Key resource-id client.contract.test.ts]}",
+            "passed": true,
+            "evidence": "output satisfies all contains checks (all:[encodeURIComponent Idempotency-Key resource-id client.contract.test.ts])"
+          }
+        ],
+        "summary": {
+          "passed": 5,
+          "failed": 0,
+          "total": 5,
+          "pass_rate": 1
+        }
+      },
+      "configuration": "with_skill",
+      "prompt": "请使用 frontend-api-integration Skill 处理 `contracts/resource.openapi.yaml`，为资源详情页生成请求层和契约测试。\n\n必须解析本地 `components.parameters` 引用。请在 workspace 根目录生成：\n\n- `api-ir.json`；\n- `client.ts`；\n- `client.contract.test.ts`。\n\n`client.ts` 中的 TypeScript 参数名可以是安全的 camelCase 标识符，但 HTTP 请求必须保留原始 `resource-id` 路径占位符和 `Idempotency-Key` Header 名称；路径参数必须经过 `encodeURIComponent`。不要把 wire 名称改成 TypeScript 名称。\n",
+      "response": "已按 `frontend-api-integration` Skill 完成，文件已生成于 workspace 根目录：\n\n- [api-ir.json](\u003cC:/Users/th/AppData/Local/Temp/skill-up-2517034966/api-ir.json\u003e)\n- [client.ts](\u003cC:/Users/th/AppData/Local/Temp/skill-up-2517034966/client.ts\u003e)\n- [client.contract.test.ts](\u003cC:/Users/th/AppData/Local/Temp/skill-up-2517034966/client.contract.test.ts\u003e)\n\n已解析本地 `components.parameters` 引用，并保留：\n\n- `{resource-id}` wire 路径占位符\n- `Idempotency-Key` Header\n- `encodeURIComponent` 路径参数编码\n\n规范化一致性和静态契约检查通过；环境未安装 `tsc`/`vitest`，因此未运行编译和 Vitest。"
+    },
+    {
+      "case_id": "breaking-contract-diff",
+      "title": "识别 breaking contract change 并先给出迁移计划",
+      "status": "FAIL",
+      "duration_ms": 158902,
+      "turns": 1,
+      "input_tokens": 577495,
+      "output_tokens": 8809,
+      "grading": {
+        "status": "FAIL",
+        "turns_executed": 1,
+        "turns_total": 1,
+        "assertion_results": [
+          {
+            "text": "expect.exit_code",
+            "passed": true,
+            "evidence": "all checks passed"
+          },
+          {
+            "text": "expect.files_exist",
+            "passed": true,
+            "evidence": "all checks passed"
+          },
+          {
+            "text": "expect.file_contains",
+            "passed": false,
+            "evidence": "file \"migration-plan.md\" does not contain \"rollback\""
+          }
+        ],
+        "summary": {
+          "passed": 2,
+          "failed": 1,
+          "total": 3,
+          "pass_rate": 0.6666666666666666
+        }
+      },
+      "configuration": "with_skill",
+      "prompt": "请使用 frontend-api-integration Skill 比较 `contracts/old.openapi.yaml` 和 `contracts/new.openapi.yaml`。\n\n请先分别规范化两个契约，再在 workspace 根目录生成：\n\n- `api-ir.before.json`；\n- `api-ir.after.json`；\n- `contract-diff.json`：必须记录 `beforeHash`、`afterHash` 和 `breaking`；\n- `migration-plan.md`：必须列出受影响的页面、client、mock、tests、发布顺序和回滚注意事项。\n\n新契约把可选的 `status` 查询参数改成必填，并收窄了 enum。请将其分类为 breaking，在迁移任务完成或获得批准前不要直接更新 typed client。\n",
+      "response": "已完成，使用 `frontend-api-integration` Skill 处理：\n\n- [api-ir.before.json](C:/Users/th/AppData/Local/Temp/skill-up-1282122738/api-ir.before.json)\n- [api-ir.after.json](C:/Users/th/AppData/Local/Temp/skill-up-1282122738/api-ir.after.json)\n- [contract-diff.json](C:/Users/th/AppData/Local/Temp/skill-up-1282122738/contract-diff.json)\n- [migration-plan.md](C:/Users/th/AppData/Local/Temp/skill-up-1282122738/migration-plan.md)\n\n`contract-diff.json` 已将 `status` 变为必填及 enum 收窄均分类为 breaking，并记录 `beforeHash`、`afterHash`。workspace 中没有现成 typed client，因此未直接更新。所有输出已通过一致性校验。"
+    },
+    {
+      "case_id": "response-envelope-boundary",
+      "title": "在现有 HTTP 边界适配统一响应包络",
+      "status": "ERROR",
+      "duration_ms": 242131,
+      "turns": 1,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "error": "agent execution failed: codex run failed: context deadline exceeded (case timeout 240s via cases.defaults.timeout_seconds)",
+      "grading": null,
+      "configuration": "with_skill",
+      "prompt": "请使用 frontend-api-integration Skill，为 `OrderListPage` 集成\n`contracts/order.openapi.yaml` 中的订单查询和取消接口。\n\n请先读取 references/api-ir.md、references/frontend-standards.md 和\nreferences/testing-policy.md。以契约为证据，不要添加契约没有声明的字段、认证行为或错误码。\n在 workspace 根目录生成：\n\n- `api-ir.json`：记录 documentHash、两个 operation 以及 JSON Pointer provenance；\n- `client.ts`：生成类型化请求层，复用现有 `src/api/httpClient.ts`，不要在 client.ts 中重新实现 raw fetch；\n- `client.contract.test.ts`：覆盖 method、path、path/query 参数、成功包络和文档化的 401/409 错误；\n- `handoff.md`：说明 `ApiEnvelope\u003cT\u003e` 在 HTTP 边界解包为页面使用的领域 data、业务错误如何保留，以及剩余人工工作。\n\n成功响应严格按 `{code, message, data}` 处理，页面调用方应得到 `OrderPage` 或 `Order`，\n不应被迫处理传输层包络。保留 `Authorization` bearer 认证这一契约事实，\n但不要臆造 token 存储或刷新机制。请不要修改现有的 `src/api/httpClient.ts`。\n",
+      "response": "契约确认只有两个 operation：\n\n- `GET /api/v1/orders`：可选 `page`、`size`，成功数据为 `OrderPage`，文档化 `401`。\n- `POST /api/v1/orders/{orderId}/cancel`：必需 `orderId` 和 `reason`，成功数据为 `Order`，文档化 `409`。\n\n仓库目前没有 `OrderListPage` 源码或测试配置，只有 `src/api/httpClient.ts`；因此本次会生成可供页面调用的边界层与契约测试，并在交接中标明页面接线仍需人工完成。`httpClient` 当前不暴露 HTTP status，我会保留契约错误体的 `code/message`，不猜测具体错误码。"
+    },
+    {
+      "case_id": "stateful-approval-workflow",
+      "title": "保持审批闭环中的状态转换与单位信息",
+      "status": "ERROR",
+      "duration_ms": 242132,
+      "turns": 1,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "error": "agent execution failed: codex run failed: context deadline exceeded (case timeout 240s via cases.defaults.timeout_seconds)",
+      "grading": null,
+      "configuration": "with_skill",
+      "prompt": "请使用 frontend-api-integration Skill，为 `RecipeApprovalPage` 集成\n`contracts/recipe-approval.openapi.yaml`，并读取 `src/features/recipeApproval/workflow.md`\n中已经确认的页面业务顺序。\n\n请先读取 references/api-ir.md、references/frontend-standards.md、\nreferences/testing-policy.md 和 references/versioning-policy.md。\n在 workspace 根目录生成：\n\n- `api-ir.json`：包含四个操作及其 JSON Pointer provenance；\n- `integration-plan.json`：明确列出从 getRecipeApproval 开始的页面数据边界，\n  `PENDING_APPROVAL` 下才能 approve/reject，approve 成功后才能 receiveInventory，\n  receiveInventory 成功后才允许 clearRecipeAlert；同时覆盖 loading、empty、error、retry、mock 和 test；\n- `client.contract.test.ts`：覆盖四个操作的 method/path、`expectedVersion`、`quantity`、`unit` 和\n  `Idempotency-Key`；\n- `handoff.md`：记录状态机、失败时不可越过的步骤、服务端返回的 normalizedQuantity/normalizedUnit，\n  以及剩余人工联调工作。\n\n不要把单位字段丢掉或擅自把数量转换成另一个单位；按 workflow.md 将用户输入的 quantity 和 unit\n发送给后端，并消费后端返回的 normalizedQuantity/normalizedUnit。相同用户动作的重试必须复用同一个\n`Idempotency-Key`。不要修改共享 HTTP 基础设施，也不要在失败步骤后自动清除告警。\n",
+      "response": "已确认 contract 只有四个 operation，且 `workflow.md` 要求的 `rejectRecipe` 不在 contract 中；我会把它作为明确的 contract gap 记录，绝不把 `reject` 伪装成 `approveRecipe`。现在先用 Skill 的生成器产出 contract-test 骨架，再补齐字段保持、重试 key 和页面状态断言所需的具体覆盖。"
+    },
+    {
+      "case_id": "external-ref-stops",
+      "title": "无法解析外部引用时停止生成",
+      "status": "PASS",
+      "duration_ms": 67245,
+      "turns": 1,
+      "input_tokens": 135419,
+      "output_tokens": 3081,
+      "grading": {
+        "status": "PASS",
+        "turns_executed": 1,
+        "turns_total": 1,
+        "assertion_results": [
+          {
+            "text": "expect.exit_code",
+            "passed": true,
+            "evidence": "all checks passed"
+          },
+          {
+            "text": "expect.files_exist",
+            "passed": true,
+            "evidence": "all checks passed"
+          },
+          {
+            "text": "expect.files_not_exist",
+            "passed": true,
+            "evidence": "all checks passed"
+          },
+          {
+            "text": "expect.file_contains",
+            "passed": true,
+            "evidence": "all checks passed"
+          },
+          {
+            "text": "files_exist: [review.md]",
+            "passed": true,
+            "evidence": "all required files exist"
+          },
+          {
+            "text": "files_not_exist: [api-ir.json client.ts integration-plan.json]",
+            "passed": true,
+            "evidence": "none of the forbidden files exist"
+          },
+          {
+            "text": "output_contains{all:[external reference review.md stop common.yaml schemas.yaml]}",
+            "passed": true,
+            "evidence": "output satisfies all contains checks (all:[external reference review.md stop common.yaml schemas.yaml])"
+          }
+        ],
+        "summary": {
+          "passed": 7,
+          "failed": 0,
+          "total": 7,
+          "pass_rate": 1
+        }
+      },
+      "configuration": "with_skill",
+      "prompt": "请使用 frontend-api-integration Skill 审查 `contracts/external-ref.openapi.yaml`。\n`./common.yaml` 和 `./schemas.yaml` 是故意缺失的外部引用；请不要猜测它们的内容，\n也不要生成 api-ir.json、client.ts 或 integration-plan.json。\n\n只在 workspace 根目录生成 `review.md`。必须使用以下四个英文小节标题：\n`external reference`、`impact`、`required confirmation`、`next step`。\n在每一节中说明缺失引用的具体路径、为什么不能安全地生成 success schema/参数，\n以及补齐文件后才能继续的验证动作。\n不要运行额外的 shell 验证命令；直接依据契约写入 review.md。最后回复必须包含一行：\n`external reference: common.yaml, schemas.yaml; stop: yes`。\n",
+      "response": "已依据契约写入 [review.md](C:/Users/th/AppData/Local/Temp/skill-up-1974116655/review.md)，未生成其他文件，也未运行额外验证命令。\n\nexternal reference: common.yaml, schemas.yaml; stop: yes"
+    }
+  ],
+  "total_tokens": 2091596
+}

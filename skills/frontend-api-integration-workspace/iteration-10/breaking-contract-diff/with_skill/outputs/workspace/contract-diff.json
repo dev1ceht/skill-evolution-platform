@@ -1,0 +1,28 @@
+{
+  "added": [],
+  "removed": [],
+  "changed": [
+    {
+      "method": "GET",
+      "path": "/api/v1/items",
+      "breakingReasons": [
+        "parameter-became-required:query:status",
+        "parameter-schema-narrowed:query:status"
+      ]
+    }
+  ],
+  "breaking": [
+    {
+      "type": "parameter-became-required:query:status",
+      "method": "GET",
+      "path": "/api/v1/items"
+    },
+    {
+      "type": "parameter-schema-narrowed:query:status",
+      "method": "GET",
+      "path": "/api/v1/items"
+    }
+  ],
+  "beforeHash": "ae3604a06f69abdbf99292a146cdaf5987a782447ec8b5677b1b25547dee9b43",
+  "afterHash": "d0aa8ad646473fdf3b4b6820dd8d182f3e137c11c095b5cbcc6f15d5a6d5701e"
+}

@@ -1,0 +1,75 @@
+id: external-ref-stops
+title: 无法解析外部引用时停止生成
+description: |
+  验证 Skill 遇到缺失的外部 OpenAPI $ref 时，不会生成不完整的 API IR、客户端或集成计划，
+  而是报告具体引用、影响和需要确认的下一步。
+
+input:
+  prompt: |
+    请使用 frontend-api-integration Skill 审查 `contracts/external-ref.openapi.yaml`。
+    `./common.yaml` 和 `./schemas.yaml` 是故意缺失的外部引用；请不要猜测它们的内容，
+    也不要生成 api-ir.json、client.ts 或 integration-plan.json。
+
+    只在 workspace 根目录生成 `review.md`。必须使用以下四个英文小节标题：
+    `external reference`、`impact`、`required confirmation`、`next step`。
+    在每一节中说明缺失引用的具体路径、为什么不能安全地生成 success schema/参数，
+    以及补齐文件后才能继续的验证动作。
+    不要运行额外的 shell 验证命令；直接依据契约写入 review.md。最后回复必须包含一行：
+    `external reference: common.yaml, schemas.yaml; stop: yes`。
+
+context:
+  repo_fixture: evals/fixtures/runtime
+  files:
+    contracts/external-ref.openapi.yaml: |
+      openapi: 3.0.3
+      info:
+        title: External Reference API
+        version: 1.0.0
+      paths:
+        /api/v1/resources/{resourceId}:
+          get:
+            operationId: getResource
+            parameters:
+              - $ref: './common.yaml#/components/parameters/ResourceId'
+            responses:
+              '200':
+                description: resource detail
+                content:
+                  application/json:
+                    schema:
+                      $ref: './schemas.yaml#/components/schemas/ResourceResponse'
+
+collect_artifacts:
+  - review.md
+
+expect:
+  exit_code: 0
+  files_exist:
+    - review.md
+  files_not_exist:
+    - api-ir.json
+    - client.ts
+    - integration-plan.json
+  file_contains:
+    - path: review.md
+      content: external reference
+    - path: review.md
+      content: common.yaml
+    - path: review.md
+      content: schemas.yaml
+    - path: review.md
+      content: success schema
+    - path: review.md
+      content: required confirmation
+
+judge:
+  type: rule_based
+  success:
+    - files_exist:
+        - review.md
+    - files_not_exist:
+        - api-ir.json
+        - client.ts
+        - integration-plan.json
+    - output_contains:
+        all: [external reference, review.md, stop, common.yaml, schemas.yaml]

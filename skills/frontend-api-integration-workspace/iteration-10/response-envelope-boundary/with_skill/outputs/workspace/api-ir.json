@@ -1,0 +1,232 @@
+{
+  "title": "Order API",
+  "version": "1.0.0",
+  "documentHash": "7e787f187593b83af4b20b91bc718b5d6164ae98fa97ff152703723b434a4309",
+  "schemas": {
+    "Order": {
+      "type": "object",
+      "required": [
+        "id",
+        "status",
+        "total"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "PENDING",
+            "PAID",
+            "CANCELLED"
+          ]
+        },
+        "total": {
+          "type": "number"
+        }
+      }
+    },
+    "OrderPage": {
+      "type": "object",
+      "required": [
+        "items",
+        "total",
+        "page",
+        "size"
+      ],
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/Order"
+          }
+        },
+        "total": {
+          "type": "integer"
+        },
+        "page": {
+          "type": "integer"
+        },
+        "size": {
+          "type": "integer"
+        }
+      }
+    },
+    "CancelOrderRequest": {
+      "type": "object",
+      "required": [
+        "reason"
+      ],
+      "properties": {
+        "reason": {
+          "type": "string"
+        }
+      }
+    },
+    "OrderPageResponse": {
+      "type": "object",
+      "required": [
+        "code",
+        "message",
+        "data"
+      ],
+      "properties": {
+        "code": {
+          "type": "integer"
+        },
+        "message": {
+          "type": "string"
+        },
+        "data": {
+          "$ref": "#/components/schemas/OrderPage"
+        }
+      }
+    },
+    "OrderResponse": {
+      "type": "object",
+      "required": [
+        "code",
+        "message",
+        "data"
+      ],
+      "properties": {
+        "code": {
+          "type": "integer"
+        },
+        "message": {
+          "type": "string"
+        },
+        "data": {
+          "$ref": "#/components/schemas/Order"
+        }
+      }
+    },
+    "ErrorResponse": {
+      "type": "object",
+      "required": [
+        "code",
+        "message"
+      ],
+      "properties": {
+        "code": {
+          "type": "integer"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "operations": [
+    {
+      "operationId": "listOrders",
+      "method": "GET",
+      "path": "/api/v1/orders",
+      "tags": [
+        "orders"
+      ],
+      "parameters": [
+        {
+          "name": "page",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        {
+          "name": "size",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      ],
+      "requestBody": null,
+      "responses": {
+        "200": {
+          "description": "分页订单",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrderPageResponse"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "未认证",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ErrorResponse"
+              }
+            }
+          }
+        }
+      },
+      "provenance": {
+        "documentHash": "7e787f187593b83af4b20b91bc718b5d6164ae98fa97ff152703723b434a4309",
+        "pointer": "/paths/~1api~1v1~1orders/get"
+      }
+    },
+    {
+      "operationId": "cancelOrder",
+      "method": "POST",
+      "path": "/api/v1/orders/{orderId}/cancel",
+      "tags": [
+        "orders"
+      ],
+      "parameters": [
+        {
+          "name": "orderId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/CancelOrderRequest"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "取消结果",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrderResponse"
+              }
+            }
+          }
+        },
+        "409": {
+          "description": "订单状态冲突",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ErrorResponse"
+              }
+            }
+          }
+        }
+      },
+      "provenance": {
+        "documentHash": "7e787f187593b83af4b20b91bc718b5d6164ae98fa97ff152703723b434a4309",
+        "pointer": "/paths/~1api~1v1~1orders~1{orderId}~1cancel/post"
+      }
+    }
+  ]
+}

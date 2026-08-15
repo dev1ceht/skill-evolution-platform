@@ -1,0 +1,74 @@
+{
+  "metadata": {
+    "skill_name": "frontend-api-integration",
+    "skill_path": "D:\\project\\skill-evolution-platform\\skills\\frontend-api-integration",
+    "timestamp": "2026-08-14T13:21:30Z",
+    "evals_run": [
+      0
+    ],
+    "runs_per_configuration": 1
+  },
+  "runs": [
+    {
+      "eval_id": 0,
+      "eval_name": "无法解析外部引用时停止生成",
+      "configuration": "with_skill",
+      "run_number": 3,
+      "result": {
+        "pass_rate": 0.5,
+        "passed": 2,
+        "failed": 2,
+        "total": 4,
+        "time_seconds": 215.893,
+        "tokens": 353528,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "expect.exit_code",
+          "passed": true,
+          "evidence": "all checks passed"
+        },
+        {
+          "text": "expect.files_exist",
+          "passed": false,
+          "evidence": "expected file \"review.md\" does not exist"
+        },
+        {
+          "text": "expect.files_not_exist",
+          "passed": true,
+          "evidence": "all checks passed"
+        },
+        {
+          "text": "expect.file_contains",
+          "passed": false,
+          "evidence": "cannot read file \"review.md\": open C:\\Users\\th\\AppData\\Local\\Temp\\skill-up-1538744499\\review.md: The system cannot find the file specified.; cannot read file \"review.md\": open C:\\Users\\th\\AppData\\Local\\Temp\\skill-up-1538744499\\review.md: The system cannot find the file specified.; cannot read file \"review.md\": open C:\\Users\\th\\AppData\\Local\\Temp\\skill-up-1538744499\\review.md: The system cannot find the file specified.; cannot read file \"review.md\": open C:\\Users\\th\\AppData\\Local\\Temp\\skill-up-1538744499\\review.md: The system cannot find the file specified.; cannot read file \"review.md\": open C:\\Users\\th\\AppData\\Local\\Temp\\skill-up-1538744499\\review.md: The system cannot find the file specified."
+        }
+      ]
+    }
+  ],
+  "run_summary": {
+    "with_skill": {
+      "pass_rate": {
+        "mean": 0.5,
+        "stddev": 0,
+        "min": 0.5,
+        "max": 0.5
+      },
+      "time_seconds": {
+        "mean": 215.893,
+        "stddev": 0,
+        "min": 215.893,
+        "max": 215.893
+      },
+      "tokens": {
+        "mean": 353528,
+        "stddev": 0,
+        "min": 353528,
+        "max": 353528
+      }
+    },
+    "without_skill": null,
+    "delta": null
+  }
+}
