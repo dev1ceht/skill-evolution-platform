@@ -11,6 +11,7 @@
 | PROCUREMENT-001 供应商、订单、状态、金额、收货 | `ProcurementOperationsService`、`JdbcOperationalStore`、`purchase_*` 表 | `OperationalCoreHttpTest`：金额服务端计算、状态迁移、订单幂等、收货幂等 | 已完成 |
 | INVENTORY-001 批次库存、单位换算、预警、出库回滚 | `inventory_batches`、`inventory`、`stock_out_*`、`UnitConverter` | `OperationalCoreHttpTest`：入库、库存查询、溯源、库存不足和幂等键冲突 | 已完成 |
 | DASHBOARD-001 首页摘要、风险因素、溯源 | `DashboardService`、`dashboard/*`、`traceability/{traceCode}`、`OperationsOverview.vue` | HTTP 测试 + `OperationsOverview.test.ts`：实时摘要、风险、加载/错误/空状态 | 已完成 |
+| AGENT-RUNTIME-001 结构化只读意图、Run 持久化、幂等、范围鉴权和前端结果展示 | `agent/application/*`、`AgentController`、`V11__create_agent_runtime_state.sql`、`AgentTraceabilityWorkspace.vue` | `AgentRuntimeTest`、`AgentControllerHttpTest`、`AgentAuthorizationHttpTest`、`AgentTraceabilityWorkspace.test.ts`：成功、失败、重放、同键异参、越权和空/错状态 | 只读 MVP 已完成 |
 | EXTERNAL-001 第三方/设备/通知端口边界 | `application/port/*Gateway`、现有预警中心、阶段计划 deferred 清单 | 契约保留归一化预警路径；没有厂商凭据不宣称已连接 | 按边界交付 |
 
 ## 关键不变量
@@ -21,3 +22,5 @@
 - 收货、库存变更、批次和溯源记录位于同一事务；库存不足时整笔出库回滚。
 - refresh token 只保存 SHA-256 摘要，轮换或注销后旧 token 不能继续使用。
 - Flyway V1-V4 不改写；V5 只追加运营表和库存阈值字段。
+- Agent 业务请求必须显式携带范围，身份从服务端认证主体构造；同一幂等键同载荷重放 Run，不同载荷拒绝。
+- 只读溯源失败必须以 `FAILED` Run 和工具错误原因持久化，不能把未知溯源码伪装成成功。

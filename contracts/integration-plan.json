@@ -1,0 +1,98 @@
+{
+  "feature": "smart-canteen-core-workflow",
+  "contract": "smart-canteen.openapi.yaml",
+  "pages": [
+    {
+      "page": "AuthPanel",
+      "operations": ["login", "refreshToken", "logout", "currentUser"],
+      "states": ["logged-out", "submitting", "authenticated", "business-error"],
+      "dependencies": []
+    },
+    {
+      "page": "OperationsOverview",
+      "operations": ["getDashboardSummary", "getDashboardRisk", "listInventory"],
+      "states": ["loading", "empty", "ready", "business-error"],
+      "dependencies": ["AuthPanel:authenticated"]
+    },
+    {
+      "page": "CatalogPage",
+      "operations": ["listIngredients", "createIngredient", "updateIngredient", "listDishes", "createDish", "updateDish"],
+      "states": ["loading", "empty", "ready", "submitting", "business-error"],
+      "dependencies": ["AuthPanel:authenticated"]
+    },
+    {
+      "page": "DailyMenuPage",
+      "operations": ["listDailyMenus", "saveDailyMenu", "publishDailyMenu"],
+      "states": ["loading", "empty", "ready", "submitting", "business-error"],
+      "dependencies": ["CatalogPage:dishes-ready"]
+    },
+    {
+      "page": "MenuApprovalPage",
+      "operations": ["submitMenu", "decideMenuApproval"],
+      "states": ["loading", "ready", "submitting", "success", "business-error"],
+      "dependencies": ["RecipeImportPage:imported"]
+    },
+    {
+      "page": "RecipeImportPage",
+      "operations": ["importMenuRecipe"],
+      "states": ["loading", "ready", "submitting", "success", "business-error"],
+      "dependencies": []
+    },
+    {
+      "page": "ProcurementWorkbenchPage",
+      "operations": ["generateProcurementPlan", "receiveInventory", "listSuppliers", "createSupplier", "listPurchaseOrders", "createPurchaseOrder", "transitionPurchaseOrder", "receivePurchaseOrder", "stockOutInventory"],
+      "states": ["loading", "empty", "ready", "submitting", "business-error"],
+      "dependencies": ["MenuApprovalPage:APPROVED"]
+    },
+    {
+      "page": "UnifiedProcurementPlanPage",
+      "operations": ["listProcurementPlans", "getProcurementPlan", "generateProcurementPlanRange", "adjustProcurementPlan", "confirmProcurementPlan", "cancelProcurementPlan", "createPurchaseOrderFromPlan", "listSuppliers"],
+      "states": ["loading", "empty", "ready", "editing", "confirming", "converted", "cancelled", "business-error"],
+      "dependencies": ["DailyMenuPage:PUBLISHED", "AuthPanel:authenticated"]
+    },
+    {
+      "page": "PurchaseOrderFulfillmentPage",
+      "operations": ["listPurchaseOrders", "transitionPurchaseOrder", "receivePurchaseOrder"],
+      "states": ["loading", "empty", "draft", "submitted", "confirmed", "partially-received", "received", "business-error"],
+      "dependencies": ["UnifiedProcurementPlanPage:converted", "AuthPanel:authenticated"]
+    },
+    {
+      "page": "LedgerAlertPage",
+      "operations": ["getCurrentLedgerAlert", "completeLedgerRecord", "listOperationalLedgerRecords", "saveOperationalLedgerRecord", "getOperationalLedgerStats"],
+      "states": ["loading", "empty", "ready", "submitting", "business-error"],
+      "dependencies": ["ProcurementWorkbenchPage:receipt-completed"]
+    },
+    {
+      "page": "AlertCenterPage",
+      "operations": ["reportAlert", "disposeAlert", "queryAlerts"],
+      "states": ["loading", "empty", "ready", "submitting", "business-error"],
+      "dependencies": ["LedgerAlertPage:ledger-warning", "BrightKitchenAdapter:warning", "MorningInspectionAdapter:warning"]
+    },
+    {
+      "page": "TraceabilityPage",
+      "operations": ["traceIngredientBatch"],
+      "states": ["loading", "empty", "ready", "business-error"],
+      "dependencies": ["ProcurementWorkbenchPage:receipt-completed"]
+    },
+    {
+      "page": "AgentTraceabilityPage",
+      "operations": ["startAgentRun", "getAgentRun", "listAgentSkills"],
+      "states": ["empty", "submitting", "running", "succeeded", "failed", "business-error"],
+      "dependencies": ["AuthPanel:authenticated"]
+    }
+  ],
+  "verification": [
+    "OpenAPI normalization",
+    "generated client compile",
+    "generated fetch contract tests",
+    "Vue page loading/empty/error tests",
+    "Spring HTTP workflow tests",
+    "business SOP run and provenance audit"
+  ],
+  "assumptions": [
+    "The demo persists scoped catalog, menu, procurement, batch inventory, ledger and alert state in MySQL; Redis and RabbitMQ are provisioned but not yet connected to business ports.",
+    "Bright-kitchen, morning-inspection and district-platform network clients are represented as replaceable ports; credentials and vendor contracts are required before implementing adapters.",
+    "The alert center accepts a normalized report and owns idempotent ingestion, disposal and query; source adapters remain outside this phase-5 slice.",
+    "All quantities are normalized server-side to an ingredient base unit; configured business units (for example bag) carry an explicit conversion factor."
+  ]
+}

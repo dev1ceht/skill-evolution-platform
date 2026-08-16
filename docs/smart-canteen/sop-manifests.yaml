@@ -1,0 +1,266 @@
+schema_version: "1.0"
+registry: "smart-canteen-sop"
+registry_version: "1.0.0"
+skill: "smart-canteen-sop"
+defaults:
+  scope: "schoolId + canteenId"
+  evidence_required: true
+  external_integration_rule: "port-only until vendor contract, credentials, and network policy are verified"
+sops:
+  - id: "smart-canteen.menu-approval"
+    version: "1.0.0"
+    trigger:
+      - "创建或发布日食谱"
+      - "提交菜单审批"
+    risk_level: "medium"
+    approval: "required-before-publish"
+    permissions: ["SYSTEM_ADMIN", "SCHOOL_ADMIN", "CANTEEN_STAFF"]
+    scope: "schoolId + canteenId"
+    preconditions:
+      - "菜品和配方已存在且处于可用状态"
+      - "同一范围、日期和餐次不存在第二份有效食谱"
+    idempotency: "同一范围、日期和餐次的草稿覆盖保存；发布后拒绝修改"
+    timeout:
+      mode: "request-bound"
+      enforced: false
+    steps: ["draft", "submit", "approve-or-reject", "publish"]
+    rollback: "发布前允许修订；发布后通过新版本或重新审批变更"
+    requirements: ["MENU-001"]
+    references: ["skills/smart-canteen-sop/references/menu-approval.md"]
+    implementation:
+      modules:
+        - "backend/src/main/java/com/example/smartcanteen/application/DailyMenuService.java"
+      apis: ["contracts/smart-canteen.openapi.yaml"]
+      migrations: ["backend/src/main/resources/db/migration/V5__create_operational_core.sql"]
+      tests:
+        - "backend/src/test/java/com/example/smartcanteen/http/OperationalCoreHttpTest.java"
+      verification: ["docs/smart-canteen/phase5-verification.json"]
+    adapters:
+      - name: "JdbcOperationalStore"
+        status: "implemented"
+    runtime:
+      intents: ["menu.publish"]
+      input_schema: "#/components/schemas/MenuPublishIntent"
+      output_schema: "#/components/schemas/DailyMenu"
+      tools: ["menu.validate-for-submit", "menu.submit", "menu.record-decision", "menu.publish"]
+      side_effect: "write"
+      run_confirmation: "required-before-write"
+      domain_approval: "required-before-publish"
+      activation: "blocked-until-menu-model-migration"
+      deadline_ms: 10000
+      retry_policy: "no-retry-after-write"
+      evidence: "required"
+    evidence: ["docs/smart-canteen/phase5-traceability.md"]
+    status: "implemented"
+
+  - id: "smart-canteen.procurement"
+    version: "1.0.0"
+    trigger:
+      - "根据已发布食谱生成采购计划"
+      - "创建或收货采购订单"
+    risk_level: "high"
+    approval: "required-before-order-and-receipt"
+    permissions: ["SYSTEM_ADMIN", "SCHOOL_ADMIN", "CANTEEN_STAFF"]
+    scope: "schoolId + canteenId"
+    preconditions:
+      - "只消费已发布食谱"
+      - "采购计划保存食谱、库存和未入库订单快照"
+    idempotency: "计划、订单和收货使用 Idempotency-Key；同键异载荷拒绝"
+    timeout:
+      mode: "request-bound"
+      enforced: false
+    steps: ["calculate-shortage", "snapshot-plan", "adjust-and-confirm", "create-order", "confirm-order", "receive"]
+    rollback: "收货和库存写入同一事务；失败时整笔收货回滚"
+    requirements: ["PROCUREMENT-001"]
+    references: ["skills/smart-canteen-sop/references/procurement.md"]
+    implementation:
+      modules:
+        - "backend/src/main/java/com/example/smartcanteen/application/ProcurementPlanService.java"
+        - "backend/src/main/java/com/example/smartcanteen/application/ProcurementOperationsService.java"
+      apis: ["contracts/smart-canteen.openapi.yaml"]
+      migrations: ["backend/src/main/resources/db/migration/V5__create_operational_core.sql"]
+      tests:
+        - "backend/src/test/java/com/example/smartcanteen/application/ProcurementPlanServiceModuleTest.java"
+        - "backend/src/test/java/com/example/smartcanteen/http/OperationalCoreHttpTest.java"
+      verification: ["docs/smart-canteen/phase5-verification.json"]
+    adapters:
+      - name: "JdbcOperationalStore"
+        status: "implemented"
+      - name: "SupplierGateway"
+        status: "port-only"
+    evidence: ["docs/smart-canteen/phase5-traceability.md"]
+    status: "implemented"
+
+  - id: "smart-canteen.inventory"
+    version: "1.0.0"
+    trigger:
+      - "验收入库"
+      - "查询库存预警或执行出库"
+    risk_level: "high"
+    approval: "required-before-stock-out"
+    permissions: ["SYSTEM_ADMIN", "SCHOOL_ADMIN", "CANTEEN_STAFF"]
+    scope: "schoolId + canteenId"
+    preconditions:
+      - "请求单位与食材基础单位可换算"
+      - "出库前库存余额足够"
+    idempotency: "收货和出库使用 Idempotency-Key；同键异载荷返回业务错误"
+    timeout:
+      mode: "request-bound"
+      enforced: false
+    steps: ["validate-unit", "receive-batch", "update-inventory", "check-warning", "validate-stock-out", "write-trace-node"]
+    rollback: "单位不兼容或库存不足时拒绝并回滚整笔出库"
+    requirements: ["INVENTORY-001"]
+    references: ["skills/smart-canteen-sop/references/inventory.md"]
+    implementation:
+      modules:
+        - "backend/src/main/java/com/example/smartcanteen/application/InventoryReceivingService.java"
+        - "backend/src/main/java/com/example/smartcanteen/domain/UnitConverter.java"
+      apis: ["contracts/smart-canteen.openapi.yaml"]
+      migrations: ["backend/src/main/resources/db/migration/V5__create_operational_core.sql"]
+      tests:
+        - "backend/src/test/java/com/example/smartcanteen/application/InventoryReceivingModuleTest.java"
+        - "backend/src/test/java/com/example/smartcanteen/http/OperationalCoreHttpTest.java"
+      verification: ["docs/smart-canteen/phase5-verification.json"]
+    adapters:
+      - name: "JdbcOperationalStore"
+        status: "implemented"
+    evidence: ["docs/smart-canteen/phase5-traceability.md"]
+    status: "implemented"
+
+  - id: "smart-canteen.ledger"
+    version: "1.0.0"
+    trigger:
+      - "创建台账周期"
+      - "完成台账并清除预警"
+    risk_level: "medium"
+    approval: "not-required"
+    permissions: ["SYSTEM_ADMIN", "SCHOOL_ADMIN", "CANTEEN_STAFF"]
+    scope: "schoolId + canteenId + cycleId"
+    preconditions:
+      - "台账编码已配置在当前周期"
+    idempotency: "同周期、同范围、同台账编码重复完成返回已有结果"
+    timeout:
+      mode: "request-bound"
+      enforced: false
+    steps: ["create-cycle", "configure-requirements", "complete-record", "aggregate-missing", "clear-on-last-item"]
+    rollback: "未知台账编码拒绝写入；已完成项目不重复产生副作用"
+    requirements: ["LEDGER-001", "LEDGER-002", "LEDGER-003", "LEDGER-004"]
+    references: ["skills/smart-canteen-sop/references/ledger.md"]
+    implementation:
+      modules:
+        - "backend/src/main/java/com/example/smartcanteen/application/ConfigurableLedgerService.java"
+      apis: ["contracts/smart-canteen.openapi.yaml"]
+      migrations: ["backend/src/main/resources/db/migration/V2__add_scoped_ledger_cycles.sql"]
+      tests:
+        - "backend/src/test/java/com/example/smartcanteen/http/LedgerCycleHttpTest.java"
+        - "backend/src/test/java/com/example/smartcanteen/domain/LedgerAlertServiceTest.java"
+      verification: ["docs/smart-canteen/verification.json"]
+    adapters:
+      - name: "JdbcLedgerStore"
+        status: "implemented"
+    evidence: ["docs/smart-canteen/traceability.md"]
+    status: "implemented"
+
+  - id: "smart-canteen.alert-disposal"
+    version: "1.0.0"
+    trigger:
+      - "接收外部归一化预警"
+      - "处置预警"
+    risk_level: "high"
+    approval: "required-for-disposal"
+    permissions: ["SYSTEM_ADMIN", "SCHOOL_ADMIN", "CANTEEN_STAFF", "REGULATOR"]
+    scope: "schoolId + canteenId"
+    preconditions:
+      - "来源、thirdWarnId、事件类型和范围通过边界校验"
+    idempotency: "source + thirdWarnId；处置结果相同则幂等，不同结果拒绝覆盖"
+    timeout:
+      mode: "request-bound"
+      enforced: false
+    steps: ["normalize-report", "deduplicate", "persist-alert", "query", "dispose", "audit"]
+    rollback: "同键异载荷和非法处置状态拒绝；不调用未配置的通知渠道"
+    requirements: ["ALERT-001", "ALERT-002", "DATA-004", "ARCH-005"]
+    references: ["skills/smart-canteen-sop/references/alert-disposal.md"]
+    implementation:
+      modules:
+        - "backend/src/main/java/com/example/smartcanteen/application/AlertCenterService.java"
+        - "backend/src/main/java/com/example/smartcanteen/http/AlertCenterController.java"
+      apis: ["contracts/smart-canteen.openapi.yaml"]
+      migrations: ["backend/src/main/resources/db/migration/V4__create_alert_center.sql"]
+      tests:
+        - "backend/src/test/java/com/example/smartcanteen/http/AlertCenterHttpTest.java"
+      verification: ["docs/smart-canteen/phase4-verification.json"]
+    adapters:
+      - name: "AlertSourceAdapter"
+        status: "implemented"
+      - name: "DistrictPlatformGateway"
+        status: "port-only"
+      - name: "BrightKitchenGateway"
+        status: "port-only"
+      - name: "MorningInspectionGateway"
+        status: "port-only"
+    evidence: ["docs/smart-canteen/phase4-traceability.md"]
+    status: "implemented"
+
+  - id: "smart-canteen.traceability"
+    version: "1.0.0"
+    trigger:
+      - "查询食品溯源链路"
+      - "从库存批次回溯采购和供应商"
+    risk_level: "medium"
+    approval: "not-required"
+    permissions: ["SYSTEM_ADMIN", "SCHOOL_ADMIN", "CANTEEN_STAFF", "REGULATOR"]
+    scope: "schoolId + canteenId"
+    preconditions:
+      - "traceCode 关联的批次、订单和出库事实属于请求范围"
+    idempotency: "只读查询不产生业务副作用"
+    timeout:
+      mode: "request-bound"
+      enforced: false
+    steps: ["resolve-trace-code", "load-stock-out", "load-batch", "load-receipt-and-order", "return-chain"]
+    rollback: "缺失外部数据时返回明确缺口，不补造节点"
+    requirements: ["DASHBOARD-001"]
+    references: ["skills/smart-canteen-sop/references/traceability.md"]
+    implementation:
+      modules:
+        - "backend/src/main/java/com/example/smartcanteen/application/DashboardService.java"
+        - "backend/src/main/java/com/example/smartcanteen/agent/application/AgentRuntime.java"
+        - "backend/src/main/java/com/example/smartcanteen/http/AgentController.java"
+      apis: ["contracts/smart-canteen.openapi.yaml"]
+      migrations: ["backend/src/main/resources/db/migration/V5__create_operational_core.sql"]
+      tests:
+        - "backend/src/test/java/com/example/smartcanteen/http/OperationalCoreHttpTest.java"
+        - "backend/src/test/java/com/example/smartcanteen/agent/AgentRuntimeTest.java"
+        - "backend/src/test/java/com/example/smartcanteen/http/AgentControllerHttpTest.java"
+        - "backend/src/test/java/com/example/smartcanteen/http/AgentAuthorizationHttpTest.java"
+      verification: ["docs/smart-canteen/phase5-verification.json"]
+    adapters:
+      - name: "JdbcOperationalStore"
+        status: "implemented"
+    runtime:
+      intents: ["traceability.query"]
+      input_schema: "#/components/schemas/TraceabilityIntent"
+      output_schema: "#/components/schemas/TraceabilityResult"
+      tools: ["traceability.query"]
+      side_effect: "read"
+      run_confirmation: "not-required"
+      domain_approval: "not-applicable"
+      activation: "active"
+      deadline_ms: 3000
+      retry_policy: "read-only-bounded"
+      evidence: "required"
+    evidence: ["docs/smart-canteen/phase5-traceability.md"]
+    status: "implemented"
+
+compositions:
+  - id: "smart-canteen.menu-to-traceability"
+    version: "1.0.0"
+    trigger: "从已发布日食谱走完整采购、入库和溯源流程"
+    sops:
+      - "smart-canteen.menu-approval"
+      - "smart-canteen.procurement"
+      - "smart-canteen.inventory"
+      - "smart-canteen.traceability"
+    evidence:
+      requirements: ["MENU-001", "PROCUREMENT-001", "INVENTORY-001", "DASHBOARD-001"]
+      verification: ["docs/smart-canteen/agent-runtime-verification.json"]
+    status: "implemented"
