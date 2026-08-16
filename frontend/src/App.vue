@@ -2,6 +2,7 @@
 import axios from 'axios';
 import { computed, ref } from 'vue';
 import AgentTraceabilityWorkspace from './components/AgentTraceabilityWorkspace.vue';
+import AgentMenuApprovalWorkspace from './components/AgentMenuApprovalWorkspace.vue';
 import LoginPanel from './components/LoginPanel.vue';
 import OperationsOverview from './components/OperationsOverview.vue';
 import ProcurementPlanWorkspace from './components/ProcurementPlanWorkspace.vue';
@@ -17,6 +18,9 @@ const session = ref<AuthSession | null>(api.getSession());
 // and would otherwise be evaluated only once by Vue's computed cache.
 const authenticated = computed(() => session.value !== null);
 const scope = ref<CanteenScope>(scopeFromSession(session.value));
+// Kill switch for the pilot write entry. Production can disable the Agent menu
+// without removing the legacy page paths by setting VITE_AGENT_MENU_ENABLED=false.
+const agentMenuEnabled = import.meta.env.VITE_AGENT_MENU_ENABLED !== 'false';
 
 function signedIn(next: AuthSession): void {
   session.value = next;
@@ -48,6 +52,7 @@ function scopeFromSession(value: AuthSession | null): CanteenScope {
     </header>
     <OperationsOverview :api="api" :scope="scope" />
     <AgentTraceabilityWorkspace :api="api" :scope="scope" />
+    <AgentMenuApprovalWorkspace v-if="agentMenuEnabled" :api="api" :scope="scope" />
     <ProcurementPlanWorkspace :api="api" :scope="scope" />
     <PurchaseOrderWorkspace :api="api" :scope="scope" />
     <WorkflowDashboard :api="api" :scope="scope" />

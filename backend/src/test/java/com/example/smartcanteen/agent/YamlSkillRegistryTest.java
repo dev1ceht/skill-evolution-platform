@@ -17,7 +17,7 @@ class YamlSkillRegistryTest {
 
     @Test
     void loads_all_manifest_entries_and_only_exposes_active_runtime_intents() {
-        assertThat(registry.list()).hasSize(6);
+        assertThat(registry.list()).hasSize(7);
         SkillDefinition traceability = registry.findByIntent("traceability.query").orElseThrow();
 
         assertThat(traceability.id()).isEqualTo("smart-canteen.traceability");
@@ -25,7 +25,8 @@ class YamlSkillRegistryTest {
         assertThat(traceability.isAvailable()).isTrue();
         assertThat(traceability.runtime().tools()).containsExactly("traceability.query");
         assertThat(traceability.manifestDigest()).hasSize(64);
-        assertThat(registry.findByIntent("menu.publish")).isEmpty();
+        assertThat(registry.findByIntent("menu.publish")).isPresent();
+        assertThat(registry.findByIntent("menu.validate-for-submit")).isPresent();
     }
 
     @Test
@@ -34,8 +35,8 @@ class YamlSkillRegistryTest {
                 .find("smart-canteen.menu-approval", "1.0.0")
                 .orElseThrow();
 
-        assertThat(menu.runtime().activation()).isEqualTo("blocked-until-menu-model-migration");
-        assertThat(menu.isAvailable()).isFalse();
+        assertThat(menu.runtime().activation()).isEqualTo("active");
+        assertThat(menu.isAvailable()).isTrue();
         assertThat(menu.runtime().sideEffect()).isEqualTo("write");
     }
 }

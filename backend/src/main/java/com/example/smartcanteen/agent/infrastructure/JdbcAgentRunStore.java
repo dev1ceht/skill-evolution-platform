@@ -2,6 +2,8 @@ package com.example.smartcanteen.agent.infrastructure;
 
 import com.example.smartcanteen.agent.domain.AgentRun;
 import com.example.smartcanteen.agent.domain.AgentStep;
+import com.example.smartcanteen.agent.domain.AgentRunDecision;
+import com.example.smartcanteen.agent.domain.AgentRunEvent;
 import com.example.smartcanteen.agent.domain.RunStatus;
 import com.example.smartcanteen.agent.port.AgentRunStore;
 import com.example.smartcanteen.domain.CanteenScope;
@@ -11,6 +13,7 @@ import java.sql.Timestamp;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.List;
+import java.time.Instant;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -160,6 +163,111 @@ public class JdbcAgentRunStore implements AgentRunStore {
     }
 
     @Override
+    public void markStepReconciliationRequired(
+            String runId, String stepId, String errorCode, String errorMessage, Instant finishedAt) {
+        int changed = jdbc.update(
+                "UPDATE agent_steps SET status = 'RECONCILIATION_REQUIRED', error_code = ?, "
+                        + "error_message = ?, finished_at = ? WHERE run_id = ? AND step_id = ?",
+                errorCode,
+                errorMessage,
+                Timestamp.from(finishedAt),
+                runId,
+                stepId);
+        if (changed != 1) {
+            throw new IllegalStateException("Agent Step was not found: " + runId + "/" + stepId);
+        }
+    }
+
+    @Override
+    public void appendDecision(AgentRunDecision decision) {
+        jdbc.update(
+                "INSERT INTO agent_run_decisions (decision_id, run_id, decision_type, outcome, "
+                        + "actor_user_id, idempotency_key, plan_hash, request_hash, expires_at, comment, created_at) "
+                        + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)" ,
+                decision.decisionId(),
+                decision.runId(),
+                decision.decisionType(),
+                decision.outcome(),
+                decision.actorUserId(),
+                decision.idempotencyKey(),
+                decision.planHash(),
+                decision.requestHash(),
+                decision.expiresAt() == null ? null : Timestamp.from(decision.expiresAt()),
+                decision.comment(),
+                Timestamp.from(decision.createdAt()));
+    }
+
+    @Override
+    public Optional<AgentRunDecision> findDecisionByIdempotency(
+            String runId, String actorUserId, String idempotencyKey) {
+        return jdbc.query(
+                        "SELECT decision_id, run_id, idempotency_key, decision_type, outcome, "
+                                + "actor_user_id, plan_hash, request_hash, expires_at, comment, created_at "
+                                + "FROM agent_run_decisions WHERE run_id = ? AND actor_user_id = ? "
+                                + "AND idempotency_key = ?",
+                        this::mapDecision,
+                        runId,
+                        actorUserId,
+                        idempotencyKey)
+                .stream()
+                .findFirst();
+    }
+
+    @Override
+    public List<AgentRunDecision> listDecisions(String runId) {
+        return jdbc.query(
+                "SELECT decision_id, run_id, idempotency_key, decision_type, outcome, actor_user_id, plan_hash, "
+                        + "request_hash, expires_at, comment, created_at FROM agent_run_decisions "
+                        + "WHERE run_id = ? ORDER BY created_at, decision_id",
+                (result, row) -> mapDecision(result, row),
+                runId);
+    }
+
+    private AgentRunDecision mapDecision(ResultSet result, int row) throws SQLException {
+        return new AgentRunDecision(
+                result.getString("decision_id"),
+                result.getString("run_id"),
+                result.getString("idempotency_key"),
+                result.getString("decision_type"),
+                result.getString("outcome"),
+                result.getString("actor_user_id"),
+                result.getString("plan_hash"),
+                result.getString("request_hash"),
+                result.getString("comment"),
+                result.getTimestamp("expires_at") == null
+                        ? null : result.getTimestamp("expires_at").toInstant(),
+                result.getTimestamp("created_at").toInstant());
+    }
+
+    @Override
+    public List<AgentRunEvent> listEvents(String runId) {
+        return jdbc.query(
+                "SELECT event_id, run_id, event_sequence, event_type, from_status, to_status, "
+                        + "actor_user_id, payload_json, occurred_at FROM agent_run_events "
+                        + "WHERE run_id = ? ORDER BY event_sequence",
+                (result, row) -> new AgentRunEvent(
+                        result.getString("event_id"),
+                        result.getString("run_id"),
+                        result.getLong("event_sequence"),
+                        result.getString("event_type"),
+                        result.getString("from_status"),
+                        result.getString("to_status"),
+                        result.getString("actor_user_id"),
+                        result.getString("payload_json"),
+                        result.getTimestamp("occurred_at").toInstant()),
+                runId);
+    }
+
+    @Override
+    public List<AgentRun> findStaleExecuting(Instant cutoff) {
+        return jdbc.query(
+                "SELECT * FROM agent_runs WHERE status = 'EXECUTING' AND updated_at < ? "
+                        + "ORDER BY updated_at, run_id",
+                this::map,
+                Timestamp.from(cutoff));
+    }
+
+    @Override
     public void appendEvent(
             String runId,
             String eventType,
@@ -167,6 +275,12 @@ public class JdbcAgentRunStore implements AgentRunStore {
             String toStatus,
             String actorUserId,
             String payloadJson) {
+        // Serialize sequence allocation on the parent Run row. A bare MAX()+1 is
+        // racy when a decision and a recovery command append events concurrently.
+        jdbc.queryForObject(
+                "SELECT run_id FROM agent_runs WHERE run_id = ? FOR UPDATE",
+                String.class,
+                runId);
         Long nextSequence = jdbc.queryForObject(
                 "SELECT COALESCE(MAX(event_sequence), 0) + 1 FROM agent_run_events WHERE run_id = ?",
                 Long.class,

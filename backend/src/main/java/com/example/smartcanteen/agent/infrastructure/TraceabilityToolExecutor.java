@@ -21,6 +21,11 @@ public class TraceabilityToolExecutor implements ToolExecutor {
     }
 
     @Override
+    public boolean supports(String toolName) {
+        return "traceability.query".equals(toolName);
+    }
+
+    @Override
     public ToolResult execute(String toolName, ExecutionContext context, String inputJson) {
         if (!"traceability.query".equals(toolName)) {
             throw new IllegalArgumentException("Tool is not registered: " + toolName);

@@ -50,6 +50,43 @@ describe("Smart Canteen Workflow API contract", () => {
     expect(options.method).toBe("GET");
     expect(options.headers["X-Request-Id"]).toBe('fixture');
   });
+  it("cancelAgentRun sends POST /api/v1/agent/runs/{runId}/cancel", async () => {
+    await client.cancelAgentRun('fixture', 'fixture', 'fixture', 'fixture', {} as never, 'fixture');
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/agent/runs/fixture/cancel");
+    expect(options.method).toBe("POST");
+    expect(options.headers["Idempotency-Key"]).toBe('fixture');
+    expect(options.headers["X-Request-Id"]).toBe('fixture');
+    expect(options.headers["Content-Type"]).toBe("application/json");
+    expect(JSON.parse(options.body)).toEqual({});
+  });
+  it("decideAgentRun sends POST /api/v1/agent/runs/{runId}/decisions", async () => {
+    await client.decideAgentRun('fixture', 'fixture', 'fixture', 'fixture', {} as never, 'fixture');
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/agent/runs/fixture/decisions");
+    expect(options.method).toBe("POST");
+    expect(options.headers["Idempotency-Key"]).toBe('fixture');
+    expect(options.headers["X-Request-Id"]).toBe('fixture');
+    expect(options.headers["Content-Type"]).toBe("application/json");
+    expect(JSON.parse(options.body)).toEqual({});
+  });
+  it("getAgentRunEvents sends GET /api/v1/agent/runs/{runId}/events", async () => {
+    await client.getAgentRunEvents('fixture', 'fixture', 'fixture', 'fixture');
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/agent/runs/fixture/events");
+    expect(options.method).toBe("GET");
+    expect(options.headers["X-Request-Id"]).toBe('fixture');
+  });
+  it("resumeAgentRun sends POST /api/v1/agent/runs/{runId}/resume", async () => {
+    await client.resumeAgentRun('fixture', 'fixture', 'fixture', 'fixture', {} as never, 'fixture');
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/agent/runs/fixture/resume");
+    expect(options.method).toBe("POST");
+    expect(options.headers["Idempotency-Key"]).toBe('fixture');
+    expect(options.headers["X-Request-Id"]).toBe('fixture');
+    expect(options.headers["Content-Type"]).toBe("application/json");
+    expect(JSON.parse(options.body)).toEqual({});
+  });
   it("listAgentSkills sends GET /api/v1/agent/skills", async () => {
     await client.listAgentSkills();
     const [requestUrl, options] = fetchMock.mock.calls[0];
@@ -290,10 +327,30 @@ describe("Smart Canteen Workflow API contract", () => {
     expect(options.headers["Content-Type"]).toBe("application/json");
     expect(JSON.parse(options.body)).toEqual({});
   });
+  it("getDailyMenu sends GET /api/v1/daily-menus/{menuId}", async () => {
+    await client.getDailyMenu('fixture', 'fixture', 'fixture');
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/daily-menus/fixture");
+    expect(options.method).toBe("GET");
+  });
+  it("decideDailyMenu sends POST /api/v1/daily-menus/{menuId}/decision", async () => {
+    await client.decideDailyMenu('fixture', 'fixture', 'fixture', {} as never);
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/daily-menus/fixture/decision");
+    expect(options.method).toBe("POST");
+    expect(options.headers["Content-Type"]).toBe("application/json");
+    expect(JSON.parse(options.body)).toEqual({});
+  });
   it("publishDailyMenu sends POST /api/v1/daily-menus/{menuId}/publish", async () => {
     await client.publishDailyMenu('fixture', 'fixture', 'fixture');
     const [requestUrl, options] = fetchMock.mock.calls[0];
     expect(new URL(requestUrl).pathname).toBe("/api/v1/daily-menus/fixture/publish");
+    expect(options.method).toBe("POST");
+  });
+  it("submitDailyMenu sends POST /api/v1/daily-menus/{menuId}/submit", async () => {
+    await client.submitDailyMenu('fixture', 0, 'fixture', 'fixture');
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/daily-menus/fixture/submit");
     expect(options.method).toBe("POST");
   });
   it("getDashboardRisk sends GET /api/v1/dashboard/risk", async () => {

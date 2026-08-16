@@ -3,11 +3,15 @@ package com.example.smartcanteen.agent.application;
 import com.example.smartcanteen.agent.domain.AgentPlan;
 import com.example.smartcanteen.agent.domain.AgentRun;
 import com.example.smartcanteen.agent.domain.AgentStep;
+import com.example.smartcanteen.agent.domain.AgentRunDecision;
+import com.example.smartcanteen.agent.domain.AgentRunEvent;
 import com.example.smartcanteen.agent.domain.ExecutionContext;
 import com.example.smartcanteen.agent.domain.StartRunCommand;
 import com.example.smartcanteen.agent.domain.RunStatus;
 import com.example.smartcanteen.agent.port.AgentRunStore;
 import com.example.smartcanteen.agent.port.SkillRegistry;
+import com.example.smartcanteen.application.port.AuditStore;
+import com.example.smartcanteen.domain.AuditLog;
 import com.example.smartcanteen.agent.domain.SkillDefinition;
 import com.example.smartcanteen.domain.CanteenScope;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -24,12 +28,15 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
@@ -37,14 +44,25 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 @Service
 public class AgentRuntime {
 
+    private static final Logger log = LoggerFactory.getLogger(AgentRuntime.class);
+
     private final SkillRegistry skills;
     private final AgentRunStore runs;
     private final ObjectMapper objectMapper;
     private final Clock clock;
+    private final AuditStore audits;
 
     @Autowired
+    public AgentRuntime(
+            SkillRegistry skills,
+            AgentRunStore runs,
+            ObjectMapper objectMapper,
+            AuditStore audits) {
+        this(skills, runs, objectMapper, Clock.systemUTC(), audits);
+    }
+
     public AgentRuntime(SkillRegistry skills, AgentRunStore runs, ObjectMapper objectMapper) {
-        this(skills, runs, objectMapper, Clock.systemUTC());
+        this(skills, runs, objectMapper, Clock.systemUTC(), null);
     }
 
     public AgentRuntime(
@@ -52,10 +70,20 @@ public class AgentRuntime {
             AgentRunStore runs,
             ObjectMapper objectMapper,
             Clock clock) {
+        this(skills, runs, objectMapper, clock, null);
+    }
+
+    public AgentRuntime(
+            SkillRegistry skills,
+            AgentRunStore runs,
+            ObjectMapper objectMapper,
+            Clock clock,
+            AuditStore audits) {
         this.skills = skills;
         this.runs = runs;
         this.objectMapper = objectMapper;
         this.clock = clock;
+        this.audits = audits;
     }
 
     @Transactional
@@ -95,7 +123,7 @@ public class AgentRuntime {
                 plan.planHash(),
                 plan.planJson(),
                 canonicalInput,
-                RunStatus.PLANNED,
+                initialStatus(skill),
                 null,
                 null,
                 null,
@@ -104,14 +132,14 @@ public class AgentRuntime {
                 now,
                 now);
         List<AgentStep> steps = new ArrayList<>();
-        for (int index = 0; index < skill.runtime().tools().size(); index++) {
+        for (int index = 0; index < plan.tools().size(); index++) {
             String stepId = "step-" + (index + 1);
             steps.add(new AgentStep(
                     runId,
                     stepId,
                     index,
-                    skill.runtime().tools().get(index),
-                    runId + ":" + stepId,
+                    plan.tools().get(index),
+                    runId + ":" + stepId + ":" + plan.planHash(),
                     plan.inputDigest(),
                     "PENDING",
                     0,
@@ -138,11 +166,221 @@ public class AgentRuntime {
             }
             return concurrent;
         }
+        appendAudit(run, context, "AGENT_RUN_PLAN", "SUCCESS", null);
         return run;
     }
 
     public Optional<AgentRun> find(String runId) {
         return runs.findById(runId);
+    }
+
+    public List<AgentRunEvent> events(String runId) {
+        return runs.listEvents(runId);
+    }
+
+    @Transactional
+    public AgentRun decide(
+            String runId,
+            long expectedVersion,
+            String decisionType,
+            String comment,
+            ExecutionContext context) {
+        return decide(
+                runId,
+                expectedVersion,
+                decisionType,
+                comment,
+                "legacy-decision-" + runId + "-" + expectedVersion + "-" + decisionType,
+                context);
+    }
+
+    @Transactional
+    public AgentRun decide(
+            String runId,
+            long expectedVersion,
+            String decisionType,
+            String comment,
+            String idempotencyKey,
+            ExecutionContext context) {
+        AgentRun current = runs.findById(runId).orElseThrow(() ->
+                new AgentRunNotFoundException(runId));
+        requireOwner(current, context);
+        requireIdempotencyKey(idempotencyKey);
+        String normalized = decisionType == null ? "" : decisionType.trim().toUpperCase();
+        String normalizedComment = comment == null ? null : comment.trim();
+        String requestHash = decisionRequestHash(expectedVersion, normalized, normalizedComment);
+        Optional<AgentRunDecision> previous = runs.findDecisionByIdempotency(
+                runId, context.actorUserId(), idempotencyKey);
+        if (previous.isPresent()) {
+            AgentRunDecision replay = previous.get();
+            if (!replay.planHash().equals(current.planHash())
+                    || !replay.decisionType().equals(normalized)
+                    || !Objects.equals(replay.requestHash(), requestHash)) {
+                throw new IllegalStateException(
+                        "Idempotency key was already used for a different Agent decision");
+            }
+            return current;
+        }
+        if (current.version() != expectedVersion) {
+            throw new IllegalStateException("Agent Run version is stale: " + runId);
+        }
+        RunStatus next;
+        String outcome;
+        switch (normalized) {
+            case "RUN_CONFIRM" -> {
+                if (current.status() != RunStatus.WAITING_CONFIRMATION) {
+                    throw new IllegalStateException(
+                            "Run confirmation is not available from status " + current.status());
+                }
+                next = RunStatus.PLANNED;
+                outcome = "ACCEPTED";
+            }
+            case "RUN_REJECT" -> {
+                if (current.status() != RunStatus.WAITING_CONFIRMATION) {
+                    throw new IllegalStateException(
+                            "Run rejection is not available from status " + current.status());
+                }
+                next = RunStatus.REJECTED;
+                outcome = "REJECTED";
+            }
+            case "RUN_CANCEL" -> {
+                if (current.status() != RunStatus.WAITING_CONFIRMATION
+                        && current.status() != RunStatus.PLANNED) {
+                    throw new IllegalStateException(
+                            "Run cancellation is not available from status " + current.status());
+                }
+                next = RunStatus.CANCELLED;
+                outcome = "CANCELLED";
+            }
+            default -> throw new IllegalArgumentException("Unsupported Agent Run decision: " + decisionType);
+        }
+        Instant now = clock.instant();
+        AgentRunDecision decision = new AgentRunDecision(
+                "DECISION-" + UUID.randomUUID(),
+                runId,
+                idempotencyKey,
+                normalized,
+                outcome,
+                context.actorUserId(),
+                current.planHash(),
+                requestHash,
+                normalizedComment,
+                null,
+                now);
+        try {
+            runs.appendDecision(decision);
+        } catch (DuplicateKeyException duplicate) {
+            AgentRunDecision concurrent = runs.findDecisionByIdempotency(
+                            runId, context.actorUserId(), idempotencyKey)
+                    .orElseThrow(() -> duplicate);
+            if (!concurrent.planHash().equals(current.planHash())
+                    || !concurrent.decisionType().equals(normalized)
+                    || !Objects.equals(concurrent.requestHash(), requestHash)) {
+                throw new IllegalStateException(
+                        "Idempotency key was already used for a different Agent decision",
+                        duplicate);
+            }
+            return runs.findById(runId).orElse(current);
+        }
+        AgentRun updated = current.withStatus(next, null, now);
+        runs.update(current, updated);
+        runs.appendEvent(
+                runId,
+                normalized,
+                current.status().name(),
+                updated.status().name(),
+                context.actorUserId(),
+                comment);
+        appendAudit(updated, context, "AGENT_RUN_DECISION", "SUCCESS", normalized);
+        return updated;
+    }
+
+    private static void requireIdempotencyKey(String idempotencyKey) {
+        if (idempotencyKey == null || idempotencyKey.isBlank() || idempotencyKey.length() > 128) {
+            throw new IllegalArgumentException("Idempotency-Key must be 1-128 characters");
+        }
+    }
+
+    private static String decisionRequestHash(
+            long expectedVersion, String normalizedDecision, String normalizedComment) {
+        String comment = normalizedComment == null ? "" : normalizedComment;
+        return digest(expectedVersion + "\n" + normalizedDecision + "\n" + comment);
+    }
+
+    @Transactional
+    public AgentRun markReconciliationRequired(
+            String runId, long expectedVersion, ExecutionContext context) {
+        AgentRun current = runs.findById(runId).orElseThrow(() ->
+                new AgentRunNotFoundException(runId));
+        requireOwner(current, context);
+        if (current.version() != expectedVersion) {
+            throw new IllegalStateException("Agent Run version is stale: " + runId);
+        }
+        if (current.status() != RunStatus.EXECUTING) {
+            return current;
+        }
+        Instant now = clock.instant();
+        AgentRun updated = current.withFailure(
+                "RECOVERY_REQUIRED",
+                "Execution was interrupted; business outcome requires reconciliation",
+                RunStatus.RECONCILIATION_REQUIRED,
+                now);
+        if (current.currentStep() != null) {
+            runs.markStepReconciliationRequired(
+                    runId,
+                    current.currentStep(),
+                    "RECOVERY_REQUIRED",
+                    updated.errorMessage(),
+                    now);
+        }
+        runs.update(current, updated);
+        runs.appendEvent(
+                runId,
+                "RUN_RECONCILIATION_REQUIRED",
+                current.status().name(),
+                updated.status().name(),
+                context.actorUserId(),
+                updated.errorMessage());
+        appendAudit(updated, context, "AGENT_RUN_RECOVERY", "SUCCESS", updated.errorCode());
+        return updated;
+    }
+
+    private static void requireOwner(AgentRun run, ExecutionContext context) {
+        if (!run.actorUserId().equals(context.actorUserId())
+                || !run.scope().equals(context.scope())) {
+            throw new com.example.smartcanteen.security.ForbiddenException(
+                    "User is outside the Agent Run scope");
+        }
+    }
+
+    private void appendAudit(
+            AgentRun run, ExecutionContext context, String action, String outcome, String detail) {
+        if (audits == null) {
+            return;
+        }
+        try {
+            audits.append(new AuditLog(
+                    "AUDIT-AGENT-" + run.runId() + "-" + action,
+                    context.actorUserId(),
+                    action,
+                    "AGENT_RUN",
+                    run.runId(),
+                    run.scope().schoolId(),
+                    run.scope().canteenId(),
+                    outcome,
+                    detail,
+                    context.requestId(),
+                    clock.instant()));
+        } catch (RuntimeException exception) {
+            log.warn("Agent audit write failed runId={} action={}", run.runId(), action);
+            runs.appendEvent(
+                    run.runId(),
+                    "AUDIT_WRITE_FAILED",
+                    run.status().name(),
+                    run.status().name(),
+                    context.actorUserId(),
+                    "Audit evidence unavailable for " + action);
+        }
     }
 
     private AgentPlan plan(
@@ -151,7 +389,8 @@ public class AgentRuntime {
             SkillDefinition skill,
             String canonicalInput) {
         String inputDigest = digest(command.intent() + "\n" + canonicalInput);
-        String planJson = writePlanJson(command, context.scope(), skill, inputDigest);
+        String selectedTool = skill.runtime().toolForIntent(command.intent());
+        String planJson = writePlanJson(command, context.scope(), skill, inputDigest, selectedTool);
         return new AgentPlan(
                 skill.id(),
                 skill.version(),
@@ -159,7 +398,7 @@ public class AgentRuntime {
                 command.intent(),
                 context.scope(),
                 inputDigest,
-                skill.runtime().tools(),
+                List.of(selectedTool),
                 digest(planJson),
                 planJson);
     }
@@ -168,7 +407,8 @@ public class AgentRuntime {
             StartRunCommand command,
             CanteenScope scope,
             SkillDefinition skill,
-            String inputDigest) {
+            String inputDigest,
+            String selectedTool) {
         Map<String, Object> plan = new LinkedHashMap<>();
         plan.put("intent", command.intent());
         plan.put("skillId", skill.id());
@@ -177,12 +417,41 @@ public class AgentRuntime {
         plan.put("inputDigest", inputDigest);
         plan.put("schoolId", scope.schoolId());
         plan.put("canteenId", scope.canteenId());
-        plan.put("tools", skill.runtime().tools());
+        plan.put("tools", List.of(selectedTool));
+        // Keep the operator-reviewable business coordinates in the immutable plan. The
+        // full input remains separately canonicalized/digested; only non-sensitive menu
+        // coordinates are copied here so a plan hash cannot hide a different menu version.
+        if (command.intent().startsWith("menu.")) {
+            try {
+                JsonNode input = objectMapper.readTree(command.inputJson());
+                Map<String, Object> businessParameters = new LinkedHashMap<>();
+                if (input != null && input.hasNonNull("menuId")) {
+                    businessParameters.put("menuId", input.get("menuId").asText());
+                }
+                if (input != null && input.hasNonNull("menuVersion")) {
+                    businessParameters.put("menuVersion", input.get("menuVersion").asLong());
+                }
+                if (input != null && input.hasNonNull("decision")) {
+                    businessParameters.put("decision", input.get("decision").asText());
+                }
+                plan.put("businessParameters", businessParameters);
+            } catch (JsonProcessingException exception) {
+                throw new IllegalArgumentException("Agent menu input must be valid JSON", exception);
+            }
+        }
         try {
             return objectMapper.writeValueAsString(plan);
         } catch (JsonProcessingException exception) {
             throw new IllegalStateException("Unable to serialize Agent plan", exception);
         }
+    }
+
+    private static RunStatus initialStatus(SkillDefinition skill) {
+        if ("write".equals(skill.runtime().sideEffect())
+                && "required-before-write".equals(skill.runtime().runConfirmation())) {
+            return RunStatus.WAITING_CONFIRMATION;
+        }
+        return RunStatus.PLANNED;
     }
 
     private static String digest(String value) {

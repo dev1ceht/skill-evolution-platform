@@ -1,6 +1,7 @@
 package com.example.smartcanteen.agent.domain;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -66,6 +67,7 @@ public record SkillDefinition(
             String inputSchema,
             String outputSchema,
             List<String> tools,
+            Map<String, String> toolByIntent,
             String sideEffect,
             String runConfirmation,
             String domainApproval,
@@ -77,6 +79,7 @@ public record SkillDefinition(
         public RuntimePolicy {
             intents = immutableRequiredList("intents", intents);
             tools = immutableRequiredList("tools", tools);
+            toolByIntent = toolByIntent == null ? Map.of() : Map.copyOf(toolByIntent);
             requireText("inputSchema", inputSchema);
             requireText("outputSchema", outputSchema);
             requireText("sideEffect", sideEffect);
@@ -91,6 +94,56 @@ public record SkillDefinition(
             if (deadlineMs <= 0) {
                 throw new IllegalArgumentException("deadlineMs must be positive");
             }
+            for (Map.Entry<String, String> entry : toolByIntent.entrySet()) {
+                if (!intents.contains(entry.getKey())) {
+                    throw new IllegalArgumentException(
+                            "toolByIntent contains an intent not declared by the Skill: "
+                                    + entry.getKey());
+                }
+                if (!tools.contains(entry.getValue())) {
+                    throw new IllegalArgumentException(
+                            "toolByIntent references an undeclared tool: " + entry.getValue());
+                }
+            }
+        }
+
+        public RuntimePolicy(
+                List<String> intents,
+                String inputSchema,
+                String outputSchema,
+                List<String> tools,
+                String sideEffect,
+                String runConfirmation,
+                String domainApproval,
+                String activation,
+                long deadlineMs,
+                String retryPolicy,
+                String evidence) {
+            this(
+                    intents,
+                    inputSchema,
+                    outputSchema,
+                    tools,
+                    Map.of(),
+                    sideEffect,
+                    runConfirmation,
+                    domainApproval,
+                    activation,
+                    deadlineMs,
+                    retryPolicy,
+                    evidence);
+        }
+
+        public String toolForIntent(String intent) {
+            String explicit = toolByIntent.get(intent);
+            if (explicit != null) {
+                return explicit;
+            }
+            if (tools.size() == 1) {
+                return tools.get(0);
+            }
+            throw new IllegalArgumentException(
+                    "No tool mapping is declared for Skill intent: " + intent);
         }
 
         private static List<String> immutableRequiredList(String name, List<String> values) {

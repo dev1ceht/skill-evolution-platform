@@ -59,6 +59,113 @@ paths:
           $ref: '#/components/responses/ForbiddenError'
         '404':
           $ref: '#/components/responses/NotFoundError'
+  /api/v1/agent/runs/{runId}/decisions:
+    post:
+      operationId: decideAgentRun
+      tags: [agent]
+      parameters:
+        - name: runId
+          in: path
+          required: true
+          schema: { type: string, minLength: 1 }
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/RequestId'
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentRunDecisionRequest'
+      responses:
+        '200':
+          description: 运行级确认、拒绝或取消后的 Run
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentRunResponse'
+        '400':
+          $ref: '#/components/responses/BusinessError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+  /api/v1/agent/runs/{runId}/cancel:
+    post:
+      operationId: cancelAgentRun
+      tags: [agent]
+      parameters:
+        - name: runId
+          in: path
+          required: true
+          schema: { type: string, minLength: 1 }
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/RequestId'
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentRunVersionRequest'
+      responses:
+        '200':
+          description: 已取消的 Run
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentRunResponse'
+        '400':
+          $ref: '#/components/responses/BusinessError'
+  /api/v1/agent/runs/{runId}/resume:
+    post:
+      operationId: resumeAgentRun
+      tags: [agent]
+      parameters:
+        - name: runId
+          in: path
+          required: true
+          schema: { type: string, minLength: 1 }
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/RequestId'
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentRunVersionRequest'
+      responses:
+        '200':
+          description: 恢复或转入人工对账后的 Run
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentRunResponse'
+        '400':
+          $ref: '#/components/responses/BusinessError'
+  /api/v1/agent/runs/{runId}/events:
+    get:
+      operationId: getAgentRunEvents
+      tags: [agent]
+      parameters:
+        - name: runId
+          in: path
+          required: true
+          schema: { type: string, minLength: 1 }
+        - $ref: '#/components/parameters/RequestId'
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+      responses:
+        '200':
+          description: Run 只追加事件时间线
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentRunEventListResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
   /api/v1/agent/skills:
     get:
       operationId: listAgentSkills
@@ -849,6 +956,24 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DailyMenuResponse'
+  /api/v1/daily-menus/{menuId}:
+    get:
+      operationId: getDailyMenu
+      tags: [menu]
+      parameters:
+        - name: menuId
+          in: path
+          required: true
+          schema: { type: string }
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+      responses:
+        '200':
+          description: Daily menu with domain approval state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DailyMenuResponse'
   /api/v1/daily-menus/{menuId}/publish:
     post:
       operationId: publishDailyMenu
@@ -863,6 +988,52 @@ paths:
       responses:
         '200':
           description: Published daily menu
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DailyMenuResponse'
+  /api/v1/daily-menus/{menuId}/submit:
+    post:
+      operationId: submitDailyMenu
+      tags: [menu]
+      parameters:
+        - name: menuId
+          in: path
+          required: true
+          schema: { type: string }
+        - name: version
+          in: query
+          required: true
+          schema: { type: integer, format: int64, minimum: 0 }
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+      responses:
+        '200':
+          description: 日菜单已提交领域审批
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DailyMenuResponse'
+  /api/v1/daily-menus/{menuId}/decision:
+    post:
+      operationId: decideDailyMenu
+      tags: [menu]
+      parameters:
+        - name: menuId
+          in: path
+          required: true
+          schema: { type: string }
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DailyMenuDecisionRequest'
+      responses:
+        '200':
+          description: 日菜单领域审批结果
           content:
             application/json:
               schema:
@@ -2507,10 +2678,60 @@ components:
           type: string
           minLength: 1
           description: 批次、出库或追溯码；必须在请求范围内可解析。
+    MenuPublishIntent:
+      type: object
+      required: [menuId, menuVersion]
+      additionalProperties: false
+      properties:
+        menuId: { type: string, minLength: 1 }
+        menuVersion: { type: integer, format: int64, minimum: 0 }
+        decision:
+          type: string
+          enum: [APPROVE, REJECT]
+        comment: { type: string, maxLength: 500, nullable: true }
+    AgentRunDecisionRequest:
+      type: object
+      required: [version, decisionType]
+      additionalProperties: false
+      properties:
+        version: { type: integer, format: int64, minimum: 0 }
+        decisionType:
+          type: string
+          enum: [RUN_CONFIRM, RUN_REJECT, RUN_CANCEL]
+        comment: { type: string, maxLength: 500, nullable: true }
+    AgentRunVersionRequest:
+      type: object
+      required: [version]
+      additionalProperties: false
+      properties:
+        version: { type: integer, format: int64, minimum: 0 }
+    AgentRunEvent:
+      type: object
+      required: [eventId, runId, eventSequence, eventType, toStatus, occurredAt]
+      properties:
+        eventId: { type: string }
+        runId: { type: string }
+        eventSequence: { type: integer, format: int64 }
+        eventType: { type: string }
+        fromStatus: { type: string, nullable: true }
+        toStatus: { type: string }
+        actorUserId: { type: string, nullable: true }
+        payload: { type: object, additionalProperties: true, nullable: true }
+        occurredAt: { type: string, format: date-time }
+    AgentRunEventListResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code: { type: integer }
+        message: { type: string }
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/AgentRunEvent' }
     AgentRun:
       type: object
       required:
         - runId
+        - version
         - status
         - intent
         - skillId
@@ -2522,10 +2743,15 @@ components:
         - updatedAt
       properties:
         runId: { type: string }
+        version: { type: integer, format: int64, minimum: 0 }
         status:
           type: string
           enum: [RECEIVED, PLANNED, WAITING_CLARIFICATION, WAITING_CONFIRMATION, EXECUTING, SUCCEEDED, FAILED, REJECTED, CANCELLED, TIMED_OUT, RECONCILIATION_REQUIRED]
         intent: { type: string }
+        actorUserId: { type: string }
+        actorUsername: { type: string }
+        schoolId: { type: string }
+        canteenId: { type: string }
         skillId: { type: string }
         skillVersion: { type: string }
         manifestDigest: { type: string }
@@ -2546,12 +2772,15 @@ components:
         data: { $ref: '#/components/schemas/AgentRun' }
     AgentRuntimePolicy:
       type: object
-      required: [intents, inputSchema, outputSchema, tools, sideEffect, runConfirmation, domainApproval, activation, deadlineMs, retryPolicy, evidence]
+      required: [intents, inputSchema, outputSchema, tools, toolByIntent, sideEffect, runConfirmation, domainApproval, activation, deadlineMs, retryPolicy, evidence]
       properties:
         intents: { type: array, items: { type: string } }
         inputSchema: { type: string }
         outputSchema: { type: string }
         tools: { type: array, items: { type: string } }
+        toolByIntent:
+          type: object
+          additionalProperties: { type: string }
         sideEffect: { type: string, enum: [read, write] }
         runConfirmation: { type: string }
         domainApproval: { type: string }
@@ -3025,12 +3254,24 @@ components:
         id: { type: string }
         menuDate: { type: string, format: date }
         mealTime: { type: string, enum: [BREAKFAST, LUNCH, DINNER, SNACK] }
-        status: { type: string, enum: [DRAFT, PUBLISHED] }
+        status: { type: string, enum: [DRAFT, PENDING_APPROVAL, APPROVED, REJECTED, PUBLISHED] }
         version: { type: integer, format: int64 }
         items:
           type: array
           items:
             $ref: '#/components/schemas/DailyMenuItem'
+        submittedBy: { type: string, nullable: true }
+        decisionBy: { type: string, nullable: true }
+        decisionComment: { type: string, nullable: true }
+        publishedBy: { type: string, nullable: true }
+    DailyMenuDecisionRequest:
+      type: object
+      required: [version, decision]
+      additionalProperties: false
+      properties:
+        version: { type: integer, format: int64, minimum: 0 }
+        decision: { type: string, enum: [APPROVE, REJECT] }
+        comment: { type: string, maxLength: 500, nullable: true }
     DailyMenuRequest:
       type: object
       required: [menuDate, mealTime, version, items]

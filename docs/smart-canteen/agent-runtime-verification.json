@@ -46,8 +46,8 @@
     "frontend Agent traceability result/error states"
   ],
   "known_limits": [
-    "Run decisions, claim leases, restart recovery, timeout enforcement and reconciliation remain phase 5-6 work.",
-    "Sensitive result references, duration metrics and AuditStore linkage remain follow-up hardening.",
-    "Menu, procurement, inventory and alert write Skills remain unavailable until their domain-model gates pass."
+    "This file records the phase 0-3 baseline; the phase 4-6 implementation and evidence are in agent-runtime-phase4-6-verification.json.",
+    "Distributed claim leases, sensitive result references, retention jobs and metrics remain follow-up hardening.",
+    "Procurement, inventory and alert write Skills remain unavailable until their domain-model gates pass."
   ]
 }

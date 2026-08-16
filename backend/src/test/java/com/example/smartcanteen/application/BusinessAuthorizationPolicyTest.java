@@ -91,4 +91,21 @@ class BusinessAuthorizationPolicyTest {
                 .isInstanceOf(ForbiddenException.class)
                 .hasMessage("User permission is not allowed for this operation");
     }
+
+    @Test
+    void menu_intents_require_their_fine_grained_duty_permission() {
+        ExecutionContext submitter = ExecutionContext.fromTrustedPrincipal(
+                "request-menu-submit", operator, scope,
+                Set.of(Role.CANTEEN_STAFF), Set.of("MENU_SUBMIT"));
+        policy.requireIntentAccess(submitter, "menu.submit");
+        assertThatThrownBy(() -> policy.requireIntentAccess(submitter, "menu.record-decision"))
+                .isInstanceOf(ForbiddenException.class)
+                .hasMessageContaining("MENU_APPROVE");
+
+        ExecutionContext approver = ExecutionContext.fromTrustedPrincipal(
+                "request-menu-approve", operator, scope,
+                Set.of(Role.SCHOOL_ADMIN), Set.of("MENU_APPROVE", "MENU_PUBLISH"));
+        policy.requireIntentAccess(approver, "menu.record-decision");
+        policy.requireIntentAccess(approver, "menu.publish");
+    }
 }

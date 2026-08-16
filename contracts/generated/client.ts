@@ -9,10 +9,50 @@ export type TraceabilityIntent = {
   traceCode: string;
 };
 
+export type MenuPublishIntent = {
+  menuId: string;
+  menuVersion: number;
+  decision?: string;
+  comment?: string;
+};
+
+export type AgentRunDecisionRequest = {
+  version: number;
+  decisionType: string;
+  comment?: string;
+};
+
+export type AgentRunVersionRequest = {
+  version: number;
+};
+
+export type AgentRunEvent = {
+  eventId: string;
+  runId: string;
+  eventSequence: number;
+  eventType: string;
+  fromStatus?: string;
+  toStatus: string;
+  actorUserId?: string;
+  payload?: Record<string, unknown>;
+  occurredAt: string;
+};
+
+export type AgentRunEventListResponse = {
+  code: number;
+  message: string;
+  data: Array<AgentRunEvent>;
+};
+
 export type AgentRun = {
   runId: string;
+  version: number;
   status: string;
   intent: string;
+  actorUserId?: string;
+  actorUsername?: string;
+  schoolId?: string;
+  canteenId?: string;
   skillId: string;
   skillVersion: string;
   manifestDigest: string;
@@ -37,6 +77,7 @@ export type AgentRuntimePolicy = {
   inputSchema: string;
   outputSchema: string;
   tools: Array<string>;
+  toolByIntent: Record<string, unknown>;
   sideEffect: string;
   runConfirmation: string;
   domainApproval: string;
@@ -409,6 +450,16 @@ export type DailyMenu = {
   status: string;
   version: number;
   items: Array<DailyMenuItem>;
+  submittedBy?: string;
+  decisionBy?: string;
+  decisionComment?: string;
+  publishedBy?: string;
+};
+
+export type DailyMenuDecisionRequest = {
+  version: number;
+  decision: string;
+  comment?: string;
 };
 
 export type DailyMenuRequest = {
@@ -1465,6 +1516,68 @@ export async function getAgentRun(runId: string, schoolId: string, canteenId: st
   return response.json() as Promise<AgentRunResponse>;
 }
 
+export async function cancelAgentRun(runId: string, idempotencyKey: string, schoolId: string, canteenId: string, body: AgentRunVersionRequest, xRequestId?: string): Promise<AgentRunResponse> {
+  const encodedRunId = encodeURIComponent(String(runId));
+  let path = "/api/v1/agent/runs/{runId}/cancel";
+  path = path.replace("{runId}", encodedRunId);
+  const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
+  const headers: Record<string, string> = {};
+  headers["Idempotency-Key"] = String(idempotencyKey);
+  if (xRequestId !== undefined) headers["X-Request-Id"] = String(xRequestId);
+  headers["Content-Type"] = "application/json";
+  const response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body) });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<AgentRunResponse>;
+}
+
+export async function decideAgentRun(runId: string, idempotencyKey: string, schoolId: string, canteenId: string, body: AgentRunDecisionRequest, xRequestId?: string): Promise<AgentRunResponse> {
+  const encodedRunId = encodeURIComponent(String(runId));
+  let path = "/api/v1/agent/runs/{runId}/decisions";
+  path = path.replace("{runId}", encodedRunId);
+  const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
+  const headers: Record<string, string> = {};
+  headers["Idempotency-Key"] = String(idempotencyKey);
+  if (xRequestId !== undefined) headers["X-Request-Id"] = String(xRequestId);
+  headers["Content-Type"] = "application/json";
+  const response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body) });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<AgentRunResponse>;
+}
+
+export async function getAgentRunEvents(runId: string, schoolId: string, canteenId: string, xRequestId?: string): Promise<AgentRunEventListResponse> {
+  const encodedRunId = encodeURIComponent(String(runId));
+  let path = "/api/v1/agent/runs/{runId}/events";
+  path = path.replace("{runId}", encodedRunId);
+  const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
+  const headers: Record<string, string> = {};
+  if (xRequestId !== undefined) headers["X-Request-Id"] = String(xRequestId);
+  const response = await fetch(url, { method: 'GET', headers: headers });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<AgentRunEventListResponse>;
+}
+
+export async function resumeAgentRun(runId: string, idempotencyKey: string, schoolId: string, canteenId: string, body: AgentRunVersionRequest, xRequestId?: string): Promise<AgentRunResponse> {
+  const encodedRunId = encodeURIComponent(String(runId));
+  let path = "/api/v1/agent/runs/{runId}/resume";
+  path = path.replace("{runId}", encodedRunId);
+  const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
+  const headers: Record<string, string> = {};
+  headers["Idempotency-Key"] = String(idempotencyKey);
+  if (xRequestId !== undefined) headers["X-Request-Id"] = String(xRequestId);
+  headers["Content-Type"] = "application/json";
+  const response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body) });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<AgentRunResponse>;
+}
+
 export async function listAgentSkills(): Promise<AgentSkillListResponse> {
   const path = "/api/v1/agent/skills";
   const url = new URL(path, window.location.origin);
@@ -1869,11 +1982,50 @@ export async function saveDailyMenu(schoolId: string, canteenId: string, body: D
   return response.json() as Promise<DailyMenuResponse>;
 }
 
+export async function getDailyMenu(menuId: string, schoolId: string, canteenId: string): Promise<DailyMenuResponse> {
+  const encodedMenuId = encodeURIComponent(String(menuId));
+  let path = "/api/v1/daily-menus/{menuId}";
+  path = path.replace("{menuId}", encodedMenuId);
+  const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
+  const response = await fetch(url, { method: 'GET' });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<DailyMenuResponse>;
+}
+
+export async function decideDailyMenu(menuId: string, schoolId: string, canteenId: string, body: DailyMenuDecisionRequest): Promise<DailyMenuResponse> {
+  const encodedMenuId = encodeURIComponent(String(menuId));
+  let path = "/api/v1/daily-menus/{menuId}/decision";
+  path = path.replace("{menuId}", encodedMenuId);
+  const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
+  const headers: Record<string, string> = {};
+  headers["Content-Type"] = "application/json";
+  const response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body) });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<DailyMenuResponse>;
+}
+
 export async function publishDailyMenu(menuId: string, schoolId: string, canteenId: string): Promise<DailyMenuResponse> {
   const encodedMenuId = encodeURIComponent(String(menuId));
   let path = "/api/v1/daily-menus/{menuId}/publish";
   path = path.replace("{menuId}", encodedMenuId);
   const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
+  const response = await fetch(url, { method: 'POST' });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<DailyMenuResponse>;
+}
+
+export async function submitDailyMenu(menuId: string, version: number, schoolId: string, canteenId: string): Promise<DailyMenuResponse> {
+  const encodedMenuId = encodeURIComponent(String(menuId));
+  let path = "/api/v1/daily-menus/{menuId}/submit";
+  path = path.replace("{menuId}", encodedMenuId);
+  const url = new URL(path, window.location.origin);
+  if (version !== undefined) url.searchParams.set("version", String(version));
   if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
   if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
   const response = await fetch(url, { method: 'POST' });

@@ -9,6 +9,7 @@ const scope = { schoolId: 'SCHOOL-001', canteenId: 'CANTEEN-001' };
 function run(status = 'SUCCEEDED'): AgentRun {
   return {
     runId: 'RUN-001',
+    version: 0,
     status,
     intent: 'traceability.query',
     skillId: 'smart-canteen.traceability',

@@ -1,7 +1,7 @@
 {
   "title": "Smart Canteen Workflow API",
   "version": "1.0.0",
-  "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+  "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
   "schemas": {
     "AgentRunStartRequest": {
       "type": "object",
@@ -35,10 +35,152 @@
         }
       }
     },
+    "MenuPublishIntent": {
+      "type": "object",
+      "required": [
+        "menuId",
+        "menuVersion"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "menuId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "menuVersion": {
+          "type": "integer",
+          "format": "int64",
+          "minimum": 0
+        },
+        "decision": {
+          "type": "string",
+          "enum": [
+            "APPROVE",
+            "REJECT"
+          ]
+        },
+        "comment": {
+          "type": "string",
+          "maxLength": 500,
+          "nullable": true
+        }
+      }
+    },
+    "AgentRunDecisionRequest": {
+      "type": "object",
+      "required": [
+        "version",
+        "decisionType"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "type": "integer",
+          "format": "int64",
+          "minimum": 0
+        },
+        "decisionType": {
+          "type": "string",
+          "enum": [
+            "RUN_CONFIRM",
+            "RUN_REJECT",
+            "RUN_CANCEL"
+          ]
+        },
+        "comment": {
+          "type": "string",
+          "maxLength": 500,
+          "nullable": true
+        }
+      }
+    },
+    "AgentRunVersionRequest": {
+      "type": "object",
+      "required": [
+        "version"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "type": "integer",
+          "format": "int64",
+          "minimum": 0
+        }
+      }
+    },
+    "AgentRunEvent": {
+      "type": "object",
+      "required": [
+        "eventId",
+        "runId",
+        "eventSequence",
+        "eventType",
+        "toStatus",
+        "occurredAt"
+      ],
+      "properties": {
+        "eventId": {
+          "type": "string"
+        },
+        "runId": {
+          "type": "string"
+        },
+        "eventSequence": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "eventType": {
+          "type": "string"
+        },
+        "fromStatus": {
+          "type": "string",
+          "nullable": true
+        },
+        "toStatus": {
+          "type": "string"
+        },
+        "actorUserId": {
+          "type": "string",
+          "nullable": true
+        },
+        "payload": {
+          "type": "object",
+          "additionalProperties": true,
+          "nullable": true
+        },
+        "occurredAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "AgentRunEventListResponse": {
+      "type": "object",
+      "required": [
+        "code",
+        "message",
+        "data"
+      ],
+      "properties": {
+        "code": {
+          "type": "integer"
+        },
+        "message": {
+          "type": "string"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/AgentRunEvent"
+          }
+        }
+      }
+    },
     "AgentRun": {
       "type": "object",
       "required": [
         "runId",
+        "version",
         "status",
         "intent",
         "skillId",
@@ -52,6 +194,11 @@
       "properties": {
         "runId": {
           "type": "string"
+        },
+        "version": {
+          "type": "integer",
+          "format": "int64",
+          "minimum": 0
         },
         "status": {
           "type": "string",
@@ -70,6 +217,18 @@
           ]
         },
         "intent": {
+          "type": "string"
+        },
+        "actorUserId": {
+          "type": "string"
+        },
+        "actorUsername": {
+          "type": "string"
+        },
+        "schoolId": {
+          "type": "string"
+        },
+        "canteenId": {
           "type": "string"
         },
         "skillId": {
@@ -141,6 +300,7 @@
         "inputSchema",
         "outputSchema",
         "tools",
+        "toolByIntent",
         "sideEffect",
         "runConfirmation",
         "domainApproval",
@@ -165,6 +325,12 @@
         "tools": {
           "type": "array",
           "items": {
+            "type": "string"
+          }
+        },
+        "toolByIntent": {
+          "type": "object",
+          "additionalProperties": {
             "type": "string"
           }
         },
@@ -1544,6 +1710,9 @@
           "type": "string",
           "enum": [
             "DRAFT",
+            "PENDING_APPROVAL",
+            "APPROVED",
+            "REJECTED",
             "PUBLISHED"
           ]
         },
@@ -1556,6 +1725,49 @@
           "items": {
             "$ref": "#/components/schemas/DailyMenuItem"
           }
+        },
+        "submittedBy": {
+          "type": "string",
+          "nullable": true
+        },
+        "decisionBy": {
+          "type": "string",
+          "nullable": true
+        },
+        "decisionComment": {
+          "type": "string",
+          "nullable": true
+        },
+        "publishedBy": {
+          "type": "string",
+          "nullable": true
+        }
+      }
+    },
+    "DailyMenuDecisionRequest": {
+      "type": "object",
+      "required": [
+        "version",
+        "decision"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "type": "integer",
+          "format": "int64",
+          "minimum": 0
+        },
+        "decision": {
+          "type": "string",
+          "enum": [
+            "APPROVE",
+            "REJECT"
+          ]
+        },
+        "comment": {
+          "type": "string",
+          "maxLength": 500,
+          "nullable": true
         }
       }
     },
@@ -5423,7 +5635,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1alarmApi~1warn~1report/post"
       }
     },
@@ -5461,7 +5673,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1alarmApi~1warnResult~1report/post"
       }
     },
@@ -5604,7 +5816,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1alarmWarn~1school~1queryPage/get"
       }
     },
@@ -5684,7 +5896,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1agent~1runs/post"
       }
     },
@@ -5758,8 +5970,337 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1agent~1runs~1{runId}/get"
+      }
+    },
+    {
+      "operationId": "cancelAgentRun",
+      "method": "POST",
+      "path": "/api/v1/agent/runs/{runId}/cancel",
+      "tags": [
+        "agent"
+      ],
+      "parameters": [
+        {
+          "name": "runId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        {
+          "name": "Idempotency-Key",
+          "in": "header",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        {
+          "name": "X-Request-Id",
+          "in": "header",
+          "required": false,
+          "description": "请求追踪 ID；省略时由服务端生成。",
+          "schema": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        {
+          "name": "schoolId",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        {
+          "name": "canteenId",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      ],
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/AgentRunVersionRequest"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "已取消的 Run",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentRunResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "$ref": "#/components/responses/BusinessError"
+        }
+      },
+      "provenance": {
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
+        "pointer": "/paths/~1api~1v1~1agent~1runs~1{runId}~1cancel/post"
+      }
+    },
+    {
+      "operationId": "decideAgentRun",
+      "method": "POST",
+      "path": "/api/v1/agent/runs/{runId}/decisions",
+      "tags": [
+        "agent"
+      ],
+      "parameters": [
+        {
+          "name": "runId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        {
+          "name": "Idempotency-Key",
+          "in": "header",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        {
+          "name": "X-Request-Id",
+          "in": "header",
+          "required": false,
+          "description": "请求追踪 ID；省略时由服务端生成。",
+          "schema": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        {
+          "name": "schoolId",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        {
+          "name": "canteenId",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      ],
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/AgentRunDecisionRequest"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "运行级确认、拒绝或取消后的 Run",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentRunResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "$ref": "#/components/responses/BusinessError"
+        },
+        "403": {
+          "$ref": "#/components/responses/ForbiddenError"
+        }
+      },
+      "provenance": {
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
+        "pointer": "/paths/~1api~1v1~1agent~1runs~1{runId}~1decisions/post"
+      }
+    },
+    {
+      "operationId": "getAgentRunEvents",
+      "method": "GET",
+      "path": "/api/v1/agent/runs/{runId}/events",
+      "tags": [
+        "agent"
+      ],
+      "parameters": [
+        {
+          "name": "runId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        {
+          "name": "X-Request-Id",
+          "in": "header",
+          "required": false,
+          "description": "请求追踪 ID；省略时由服务端生成。",
+          "schema": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        {
+          "name": "schoolId",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        {
+          "name": "canteenId",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      ],
+      "requestBody": null,
+      "responses": {
+        "200": {
+          "description": "Run 只追加事件时间线",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentRunEventListResponse"
+              }
+            }
+          }
+        },
+        "403": {
+          "$ref": "#/components/responses/ForbiddenError"
+        }
+      },
+      "provenance": {
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
+        "pointer": "/paths/~1api~1v1~1agent~1runs~1{runId}~1events/get"
+      }
+    },
+    {
+      "operationId": "resumeAgentRun",
+      "method": "POST",
+      "path": "/api/v1/agent/runs/{runId}/resume",
+      "tags": [
+        "agent"
+      ],
+      "parameters": [
+        {
+          "name": "runId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        {
+          "name": "Idempotency-Key",
+          "in": "header",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        {
+          "name": "X-Request-Id",
+          "in": "header",
+          "required": false,
+          "description": "请求追踪 ID；省略时由服务端生成。",
+          "schema": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        {
+          "name": "schoolId",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        {
+          "name": "canteenId",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      ],
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/AgentRunVersionRequest"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "恢复或转入人工对账后的 Run",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentRunResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "$ref": "#/components/responses/BusinessError"
+        }
+      },
+      "provenance": {
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
+        "pointer": "/paths/~1api~1v1~1agent~1runs~1{runId}~1resume/post"
       }
     },
     {
@@ -5784,7 +6325,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1agent~1skills/get"
       }
     },
@@ -5915,7 +6456,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1alerts/get"
       }
     },
@@ -5953,7 +6494,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1alerts/post"
       }
     },
@@ -6000,7 +6541,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1alerts~1{warnId}~1disposal/post"
       }
     },
@@ -6041,7 +6582,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1audit-logs/get"
       }
     },
@@ -6079,7 +6620,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1auth~1login/post"
       }
     },
@@ -6114,7 +6655,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1auth~1logout/post"
       }
     },
@@ -6143,7 +6684,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1auth~1me/get"
       }
     },
@@ -6181,7 +6722,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1auth~1refresh-token/post"
       }
     },
@@ -6258,7 +6799,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1canteen-showcases/get"
       }
     },
@@ -6315,7 +6856,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1canteen-showcases/post"
       }
     },
@@ -6371,7 +6912,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1canteen-showcases~1{showcaseId}/get"
       }
     },
@@ -6436,7 +6977,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1canteen-showcases~1{showcaseId}/put"
       }
     },
@@ -6492,7 +7033,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1canteen-showcases~1{showcaseId}~1history/get"
       }
     },
@@ -6557,7 +7098,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1canteen-showcases~1{showcaseId}~1publish/post"
       }
     },
@@ -6622,7 +7163,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1canteen-showcases~1{showcaseId}~1review/post"
       }
     },
@@ -6687,7 +7228,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1canteen-showcases~1{showcaseId}~1revoke/post"
       }
     },
@@ -6752,7 +7293,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1canteen-showcases~1{showcaseId}~1submit/post"
       }
     },
@@ -6817,7 +7358,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1canteen-showcases~1{showcaseId}~1versions/post"
       }
     },
@@ -6872,7 +7413,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1canteens/get"
       }
     },
@@ -6910,7 +7451,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1canteens/post"
       }
     },
@@ -6958,7 +7499,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1canteens~1{canteenId}/put"
       }
     },
@@ -7006,7 +7547,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1canteens~1{canteenId}~1status/post"
       }
     },
@@ -7101,7 +7642,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1compliance-records/get"
       }
     },
@@ -7158,7 +7699,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1compliance-records/post"
       }
     },
@@ -7215,7 +7756,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1compliance-records~1expiry-scan/post"
       }
     },
@@ -7271,7 +7812,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1compliance-records~1{recordId}/get"
       }
     },
@@ -7336,7 +7877,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1compliance-records~1{recordId}/put"
       }
     },
@@ -7392,7 +7933,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1compliance-records~1{recordId}~1history/get"
       }
     },
@@ -7457,7 +7998,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1compliance-records~1{recordId}~1review/post"
       }
     },
@@ -7522,7 +8063,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1compliance-records~1{recordId}~1submit/post"
       }
     },
@@ -7604,7 +8145,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1daily-menus/get"
       }
     },
@@ -7658,8 +8199,123 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1daily-menus/post"
+      }
+    },
+    {
+      "operationId": "getDailyMenu",
+      "method": "GET",
+      "path": "/api/v1/daily-menus/{menuId}",
+      "tags": [
+        "menu"
+      ],
+      "parameters": [
+        {
+          "name": "menuId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "schoolId",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        {
+          "name": "canteenId",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      ],
+      "requestBody": null,
+      "responses": {
+        "200": {
+          "description": "Daily menu with domain approval state",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DailyMenuResponse"
+              }
+            }
+          }
+        }
+      },
+      "provenance": {
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
+        "pointer": "/paths/~1api~1v1~1daily-menus~1{menuId}/get"
+      }
+    },
+    {
+      "operationId": "decideDailyMenu",
+      "method": "POST",
+      "path": "/api/v1/daily-menus/{menuId}/decision",
+      "tags": [
+        "menu"
+      ],
+      "parameters": [
+        {
+          "name": "menuId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "schoolId",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        {
+          "name": "canteenId",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      ],
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/DailyMenuDecisionRequest"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "日菜单领域审批结果",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DailyMenuResponse"
+              }
+            }
+          }
+        }
+      },
+      "provenance": {
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
+        "pointer": "/paths/~1api~1v1~1daily-menus~1{menuId}~1decision/post"
       }
     },
     {
@@ -7711,8 +8367,71 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1daily-menus~1{menuId}~1publish/post"
+      }
+    },
+    {
+      "operationId": "submitDailyMenu",
+      "method": "POST",
+      "path": "/api/v1/daily-menus/{menuId}/submit",
+      "tags": [
+        "menu"
+      ],
+      "parameters": [
+        {
+          "name": "menuId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "version",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        },
+        {
+          "name": "schoolId",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        {
+          "name": "canteenId",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      ],
+      "requestBody": null,
+      "responses": {
+        "200": {
+          "description": "日菜单已提交领域审批",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DailyMenuResponse"
+              }
+            }
+          }
+        }
+      },
+      "provenance": {
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
+        "pointer": "/paths/~1api~1v1~1daily-menus~1{menuId}~1submit/post"
       }
     },
     {
@@ -7764,7 +8483,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1dashboard~1risk/get"
       }
     },
@@ -7817,7 +8536,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1dashboard~1summary/get"
       }
     },
@@ -7897,7 +8616,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1dishes/get"
       }
     },
@@ -7951,7 +8670,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1dishes/post"
       }
     },
@@ -8013,7 +8732,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1dishes~1{dishId}/put"
       }
     },
@@ -8093,7 +8812,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1ingredients/get"
       }
     },
@@ -8147,7 +8866,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1ingredients/post"
       }
     },
@@ -8209,7 +8928,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1ingredients~1{ingredientId}/put"
       }
     },
@@ -8265,7 +8984,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1ingredients~1{ingredientId}~1units/get"
       }
     },
@@ -8346,7 +9065,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1inventory/get"
       }
     },
@@ -8412,7 +9131,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1inventory~1receipts/post"
       }
     },
@@ -8475,7 +9194,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1inventory~1stock-outs/post"
       }
     },
@@ -8501,7 +9220,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1ledger-alerts~1current/get"
       }
     },
@@ -8558,7 +9277,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1ledger-configurations/get"
       }
     },
@@ -8615,7 +9334,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1ledger-configurations/post"
       }
     },
@@ -8680,7 +9399,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1ledger-configurations~1{configurationId}/put"
       }
     },
@@ -8718,7 +9437,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1ledger-cycles/post"
       }
     },
@@ -8775,7 +9494,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1ledger-cycles~1configured~1current/post"
       }
     },
@@ -8840,7 +9559,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1ledger-cycles~1configured~1{cycleId}~1records/post"
       }
     },
@@ -8894,7 +9613,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1ledger-cycles~1{cycleId}~1alerts~1current/get"
       }
     },
@@ -8941,7 +9660,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1ledger-cycles~1{cycleId}~1records/post"
       }
     },
@@ -8979,7 +9698,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1ledger-records/post"
       }
     },
@@ -9082,7 +9801,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1ledger~1records/get"
       }
     },
@@ -9136,7 +9855,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1ledger~1records/post"
       }
     },
@@ -9197,7 +9916,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1ledger~1stats/get"
       }
     },
@@ -9292,7 +10011,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1meal-suspensions/get"
       }
     },
@@ -9349,7 +10068,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1meal-suspensions/post"
       }
     },
@@ -9415,7 +10134,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1meal-suspensions~1stats/get"
       }
     },
@@ -9480,7 +10199,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1meal-suspensions~1{suspensionId}~1cancel/post"
       }
     },
@@ -9536,7 +10255,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1meal-suspensions~1{suspensionId}~1history/get"
       }
     },
@@ -9601,7 +10320,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1meal-suspensions~1{suspensionId}~1review/post"
       }
     },
@@ -9666,7 +10385,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1menu-approvals~1{menuId}~1decision/post"
       }
     },
@@ -9731,7 +10450,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1menus~1{menuId}~1recipe/post"
       }
     },
@@ -9787,7 +10506,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1menus~1{menuId}~1submit/post"
       }
     },
@@ -9813,7 +10532,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1permissions/get"
       }
     },
@@ -9896,7 +10615,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1procurement-plans/get"
       }
     },
@@ -9953,7 +10672,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1procurement-plans~1generate/post"
       }
     },
@@ -10019,7 +10738,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1procurement-plans~1generate-range/post"
       }
     },
@@ -10075,7 +10794,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1procurement-plans~1{planId}/get"
       }
     },
@@ -10131,7 +10850,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1procurement-plans~1{planId}~1cancel/post"
       }
     },
@@ -10187,7 +10906,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1procurement-plans~1{planId}~1confirm/post"
       }
     },
@@ -10252,7 +10971,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1procurement-plans~1{planId}~1items/put"
       }
     },
@@ -10326,7 +11045,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1procurement-plans~1{planId}~1purchase-orders/post"
       }
     },
@@ -10399,7 +11118,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1purchase-orders/get"
       }
     },
@@ -10462,7 +11181,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1purchase-orders/post"
       }
     },
@@ -10533,7 +11252,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1purchase-orders~1{orderId}~1receive/post"
       }
     },
@@ -10595,7 +11314,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1purchase-orders~1{orderId}~1status/post"
       }
     },
@@ -10621,7 +11340,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1roles/get"
       }
     },
@@ -10668,7 +11387,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1roles~1{roleCode}~1permissions/put"
       }
     },
@@ -10715,7 +11434,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1schools/get"
       }
     },
@@ -10753,7 +11472,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1schools/post"
       }
     },
@@ -10801,7 +11520,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1schools~1{schoolId}/put"
       }
     },
@@ -10849,7 +11568,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1schools~1{schoolId}~1status/post"
       }
     },
@@ -10934,7 +11653,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1supplier-complaints/get"
       }
     },
@@ -10991,7 +11710,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1supplier-complaints/post"
       }
     },
@@ -11047,7 +11766,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1supplier-complaints~1{complaintId}/get"
       }
     },
@@ -11112,7 +11831,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1supplier-complaints~1{complaintId}~1close/post"
       }
     },
@@ -11168,7 +11887,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1supplier-complaints~1{complaintId}~1history/get"
       }
     },
@@ -11233,7 +11952,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1supplier-complaints~1{complaintId}~1process/post"
       }
     },
@@ -11298,7 +12017,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1supplier-complaints~1{complaintId}~1reply/post"
       }
     },
@@ -11363,7 +12082,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1supplier-complaints~1{complaintId}~1review/post"
       }
     },
@@ -11436,7 +12155,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1suppliers/get"
       }
     },
@@ -11490,7 +12209,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1suppliers/post"
       }
     },
@@ -11546,7 +12265,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1traceability~1{traceCode}/get"
       }
     },
@@ -11597,7 +12316,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1users/get"
       }
     },
@@ -11635,7 +12354,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1users/post"
       }
     },
@@ -11683,7 +12402,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1users~1{userId}/put"
       }
     },
@@ -11731,7 +12450,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1users~1{userId}~1roles/put"
       }
     },
@@ -11779,7 +12498,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1users~1{userId}~1scopes/put"
       }
     },
@@ -11827,7 +12546,7 @@
         }
       },
       "provenance": {
-        "documentHash": "a557a33a39459720c9cfe9ee26da11173928f3f5eaac5c676446d2c75d3e7088",
+        "documentHash": "d2ba4660d4543cd25ac98ef18a231168fced87bdde47ded90096e5791178cd55",
         "pointer": "/paths/~1api~1v1~1users~1{userId}~1status/post"
       }
     }

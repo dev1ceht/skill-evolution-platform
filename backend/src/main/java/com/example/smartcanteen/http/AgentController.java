@@ -4,6 +4,7 @@ import com.example.smartcanteen.agent.application.AgentExecutionService;
 import com.example.smartcanteen.agent.application.AgentRunNotFoundException;
 import com.example.smartcanteen.agent.application.AgentRuntime;
 import com.example.smartcanteen.agent.domain.AgentRun;
+import com.example.smartcanteen.agent.domain.AgentRunEvent;
 import com.example.smartcanteen.agent.domain.ExecutionContext;
 import com.example.smartcanteen.agent.domain.SkillDefinition;
 import com.example.smartcanteen.agent.domain.StartRunCommand;
@@ -81,6 +82,7 @@ public class AgentController {
                 resolvedRequestId,
                 scope,
                 "write".equals(skill.runtime().sideEffect()));
+        policy.requireIntentAccess(context, body.intent());
         String inputJson = writeInput(body.input());
         AgentRun run = runtime.start(new StartRunCommand(
                 resolvedRequestId, body.intent(), inputJson, idempotencyKey), context);
@@ -111,6 +113,98 @@ public class AgentController {
         return ApiResponse.ok(RunView.from(run, objectMapper));
     }
 
+    @PostMapping("/runs/{runId}/decisions")
+    public ApiResponse<RunView> decide(
+            HttpServletRequest request,
+            @PathVariable String runId,
+            @RequestHeader("Idempotency-Key") String idempotencyKey,
+            @RequestHeader(value = "X-Request-Id", required = false) String requestId,
+            @RequestParam String schoolId,
+            @RequestParam String canteenId,
+            @Valid @RequestBody RunDecisionRequest body) {
+        AuthPrincipal principal = principal(request);
+        CanteenScope scope = new CanteenScope(schoolId, canteenId);
+        ExecutionContext context = policy.establishContext(
+                principal, resolvedRequestId(requestId), scope, true);
+        AgentRun run = runtime.decide(
+                runId,
+                body.version(),
+                body.decisionType(),
+                body.comment(),
+                idempotencyKey,
+                context);
+        if ("RUN_CONFIRM".equalsIgnoreCase(body.decisionType())
+                && run.status() == com.example.smartcanteen.agent.domain.RunStatus.PLANNED) {
+            run = execution.execute(run, context);
+        }
+        return ApiResponse.ok(RunView.from(run, objectMapper));
+    }
+
+    @PostMapping("/runs/{runId}/cancel")
+    public ApiResponse<RunView> cancel(
+            HttpServletRequest request,
+            @PathVariable String runId,
+            @RequestHeader("Idempotency-Key") String idempotencyKey,
+            @RequestHeader(value = "X-Request-Id", required = false) String requestId,
+            @RequestParam String schoolId,
+            @RequestParam String canteenId,
+            @Valid @RequestBody RunVersionRequest body) {
+        return decide(
+                request,
+                runId,
+                idempotencyKey,
+                requestId,
+                schoolId,
+                canteenId,
+                new RunDecisionRequest(body.version(), "RUN_CANCEL", null));
+    }
+
+    @PostMapping("/runs/{runId}/resume")
+    public ApiResponse<RunView> resume(
+            HttpServletRequest request,
+            @PathVariable String runId,
+            @RequestHeader("Idempotency-Key") String idempotencyKey,
+            @RequestHeader(value = "X-Request-Id", required = false) String requestId,
+            @RequestParam String schoolId,
+            @RequestParam String canteenId,
+            @Valid @RequestBody RunVersionRequest body) {
+        requireIdempotencyKey(idempotencyKey);
+        AuthPrincipal principal = principal(request);
+        CanteenScope scope = new CanteenScope(schoolId, canteenId);
+        ExecutionContext context = policy.establishContext(
+                principal, resolvedRequestId(requestId), scope, true);
+        AgentRun run = runtime.find(runId).orElseThrow(() ->
+                new AgentRunNotFoundException(runId));
+        requireOwner(run, context);
+        if (run.status() == com.example.smartcanteen.agent.domain.RunStatus.EXECUTING) {
+            run = runtime.markReconciliationRequired(runId, body.version(), context);
+        } else if (run.status() == com.example.smartcanteen.agent.domain.RunStatus.PLANNED) {
+            if (run.version() != body.version()) {
+                throw new IllegalStateException("Agent Run version is stale: " + runId);
+            }
+            run = execution.execute(run, context);
+        }
+        return ApiResponse.ok(RunView.from(run, objectMapper));
+    }
+
+    @GetMapping("/runs/{runId}/events")
+    public ApiResponse<List<EventView>> events(
+            HttpServletRequest request,
+            @PathVariable String runId,
+            @RequestHeader(value = "X-Request-Id", required = false) String requestId,
+            @RequestParam String schoolId,
+            @RequestParam String canteenId) {
+        AuthPrincipal principal = principal(request);
+        CanteenScope scope = new CanteenScope(schoolId, canteenId);
+        ExecutionContext context = policy.establishContext(
+                principal, resolvedRequestId(requestId), scope, false);
+        AgentRun run = runtime.find(runId).orElseThrow(() ->
+                new AgentRunNotFoundException(runId));
+        requireOwner(run, context);
+        return ApiResponse.ok(runtime.events(runId).stream()
+                .map(event -> EventView.from(event, objectMapper)).toList());
+    }
+
     @GetMapping("/skills")
     public ApiResponse<List<SkillView>> skills() {
         return ApiResponse.ok(skills.list().stream().map(SkillView::from).toList());
@@ -131,6 +225,18 @@ public class AgentController {
         throw new ForbiddenException("Authentication is required");
     }
 
+    private static String resolvedRequestId(String requestId) {
+        return requestId == null || requestId.isBlank()
+                ? UUID.randomUUID().toString()
+                : requestId;
+    }
+
+    private static void requireIdempotencyKey(String idempotencyKey) {
+        if (idempotencyKey == null || idempotencyKey.isBlank() || idempotencyKey.length() > 128) {
+            throw new IllegalArgumentException("Idempotency-Key must be 1-128 characters");
+        }
+    }
+
     private String writeInput(JsonNode input) {
         try {
             return objectMapper.writeValueAsString(input);
@@ -146,8 +252,13 @@ public class AgentController {
 
     public record RunView(
             String runId,
+            long version,
             String status,
             String intent,
+            String actorUserId,
+            String actorUsername,
+            String schoolId,
+            String canteenId,
             String skillId,
             String skillVersion,
             String manifestDigest,
@@ -163,8 +274,13 @@ public class AgentController {
         static RunView from(AgentRun run, ObjectMapper objectMapper) {
             return new RunView(
                     run.runId(),
+                    run.version(),
                     run.status().name(),
                     run.intent(),
+                    run.actorUserId(),
+                    run.actorUsername(),
+                    run.scope().schoolId(),
+                    run.scope().canteenId(),
                     run.skillId(),
                     run.skillVersion(),
                     run.manifestDigest(),
@@ -178,15 +294,49 @@ public class AgentController {
                     run.updatedAt());
         }
 
-        private static JsonNode parse(ObjectMapper objectMapper, String json) {
+        static JsonNode parse(ObjectMapper objectMapper, String json) {
             if (json == null) {
                 return null;
             }
             try {
                 return objectMapper.readTree(json);
             } catch (IOException exception) {
-                throw new IllegalStateException("Persisted Agent JSON is invalid", exception);
+                return objectMapper.getNodeFactory().textNode(json);
             }
+        }
+    }
+
+    public record RunDecisionRequest(
+            long version,
+            @NotBlank String decisionType,
+            @jakarta.validation.constraints.Size(max = 500) String comment) {
+    }
+
+    public record RunVersionRequest(long version) {
+    }
+
+    public record EventView(
+            String eventId,
+            String runId,
+            long eventSequence,
+            String eventType,
+            String fromStatus,
+            String toStatus,
+            String actorUserId,
+            JsonNode payload,
+            Instant occurredAt) {
+
+        static EventView from(AgentRunEvent event, ObjectMapper objectMapper) {
+            return new EventView(
+                    event.eventId(),
+                    event.runId(),
+                    event.sequence(),
+                    event.eventType(),
+                    event.fromStatus(),
+                    event.toStatus(),
+                    event.actorUserId(),
+                    RunView.parse(objectMapper, event.payloadJson()),
+                    event.occurredAt());
         }
     }
 
@@ -222,6 +372,7 @@ public class AgentController {
             String inputSchema,
             String outputSchema,
             List<String> tools,
+            java.util.Map<String, String> toolByIntent,
             String sideEffect,
             String runConfirmation,
             String domainApproval,
@@ -239,6 +390,7 @@ public class AgentController {
                     runtime.inputSchema(),
                     runtime.outputSchema(),
                     runtime.tools(),
+                    runtime.toolByIntent(),
                     runtime.sideEffect(),
                     runtime.runConfirmation(),
                     runtime.domainApproval(),

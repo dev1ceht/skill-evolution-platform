@@ -152,6 +152,46 @@ public class BusinessAuthorizationPolicy {
         }
         requireScope(current, run.scope(), "write".equals(skill.runtime().sideEffect()));
         requireSkillAccess(current, skill);
+        // Duties must be evaluated against the reloaded principal, not the roles that
+        // were captured when the Run was created. This closes the privilege-downgrade
+        // window between planning and execution.
+        requireIntentAccess(current, run.intent());
+    }
+
+    /** Applies finer-grained duties for menu approval actions after a Run is resumed. */
+    public void requireIntentAccess(ExecutionContext context, String intent) {
+        if (context == null || !securityEnabled) {
+            return;
+        }
+        String permissionCode = permissionForIntent(intent);
+        if (permissionCode != null && !context.hasPermission(permissionCode)) {
+            throw new ForbiddenException("User lacks permission " + permissionCode
+                    + " for Agent intent " + intent);
+        }
+    }
+
+    private void requireIntentAccess(AuthPrincipal principal, String intent) {
+        if (!securityEnabled || principal == null) {
+            return;
+        }
+        String permissionCode = permissionForIntent(intent);
+        if (permissionCode != null && !authorization.hasPermission(principal, permissionCode)) {
+            throw new ForbiddenException("User lacks permission " + permissionCode
+                    + " for Agent intent " + intent);
+        }
+    }
+
+    private static String permissionForIntent(String intent) {
+        if (intent == null) {
+            return null;
+        }
+        return switch (intent) {
+            case "menu.validate-for-submit" -> "MENU_VALIDATE";
+            case "menu.submit" -> "MENU_SUBMIT";
+            case "menu.record-decision" -> "MENU_APPROVE";
+            case "menu.publish" -> "MENU_PUBLISH";
+            default -> null;
+        };
     }
 
     public Set<Role> rolesFor(AuthPrincipal principal) {

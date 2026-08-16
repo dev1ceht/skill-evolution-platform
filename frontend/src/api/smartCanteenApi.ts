@@ -16,6 +16,8 @@ import type {
   SupplierPageResponse,
   Menu,
   MenuResponse,
+  DailyMenu,
+  DailyMenuResponse,
   Recipe,
   RecipeResponse,
   ProcurementPlan,
@@ -75,6 +77,8 @@ import type {
   ComplaintReplyRequest,
   AgentRun,
   AgentRunResponse,
+  AgentRunEvent,
+  AgentRunEventListResponse,
 } from './generated/client';
 
 interface ApiEnvelope<T> {
@@ -136,8 +140,16 @@ export interface SmartCanteenApiPort {
     scope?: CanteenScope,
   ): Promise<Receipt>;
   completeLedgerRecord(ledgerCode: string, scope?: CanteenScope): Promise<LedgerAlert>;
+  getDailyMenu?(menuId: string, scope: CanteenScope): Promise<DailyMenu>;
   startAgentTraceability?(
     traceCode: string,
+    scope: CanteenScope,
+    idempotencyKey: string,
+    requestId?: string,
+  ): Promise<AgentRun>;
+  startAgentRun?(
+    intent: string,
+    input: Record<string, unknown>,
     scope: CanteenScope,
     idempotencyKey: string,
     requestId?: string,
@@ -147,6 +159,34 @@ export interface SmartCanteenApiPort {
     scope: CanteenScope,
     requestId?: string,
   ): Promise<AgentRun>;
+  decideAgentRun?(
+    runId: string,
+    decisionType: 'RUN_CONFIRM' | 'RUN_REJECT' | 'RUN_CANCEL',
+    version: number,
+    scope: CanteenScope,
+    comment?: string,
+    requestId?: string,
+    idempotencyKey?: string,
+  ): Promise<AgentRun>;
+  cancelAgentRun?(
+    runId: string,
+    version: number,
+    scope: CanteenScope,
+    requestId?: string,
+    idempotencyKey?: string,
+  ): Promise<AgentRun>;
+  resumeAgentRun?(
+    runId: string,
+    version: number,
+    scope: CanteenScope,
+    requestId?: string,
+    idempotencyKey?: string,
+  ): Promise<AgentRun>;
+  getAgentRunEvents?(
+    runId: string,
+    scope: CanteenScope,
+    requestId?: string,
+  ): Promise<AgentRunEvent[]>;
   reportAlert?(request: AlertReportRequest): Promise<AlertRecord>;
   disposeAlert?(warnId: string, request: AlertDisposalRequest): Promise<AlertRecord>;
   queryAlerts?(filters?: {
@@ -383,6 +423,27 @@ export class SmartCanteenApi implements SmartCanteenApiPort {
     return unwrap(response);
   }
 
+  async startAgentRun(
+    intent: string,
+    input: Record<string, unknown>,
+    scope: CanteenScope,
+    idempotencyKey: string,
+    requestId?: string,
+  ): Promise<AgentRun> {
+    const response = await this.client.post<AgentRunResponse>(
+      '/api/v1/agent/runs',
+      { intent, input },
+      {
+        headers: {
+          'Idempotency-Key': idempotencyKey,
+          ...(requestId ? { 'X-Request-Id': requestId } : {}),
+        },
+        params: scope,
+      },
+    );
+    return unwrap(response);
+  }
+
   async getAgentRun(
     runId: string,
     scope: CanteenScope,
@@ -390,6 +451,87 @@ export class SmartCanteenApi implements SmartCanteenApiPort {
   ): Promise<AgentRun> {
     const response = await this.client.get<AgentRunResponse>(
       `/api/v1/agent/runs/${encodeURIComponent(runId)}`,
+      {
+      headers: requestId ? { 'X-Request-Id': requestId } : undefined,
+        params: scope,
+      },
+    );
+    return unwrap(response);
+  }
+
+  async decideAgentRun(
+    runId: string,
+    decisionType: 'RUN_CONFIRM' | 'RUN_REJECT' | 'RUN_CANCEL',
+    version: number,
+    scope: CanteenScope,
+    comment?: string,
+    requestId?: string,
+    idempotencyKey?: string,
+  ): Promise<AgentRun> {
+    const response = await this.client.post<AgentRunResponse>(
+      `/api/v1/agent/runs/${encodeURIComponent(runId)}/decisions`,
+      { version, decisionType, ...(comment ? { comment } : {}) },
+      {
+        headers: {
+          'Idempotency-Key': idempotencyKey
+            ?? `agent-decision-${runId}-${version}-${decisionType}`,
+          ...(requestId ? { 'X-Request-Id': requestId } : {}),
+        },
+        params: scope,
+      },
+    );
+    return unwrap(response);
+  }
+
+  async cancelAgentRun(
+    runId: string,
+    version: number,
+    scope: CanteenScope,
+    requestId?: string,
+    idempotencyKey?: string,
+  ): Promise<AgentRun> {
+    const response = await this.client.post<AgentRunResponse>(
+      `/api/v1/agent/runs/${encodeURIComponent(runId)}/cancel`,
+      { version },
+      {
+        headers: {
+          'Idempotency-Key': idempotencyKey ?? `agent-cancel-${runId}-${version}`,
+          ...(requestId ? { 'X-Request-Id': requestId } : {}),
+        },
+        params: scope,
+      },
+    );
+    return unwrap(response);
+  }
+
+  async resumeAgentRun(
+    runId: string,
+    version: number,
+    scope: CanteenScope,
+    requestId?: string,
+    idempotencyKey?: string,
+  ): Promise<AgentRun> {
+    const response = await this.client.post<AgentRunResponse>(
+      `/api/v1/agent/runs/${encodeURIComponent(runId)}/resume`,
+      { version },
+      {
+        headers: {
+          'Idempotency-Key': idempotencyKey ?? `agent-resume-${runId}-${version}`,
+          ...(requestId ? { 'X-Request-Id': requestId } : {}),
+        },
+        params: scope,
+      },
+    );
+    return unwrap(response);
+  }
+
+  async getAgentRunEvents(
+    runId: string,
+    scope: CanteenScope,
+    requestId?: string,
+  ): Promise<AgentRunEvent[]> {
+    const response = await this.client.get<AgentRunEventListResponse>(
+      `/api/v1/agent/runs/${encodeURIComponent(runId)}/events`,
       {
         headers: requestId ? { 'X-Request-Id': requestId } : undefined,
         params: scope,
@@ -929,6 +1071,14 @@ export class SmartCanteenApi implements SmartCanteenApiPort {
       '/api/v1/ledger-records',
       { ledgerCode },
       scope ? { params: scope } : undefined,
+    );
+    return unwrap(response);
+  }
+
+  async getDailyMenu(menuId: string, scope: CanteenScope): Promise<DailyMenu> {
+    const response = await this.client.get<DailyMenuResponse>(
+      `/api/v1/daily-menus/${encodeURIComponent(menuId)}`,
+      { params: scope },
     );
     return unwrap(response);
   }

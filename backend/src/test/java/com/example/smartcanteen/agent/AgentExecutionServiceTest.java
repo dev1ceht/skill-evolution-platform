@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.times;
 
 import com.example.smartcanteen.agent.application.AgentExecutionService;
 import com.example.smartcanteen.agent.domain.AgentRun;
@@ -22,6 +23,8 @@ import com.example.smartcanteen.security.Role;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -87,11 +90,69 @@ class AgentExecutionServiceTest {
                 "Traceability code not found");
     }
 
+    @Test
+    void retries_a_bounded_read_once_and_records_the_successful_attempt() {
+        AgentRun planned = plannedRun();
+        when(runs.findById(planned.runId())).thenReturn(Optional.of(planned));
+        when(skills.find(planned.skillId(), planned.skillVersion())).thenReturn(Optional.of(skill));
+        when(tools.execute("traceability.query", context, planned.inputJson()))
+                .thenThrow(new IllegalArgumentException("temporary read failure"))
+                .thenReturn(new ToolExecutor.ToolResult("{\"traceCode\":\"TRACE-001\"}"));
+
+        AgentRun result = execution.execute(planned, context);
+
+        assertThat(result.status()).isEqualTo(RunStatus.SUCCEEDED);
+        verify(tools, times(2)).execute("traceability.query", context, planned.inputJson());
+    }
+
+    @Test
+    void marks_a_read_run_timed_out_when_the_tool_exceeds_its_declared_deadline() {
+        AgentRun planned = plannedRun();
+        when(runs.findById(planned.runId())).thenReturn(Optional.of(planned));
+        when(skills.find(planned.skillId(), planned.skillVersion())).thenReturn(Optional.of(skill));
+        when(tools.execute("traceability.query", context, planned.inputJson()))
+                .thenReturn(new ToolExecutor.ToolResult("{}"));
+        Clock slowClock = new SequenceClock(NOW, NOW.plusSeconds(4), NOW.plusSeconds(4));
+        AgentExecutionService slowExecution = new AgentExecutionService(
+                runs, skills, tools, policy, slowClock);
+
+        AgentRun result = slowExecution.execute(planned, context);
+
+        assertThat(result.status()).isEqualTo(RunStatus.TIMED_OUT);
+        assertThat(result.errorCode()).isEqualTo("DEADLINE_EXCEEDED");
+        verify(runs).appendEvent(
+                planned.runId(), "RUN_TIMED_OUT", "EXECUTING", "TIMED_OUT", "USER-001",
+                result.errorMessage());
+    }
+
     private AgentRun plannedRun() {
         return new AgentRun(
                 "RUN-001", "agent-001", "f".repeat(64), "USER-001", "operator", scope,
                 "traceability.query", skill.id(), skill.version(), skill.manifestDigest(),
                 "p".repeat(64), "{}", "{\"traceCode\":\"TRACE-001\"}", RunStatus.PLANNED,
                 null, null, null, null, 0, NOW, NOW);
+    }
+
+    private static final class SequenceClock extends Clock {
+        private final Deque<Instant> values;
+
+        private SequenceClock(Instant... values) {
+            this.values = new ArrayDeque<>(List.of(values));
+        }
+
+        @Override
+        public ZoneOffset getZone() {
+            return ZoneOffset.UTC;
+        }
+
+        @Override
+        public Clock withZone(java.time.ZoneId zone) {
+            return this;
+        }
+
+        @Override
+        public Instant instant() {
+            return values.isEmpty() ? NOW : values.removeFirst();
+        }
     }
 }

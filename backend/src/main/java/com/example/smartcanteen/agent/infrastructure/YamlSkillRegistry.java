@@ -143,6 +143,7 @@ public class YamlSkillRegistry implements SkillRegistry {
                 requiredText(runtime, "input_schema"),
                 requiredText(runtime, "output_schema"),
                 requiredStrings(runtime, "tools"),
+                optionalStringMap(runtime, "tool_by_intent"),
                 requiredText(runtime, "side_effect"),
                 requiredText(runtime, "run_confirmation"),
                 requiredText(runtime, "domain_approval"),
@@ -150,6 +151,26 @@ public class YamlSkillRegistry implements SkillRegistry {
                 requiredPositiveLong(runtime, "deadline_ms"),
                 requiredText(runtime, "retry_policy"),
                 requiredText(runtime, "evidence"));
+    }
+
+    private static Map<String, String> optionalStringMap(JsonNode parent, String field) {
+        JsonNode value = parent == null ? null : parent.get(field);
+        if (value == null || value.isNull()) {
+            return Map.of();
+        }
+        if (!value.isObject()) {
+            throw new IllegalArgumentException(field + " must be an object");
+        }
+        Map<String, String> result = new LinkedHashMap<>();
+        Iterator<Map.Entry<String, JsonNode>> fields = value.fields();
+        while (fields.hasNext()) {
+            Map.Entry<String, JsonNode> entry = fields.next();
+            if (!entry.getValue().isTextual() || entry.getValue().asText().isBlank()) {
+                throw new IllegalArgumentException(field + " must contain non-blank strings");
+            }
+            result.put(entry.getKey(), entry.getValue().asText());
+        }
+        return result;
     }
 
     private static JsonNode requiredArray(JsonNode parent, String field) {

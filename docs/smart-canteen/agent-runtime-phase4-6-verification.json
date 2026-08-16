@@ -1,0 +1,59 @@
+{
+  "phase": "agent-runtime-phases-4-6",
+  "captured_at": "2026-08-16T21:36:45+08:00",
+  "scope": "canonical daily-menu writes, runtime reliability hardening, and API/frontend pilot entry",
+  "contract": {
+    "operations": 116,
+    "api_ir": "contracts/generated/api-ir.json",
+    "generated_backend_client": "contracts/generated/client.ts",
+    "generated_frontend_client": "frontend/src/api/generated/client.ts",
+    "generated_contract_tests": "frontend/src/api/generated/client.contract.test.ts plus phase-4-6 Agent contract tests"
+  },
+  "commands": [
+    {
+      "command": "mvn --batch-mode test",
+      "result": "passed",
+      "evidence": "103 tests, 0 failures, 0 errors; 1 environment-gated MySQL test skipped"
+    },
+    {
+      "command": "mvn --batch-mode -Dtest=AgentExecutionServiceTest,AgentControllerHttpTest,OperationalCoreHttpTest,ProcurementPlanClosedLoopHttpTest test",
+      "result": "passed",
+      "evidence": "phase 4-6 menu/Agent integration and retry/deadline tests passed"
+    },
+    {
+      "command": "npm test -- --run",
+      "result": "passed",
+      "evidence": "140 Vitest tests passed, including domain-state lookup, immutable menu plan confirmation and Agent contract tests"
+    },
+    {
+      "command": "npm run build",
+      "result": "passed",
+      "evidence": "vue-tsc typecheck and Vite production build completed"
+    },
+    {
+      "command": "python -m pytest -q -p no:cacheprovider --basetemp=tmp/pytest-phase46",
+      "result": "passed",
+      "evidence": "Python contract and repository tests passed"
+    },
+    {
+      "command": "python skills/smart-canteen-sop/scripts/validate_sop_manifest.py --run sop-runs/menu-to-traceability.yaml",
+      "result": "passed",
+      "evidence": "7 SOPs and 1 composition validated"
+    }
+  ],
+  "delivered": [
+    "daily_menus canonical DRAFT -> PENDING_APPROVAL -> APPROVED/REJECTED -> PUBLISHED lifecycle with optimistic version checks",
+    "separate RUN_CONFIRM/REJECT/CANCEL decisions from menu domain approval and submitter/approver/publisher separation",
+    "menu.validate-for-submit, menu.submit, menu.record-decision and menu.publish Tool Catalog entries",
+    "durable Run decisions/events, Step checkpoint, audit linkage, request-hash-bound replay, bounded read retry and deadline classification",
+    "resume/reconciliation API, replay-safe Agent decisions and versioned events contract",
+    "frontend menu Agent confirmation workspace, domain-state lookup and generated API client updates"
+  ],
+  "known_limits": [
+    "Real MySQL migration/concurrency acceptance remains environment-gated; legacy menus compatibility migration is not yet closed.",
+    "Execution uses optimistic version authority and explicit resume/reconciliation; a distributed claim lease scheduler is not yet enabled.",
+    "In-process deadline enforcement classifies completed late calls; JDBC query timeout and cancellation are still adapter-specific.",
+    "Sensitive result reference storage, retention/cleanup jobs, clarification orchestration, metrics dashboard and production kill switch remain follow-up gates.",
+    "Procurement, inventory and alert write Skills remain behind their domain-model and pilot gates."
+  ]
+}

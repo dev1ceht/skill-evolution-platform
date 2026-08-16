@@ -74,7 +74,7 @@ class AgentRuntimePersistenceTest {
         assertThat(jdbc.queryForObject(
                 "SELECT COUNT(*) FROM agent_run_events WHERE run_id = ?",
                 Integer.class,
-                created.runId())).isEqualTo(1);
+                created.runId())).isEqualTo(2);
         assertThat(jdbc.queryForObject(
                 "SELECT status FROM agent_steps WHERE run_id = ? AND step_id = 'step-1'",
                 String.class,

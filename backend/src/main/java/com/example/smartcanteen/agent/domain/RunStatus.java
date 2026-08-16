@@ -37,6 +37,7 @@ public enum RunStatus {
                     || next == REJECTED
                     || next == CANCELLED;
             case WAITING_CONFIRMATION -> next == EXECUTING
+                    || next == PLANNED
                     || next == REJECTED
                     || next == CANCELLED;
             case EXECUTING -> next == SUCCEEDED
