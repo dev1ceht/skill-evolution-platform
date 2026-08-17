@@ -9,6 +9,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -121,7 +122,8 @@ public class JdbcAssistantConversationStore implements AssistantConversationStor
                 turn.conversationId());
     }
 
-    private Optional<AssistantConversation> findConversation(String conversationId) {
+    @Override
+    public Optional<AssistantConversation> findConversation(String conversationId) {
         return jdbc.query(
                         "SELECT conversation_id, actor_user_id, actor_username, school_id, "
                                 + "canteen_id, status, created_at, updated_at "
@@ -130,6 +132,19 @@ public class JdbcAssistantConversationStore implements AssistantConversationStor
                         conversationId)
                 .stream()
                 .findFirst();
+    }
+
+    @Override
+    public List<StoredTurn> listTurns(String conversationId, int limit) {
+        return jdbc.query(
+                "SELECT t.turn_id, t.conversation_id, t.turn_sequence, t.idempotency_key, "
+                        + "t.request_hash, t.message, t.response_json, t.kind, t.intent, "
+                        + "t.run_id, t.run_status, t.created_at "
+                        + "FROM assistant_turns t WHERE t.conversation_id = ? "
+                        + "ORDER BY t.turn_sequence ASC LIMIT ?",
+                this::mapTurn,
+                conversationId,
+                limit);
     }
 
     private AssistantConversation mapConversation(ResultSet result, int row) throws SQLException {

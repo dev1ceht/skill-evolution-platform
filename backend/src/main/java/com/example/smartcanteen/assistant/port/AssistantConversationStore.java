@@ -3,6 +3,7 @@ package com.example.smartcanteen.assistant.port;
 import com.example.smartcanteen.assistant.domain.AssistantConversation;
 import com.example.smartcanteen.agent.domain.ExecutionContext;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 /** Persistence seam for conversation ownership and append-only assistant turns. */
@@ -10,8 +11,12 @@ public interface AssistantConversationStore {
 
     AssistantConversation ensureConversation(String conversationId, ExecutionContext context, Instant now);
 
+    Optional<AssistantConversation> findConversation(String conversationId);
+
     Optional<StoredTurn> findByIdempotency(
             String conversationId, String actorUserId, String idempotencyKey);
+
+    List<StoredTurn> listTurns(String conversationId, int limit);
 
     long nextSequence(String conversationId);
 

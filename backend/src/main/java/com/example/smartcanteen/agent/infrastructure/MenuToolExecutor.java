@@ -15,6 +15,7 @@ import org.springframework.stereotype.Component;
 public class MenuToolExecutor implements ToolExecutor {
 
     private static final Set<String> TOOLS = Set.of(
+            "menu.query",
             "menu.validate-for-submit",
             "menu.submit",
             "menu.record-decision",
@@ -38,22 +39,22 @@ public class MenuToolExecutor implements ToolExecutor {
         try {
             JsonNode input = objectMapper.readTree(inputJson);
             String menuId = requiredText(input, "menuId");
-            long menuVersion = requiredLong(input, "menuVersion");
             Object result;
             switch (toolName) {
+                case "menu.query" -> result = menus.get(context.scope(), menuId);
                 case "menu.validate-for-submit" -> result = menus.validateForSubmit(
-                        context.scope(), menuId, menuVersion);
+                        context.scope(), menuId, requiredLong(input, "menuVersion"));
                 case "menu.submit" -> result = menus.submitForApproval(
-                        context.scope(), menuId, menuVersion, context.actorUserId());
+                        context.scope(), menuId, requiredLong(input, "menuVersion"), context.actorUserId());
                 case "menu.record-decision" -> result = menus.recordDecision(
                         context.scope(),
                         menuId,
-                        menuVersion,
+                        requiredLong(input, "menuVersion"),
                         requiredText(input, "decision"),
                         optionalText(input, "comment"),
                         context.actorUserId());
                 case "menu.publish" -> result = menus.publish(
-                        context.scope(), menuId, menuVersion, context.actorUserId());
+                        context.scope(), menuId, requiredLong(input, "menuVersion"), context.actorUserId());
                 default -> throw new IllegalArgumentException("Tool is not registered: " + toolName);
             }
             return new ToolResult(objectMapper.writeValueAsString(result));

@@ -96,7 +96,8 @@ class BusinessAuthorizationPolicyTest {
     void menu_intents_require_their_fine_grained_duty_permission() {
         ExecutionContext submitter = ExecutionContext.fromTrustedPrincipal(
                 "request-menu-submit", operator, scope,
-                Set.of(Role.CANTEEN_STAFF), Set.of("MENU_SUBMIT"));
+                Set.of(Role.CANTEEN_STAFF), Set.of("MENU_SUBMIT", "MENU_READ"));
+        policy.requireIntentAccess(submitter, "menu.query");
         policy.requireIntentAccess(submitter, "menu.submit");
         assertThatThrownBy(() -> policy.requireIntentAccess(submitter, "menu.record-decision"))
                 .isInstanceOf(ForbiddenException.class)

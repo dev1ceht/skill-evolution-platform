@@ -8,11 +8,13 @@ public record AssistantResolution(
         Type type,
         String intent,
         String traceCode,
+        String menuId,
         List<String> missingFields,
         String message) {
 
     public enum Type {
         TRACEABILITY_QUERY,
+        MENU_QUERY,
         CLARIFICATION,
         UNSUPPORTED
     }
@@ -23,14 +25,28 @@ public record AssistantResolution(
         Objects.requireNonNull(message, "message");
         if (type == Type.TRACEABILITY_QUERY) {
             if (!"traceability.query".equals(intent)) {
-                throw new IllegalArgumentException("Traceability resolution must select traceability.query");
+                throw new IllegalArgumentException(
+                        "Traceability resolution must select traceability.query");
             }
             if (traceCode == null || traceCode.isBlank()) {
                 throw new IllegalArgumentException("Traceability resolution requires traceCode");
             }
-        }
-        if (type != Type.TRACEABILITY_QUERY && traceCode != null) {
-            throw new IllegalArgumentException("Only traceability resolution may contain traceCode");
+            if (menuId != null) {
+                throw new IllegalArgumentException("Traceability resolution cannot contain menuId");
+            }
+        } else if (type == Type.MENU_QUERY) {
+            if (!"menu.query".equals(intent)) {
+                throw new IllegalArgumentException("Menu resolution must select menu.query");
+            }
+            if (menuId == null || menuId.isBlank()) {
+                throw new IllegalArgumentException("Menu resolution requires menuId");
+            }
+            if (traceCode != null) {
+                throw new IllegalArgumentException("Menu resolution cannot contain traceCode");
+            }
+        } else if (traceCode != null || menuId != null) {
+            throw new IllegalArgumentException(
+                    "Only business resolutions may contain a resource identifier");
         }
     }
 
@@ -39,8 +55,19 @@ public record AssistantResolution(
                 Type.TRACEABILITY_QUERY,
                 "traceability.query",
                 traceCode,
+                null,
                 List.of(),
                 "已识别为食品溯源查询。");
+    }
+
+    public static AssistantResolution menuQuery(String menuId) {
+        return new AssistantResolution(
+                Type.MENU_QUERY,
+                "menu.query",
+                null,
+                menuId,
+                List.of(),
+                "已识别为日菜单查询。");
     }
 
     public static AssistantResolution clarification(String message, String... missingFields) {
@@ -48,11 +75,12 @@ public record AssistantResolution(
                 Type.CLARIFICATION,
                 null,
                 null,
+                null,
                 List.of(missingFields),
                 message);
     }
 
     public static AssistantResolution unsupported(String message) {
-        return new AssistantResolution(Type.UNSUPPORTED, null, null, List.of(), message);
+        return new AssistantResolution(Type.UNSUPPORTED, null, null, null, List.of(), message);
     }
 }

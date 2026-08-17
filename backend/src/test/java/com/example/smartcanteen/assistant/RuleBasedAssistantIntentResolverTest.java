@@ -38,4 +38,22 @@ class RuleBasedAssistantIntentResolverTest {
         assertThat(result.intent()).isNull();
         assertThat(result.message()).contains("食品溯源");
     }
+
+    @Test
+    void resolves_a_menu_query_with_a_menu_id() {
+        AssistantResolution result = resolver.resolve("请查询 MENU-001 的午餐菜单");
+
+        assertThat(result.type()).isEqualTo(AssistantResolution.Type.MENU_QUERY);
+        assertThat(result.intent()).isEqualTo("menu.query");
+        assertThat(result.menuId()).isEqualTo("MENU-001");
+    }
+
+    @Test
+    void asks_for_a_menu_id_when_menu_query_is_missing_one() {
+        AssistantResolution result = resolver.resolve("帮我看看今天的菜单");
+
+        assertThat(result.type()).isEqualTo(AssistantResolution.Type.CLARIFICATION);
+        assertThat(result.missingFields()).containsExactly("menuId");
+        assertThat(result.message()).contains("MENU-001");
+    }
 }

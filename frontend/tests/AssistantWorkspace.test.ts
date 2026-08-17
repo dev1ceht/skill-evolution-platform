@@ -59,4 +59,36 @@ describe('AssistantWorkspace', () => {
 
     expect(wrapper.get('[data-testid="assistant-error"]').text()).toContain('助手服务不可用');
   });
+
+  it('hydrates the conversation from persisted history when available', async () => {
+    const send = vi.fn();
+    const history = vi.fn().mockResolvedValue({
+      conversationId: 'CONV-HISTORY',
+      status: 'ACTIVE',
+      turns: [{
+        userMessage: '查询 MENU-001 的菜单',
+        response: {
+          conversationId: 'CONV-HISTORY',
+          turnId: 'TURN-HISTORY',
+          sequence: 1,
+          kind: 'RESULT',
+          message: '已查询菜单 MENU-001',
+          intent: 'menu.query',
+          runId: 'RUN-HISTORY',
+          runStatus: 'SUCCEEDED',
+          result: { id: 'MENU-001', status: 'PUBLISHED', items: [] },
+          missingFields: [],
+          createdAt: '2026-08-17T05:00:00Z',
+        },
+      }],
+    });
+    const api = { ...apiWith(send), getAssistantHistory: history };
+
+    const wrapper = mount(AssistantWorkspace, { props: { api, scope } });
+    await flushPromises();
+
+    expect(history).toHaveBeenCalled();
+    expect(wrapper.text()).toContain('查询 MENU-001 的菜单');
+    expect(wrapper.text()).toContain('已查询菜单 MENU-001');
+  });
 });

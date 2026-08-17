@@ -44,6 +44,37 @@ describe('SmartCanteenApi', () => {
     expect(turn.kind).toBe('CLARIFICATION');
   });
 
+  it('loads assistant conversation history with scope and limit', async () => {
+    const get = vi.fn().mockResolvedValue({
+      data: {
+        code: 0,
+        message: 'success',
+        data: {
+          conversationId: 'CONV-001',
+          status: 'ACTIVE',
+          turns: [],
+        },
+      },
+    });
+    const api = new SmartCanteenApi({ get } as unknown as AxiosInstance);
+
+    const history = await api.getAssistantHistory(
+      'CONV/001',
+      { schoolId: 'SCHOOL-001', canteenId: 'CANTEEN-001' },
+      20,
+      'request-history-001',
+    );
+
+    expect(get).toHaveBeenCalledWith(
+      '/api/v1/assistant/conversations/CONV%2F001/messages',
+      {
+        headers: { 'X-Request-Id': 'request-history-001' },
+        params: { schoolId: 'SCHOOL-001', canteenId: 'CANTEEN-001', limit: 20 },
+      },
+    );
+    expect(history.status).toBe('ACTIVE');
+  });
+
   it('encodes path parameters and unwraps code-message-data responses', async () => {
     const post = vi.fn().mockResolvedValue({
       data: {

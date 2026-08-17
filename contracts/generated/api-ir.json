@@ -1,7 +1,7 @@
 {
   "title": "Smart Canteen Workflow API",
   "version": "1.0.0",
-  "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+  "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
   "schemas": {
     "AssistantMessageRequest": {
       "type": "object",
@@ -15,6 +15,20 @@
           "minLength": 1,
           "maxLength": 2000,
           "description": "用户本轮自然语言消息；身份和业务范围不从消息中读取。"
+        }
+      }
+    },
+    "MenuQueryIntent": {
+      "type": "object",
+      "required": [
+        "menuId"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "menuId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
         }
       }
     },
@@ -97,6 +111,72 @@
         },
         "data": {
           "$ref": "#/components/schemas/AssistantTurn"
+        }
+      }
+    },
+    "AssistantConversationHistoryEntry": {
+      "type": "object",
+      "required": [
+        "userMessage",
+        "response"
+      ],
+      "properties": {
+        "userMessage": {
+          "type": "string"
+        },
+        "response": {
+          "$ref": "#/components/schemas/AssistantTurn"
+        }
+      }
+    },
+    "AssistantConversationHistory": {
+      "type": "object",
+      "required": [
+        "conversationId",
+        "status",
+        "turns"
+      ],
+      "properties": {
+        "conversationId": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "nullable": true
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "nullable": true
+        },
+        "turns": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/AssistantConversationHistoryEntry"
+          }
+        }
+      }
+    },
+    "AssistantConversationHistoryResponse": {
+      "type": "object",
+      "required": [
+        "code",
+        "message",
+        "data"
+      ],
+      "properties": {
+        "code": {
+          "type": "integer"
+        },
+        "message": {
+          "type": "string"
+        },
+        "data": {
+          "$ref": "#/components/schemas/AssistantConversationHistory"
         }
       }
     },
@@ -5732,7 +5812,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1alarmApi~1warn~1report/post"
       }
     },
@@ -5770,7 +5850,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1alarmApi~1warnResult~1report/post"
       }
     },
@@ -5913,7 +5993,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1alarmWarn~1school~1queryPage/get"
       }
     },
@@ -5993,7 +6073,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1agent~1runs/post"
       }
     },
@@ -6067,7 +6147,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1agent~1runs~1{runId}/get"
       }
     },
@@ -6153,7 +6233,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1agent~1runs~1{runId}~1cancel/post"
       }
     },
@@ -6242,7 +6322,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1agent~1runs~1{runId}~1decisions/post"
       }
     },
@@ -6310,7 +6390,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1agent~1runs~1{runId}~1events/get"
       }
     },
@@ -6396,7 +6476,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1agent~1runs~1{runId}~1resume/post"
       }
     },
@@ -6422,7 +6502,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1agent~1skills/get"
       }
     },
@@ -6553,7 +6633,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1alerts/get"
       }
     },
@@ -6591,7 +6671,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1alerts/post"
       }
     },
@@ -6638,8 +6718,91 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1alerts~1{warnId}~1disposal/post"
+      }
+    },
+    {
+      "operationId": "getAssistantConversationHistory",
+      "method": "GET",
+      "path": "/api/v1/assistant/conversations/{conversationId}/messages",
+      "tags": [
+        "assistant"
+      ],
+      "parameters": [
+        {
+          "name": "conversationId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          }
+        },
+        {
+          "name": "X-Request-Id",
+          "in": "header",
+          "required": false,
+          "description": "请求追踪 ID；省略时由服务端生成。",
+          "schema": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        {
+          "name": "schoolId",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        {
+          "name": "canteenId",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 50
+          }
+        }
+      ],
+      "requestBody": null,
+      "responses": {
+        "200": {
+          "description": "当前用户在当前范围内的助手会话历史",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssistantConversationHistoryResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "$ref": "#/components/responses/BusinessError"
+        },
+        "403": {
+          "$ref": "#/components/responses/ForbiddenError"
+        }
+      },
+      "provenance": {
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
+        "pointer": "/paths/~1api~1v1~1assistant~1conversations~1{conversationId}~1messages/get"
       }
     },
     {
@@ -6728,7 +6891,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1assistant~1conversations~1{conversationId}~1messages/post"
       }
     },
@@ -6769,7 +6932,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1audit-logs/get"
       }
     },
@@ -6807,7 +6970,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1auth~1login/post"
       }
     },
@@ -6842,7 +7005,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1auth~1logout/post"
       }
     },
@@ -6871,7 +7034,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1auth~1me/get"
       }
     },
@@ -6909,7 +7072,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1auth~1refresh-token/post"
       }
     },
@@ -6986,7 +7149,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1canteen-showcases/get"
       }
     },
@@ -7043,7 +7206,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1canteen-showcases/post"
       }
     },
@@ -7099,7 +7262,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1canteen-showcases~1{showcaseId}/get"
       }
     },
@@ -7164,7 +7327,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1canteen-showcases~1{showcaseId}/put"
       }
     },
@@ -7220,7 +7383,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1canteen-showcases~1{showcaseId}~1history/get"
       }
     },
@@ -7285,7 +7448,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1canteen-showcases~1{showcaseId}~1publish/post"
       }
     },
@@ -7350,7 +7513,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1canteen-showcases~1{showcaseId}~1review/post"
       }
     },
@@ -7415,7 +7578,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1canteen-showcases~1{showcaseId}~1revoke/post"
       }
     },
@@ -7480,7 +7643,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1canteen-showcases~1{showcaseId}~1submit/post"
       }
     },
@@ -7545,7 +7708,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1canteen-showcases~1{showcaseId}~1versions/post"
       }
     },
@@ -7600,7 +7763,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1canteens/get"
       }
     },
@@ -7638,7 +7801,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1canteens/post"
       }
     },
@@ -7686,7 +7849,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1canteens~1{canteenId}/put"
       }
     },
@@ -7734,7 +7897,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1canteens~1{canteenId}~1status/post"
       }
     },
@@ -7829,7 +7992,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1compliance-records/get"
       }
     },
@@ -7886,7 +8049,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1compliance-records/post"
       }
     },
@@ -7943,7 +8106,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1compliance-records~1expiry-scan/post"
       }
     },
@@ -7999,7 +8162,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1compliance-records~1{recordId}/get"
       }
     },
@@ -8064,7 +8227,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1compliance-records~1{recordId}/put"
       }
     },
@@ -8120,7 +8283,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1compliance-records~1{recordId}~1history/get"
       }
     },
@@ -8185,7 +8348,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1compliance-records~1{recordId}~1review/post"
       }
     },
@@ -8250,7 +8413,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1compliance-records~1{recordId}~1submit/post"
       }
     },
@@ -8332,7 +8495,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1daily-menus/get"
       }
     },
@@ -8386,7 +8549,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1daily-menus/post"
       }
     },
@@ -8439,7 +8602,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1daily-menus~1{menuId}/get"
       }
     },
@@ -8501,7 +8664,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1daily-menus~1{menuId}~1decision/post"
       }
     },
@@ -8554,7 +8717,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1daily-menus~1{menuId}~1publish/post"
       }
     },
@@ -8617,7 +8780,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1daily-menus~1{menuId}~1submit/post"
       }
     },
@@ -8670,7 +8833,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1dashboard~1risk/get"
       }
     },
@@ -8723,7 +8886,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1dashboard~1summary/get"
       }
     },
@@ -8803,7 +8966,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1dishes/get"
       }
     },
@@ -8857,7 +9020,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1dishes/post"
       }
     },
@@ -8919,7 +9082,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1dishes~1{dishId}/put"
       }
     },
@@ -8999,7 +9162,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1ingredients/get"
       }
     },
@@ -9053,7 +9216,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1ingredients/post"
       }
     },
@@ -9115,7 +9278,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1ingredients~1{ingredientId}/put"
       }
     },
@@ -9171,7 +9334,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1ingredients~1{ingredientId}~1units/get"
       }
     },
@@ -9252,7 +9415,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1inventory/get"
       }
     },
@@ -9318,7 +9481,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1inventory~1receipts/post"
       }
     },
@@ -9381,7 +9544,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1inventory~1stock-outs/post"
       }
     },
@@ -9407,7 +9570,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1ledger-alerts~1current/get"
       }
     },
@@ -9464,7 +9627,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1ledger-configurations/get"
       }
     },
@@ -9521,7 +9684,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1ledger-configurations/post"
       }
     },
@@ -9586,7 +9749,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1ledger-configurations~1{configurationId}/put"
       }
     },
@@ -9624,7 +9787,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1ledger-cycles/post"
       }
     },
@@ -9681,7 +9844,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1ledger-cycles~1configured~1current/post"
       }
     },
@@ -9746,7 +9909,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1ledger-cycles~1configured~1{cycleId}~1records/post"
       }
     },
@@ -9800,7 +9963,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1ledger-cycles~1{cycleId}~1alerts~1current/get"
       }
     },
@@ -9847,7 +10010,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1ledger-cycles~1{cycleId}~1records/post"
       }
     },
@@ -9885,7 +10048,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1ledger-records/post"
       }
     },
@@ -9988,7 +10151,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1ledger~1records/get"
       }
     },
@@ -10042,7 +10205,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1ledger~1records/post"
       }
     },
@@ -10103,7 +10266,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1ledger~1stats/get"
       }
     },
@@ -10198,7 +10361,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1meal-suspensions/get"
       }
     },
@@ -10255,7 +10418,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1meal-suspensions/post"
       }
     },
@@ -10321,7 +10484,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1meal-suspensions~1stats/get"
       }
     },
@@ -10386,7 +10549,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1meal-suspensions~1{suspensionId}~1cancel/post"
       }
     },
@@ -10442,7 +10605,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1meal-suspensions~1{suspensionId}~1history/get"
       }
     },
@@ -10507,7 +10670,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1meal-suspensions~1{suspensionId}~1review/post"
       }
     },
@@ -10572,7 +10735,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1menu-approvals~1{menuId}~1decision/post"
       }
     },
@@ -10637,7 +10800,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1menus~1{menuId}~1recipe/post"
       }
     },
@@ -10693,7 +10856,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1menus~1{menuId}~1submit/post"
       }
     },
@@ -10719,7 +10882,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1permissions/get"
       }
     },
@@ -10802,7 +10965,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1procurement-plans/get"
       }
     },
@@ -10859,7 +11022,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1procurement-plans~1generate/post"
       }
     },
@@ -10925,7 +11088,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1procurement-plans~1generate-range/post"
       }
     },
@@ -10981,7 +11144,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1procurement-plans~1{planId}/get"
       }
     },
@@ -11037,7 +11200,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1procurement-plans~1{planId}~1cancel/post"
       }
     },
@@ -11093,7 +11256,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1procurement-plans~1{planId}~1confirm/post"
       }
     },
@@ -11158,7 +11321,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1procurement-plans~1{planId}~1items/put"
       }
     },
@@ -11232,7 +11395,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1procurement-plans~1{planId}~1purchase-orders/post"
       }
     },
@@ -11305,7 +11468,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1purchase-orders/get"
       }
     },
@@ -11368,7 +11531,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1purchase-orders/post"
       }
     },
@@ -11439,7 +11602,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1purchase-orders~1{orderId}~1receive/post"
       }
     },
@@ -11501,7 +11664,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1purchase-orders~1{orderId}~1status/post"
       }
     },
@@ -11527,7 +11690,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1roles/get"
       }
     },
@@ -11574,7 +11737,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1roles~1{roleCode}~1permissions/put"
       }
     },
@@ -11621,7 +11784,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1schools/get"
       }
     },
@@ -11659,7 +11822,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1schools/post"
       }
     },
@@ -11707,7 +11870,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1schools~1{schoolId}/put"
       }
     },
@@ -11755,7 +11918,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1schools~1{schoolId}~1status/post"
       }
     },
@@ -11840,7 +12003,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1supplier-complaints/get"
       }
     },
@@ -11897,7 +12060,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1supplier-complaints/post"
       }
     },
@@ -11953,7 +12116,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1supplier-complaints~1{complaintId}/get"
       }
     },
@@ -12018,7 +12181,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1supplier-complaints~1{complaintId}~1close/post"
       }
     },
@@ -12074,7 +12237,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1supplier-complaints~1{complaintId}~1history/get"
       }
     },
@@ -12139,7 +12302,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1supplier-complaints~1{complaintId}~1process/post"
       }
     },
@@ -12204,7 +12367,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1supplier-complaints~1{complaintId}~1reply/post"
       }
     },
@@ -12269,7 +12432,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1supplier-complaints~1{complaintId}~1review/post"
       }
     },
@@ -12342,7 +12505,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1suppliers/get"
       }
     },
@@ -12396,7 +12559,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1suppliers/post"
       }
     },
@@ -12452,7 +12615,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1traceability~1{traceCode}/get"
       }
     },
@@ -12503,7 +12666,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1users/get"
       }
     },
@@ -12541,7 +12704,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1users/post"
       }
     },
@@ -12589,7 +12752,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1users~1{userId}/put"
       }
     },
@@ -12637,7 +12800,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1users~1{userId}~1roles/put"
       }
     },
@@ -12685,7 +12848,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1users~1{userId}~1scopes/put"
       }
     },
@@ -12733,7 +12896,7 @@
         }
       },
       "provenance": {
-        "documentHash": "b2901a01513c13543bc8327628b2a0b06968a9219eab0802a488fa1a952793e2",
+        "documentHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
         "pointer": "/paths/~1api~1v1~1users~1{userId}~1status/post"
       }
     }

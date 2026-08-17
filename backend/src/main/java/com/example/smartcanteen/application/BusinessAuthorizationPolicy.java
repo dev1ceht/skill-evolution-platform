@@ -186,6 +186,7 @@ public class BusinessAuthorizationPolicy {
             return null;
         }
         return switch (intent) {
+            case "menu.query" -> "MENU_READ";
             case "menu.validate-for-submit" -> "MENU_VALIDATE";
             case "menu.submit" -> "MENU_SUBMIT";
             case "menu.record-decision" -> "MENU_APPROVE";

@@ -9,6 +9,32 @@ security:
   - bearerAuth: []
 paths:
   /api/v1/assistant/conversations/{conversationId}/messages:
+    get:
+      operationId: getAssistantConversationHistory
+      tags: [assistant]
+      parameters:
+        - name: conversationId
+          in: path
+          required: true
+          schema: { type: string, minLength: 1, maxLength: 64 }
+        - $ref: '#/components/parameters/RequestId'
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
+      responses:
+        '200':
+          description: 当前用户在当前范围内的助手会话历史
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssistantConversationHistoryResponse'
+        '400':
+          $ref: '#/components/responses/BusinessError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
     post:
       operationId: sendAssistantMessage
       tags: [assistant]
@@ -2700,6 +2726,12 @@ components:
           minLength: 1
           maxLength: 2000
           description: 用户本轮自然语言消息；身份和业务范围不从消息中读取。
+    MenuQueryIntent:
+      type: object
+      required: [menuId]
+      additionalProperties: false
+      properties:
+        menuId: { type: string, minLength: 1, maxLength: 64 }
     AssistantTurn:
       type: object
       required: [conversationId, turnId, sequence, kind, message, missingFields, createdAt]
@@ -2729,6 +2761,30 @@ components:
         code: { type: integer }
         message: { type: string }
         data: { $ref: '#/components/schemas/AssistantTurn' }
+    AssistantConversationHistoryEntry:
+      type: object
+      required: [userMessage, response]
+      properties:
+        userMessage: { type: string }
+        response: { $ref: '#/components/schemas/AssistantTurn' }
+    AssistantConversationHistory:
+      type: object
+      required: [conversationId, status, turns]
+      properties:
+        conversationId: { type: string }
+        status: { type: string }
+        createdAt: { type: string, format: date-time, nullable: true }
+        updatedAt: { type: string, format: date-time, nullable: true }
+        turns:
+          type: array
+          items: { $ref: '#/components/schemas/AssistantConversationHistoryEntry' }
+    AssistantConversationHistoryResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code: { type: integer }
+        message: { type: string }
+        data: { $ref: '#/components/schemas/AssistantConversationHistory' }
     AgentRunStartRequest:
       type: object
       required: [intent, input]

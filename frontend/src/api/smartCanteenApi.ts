@@ -79,6 +79,8 @@ import type {
   AgentRunResponse,
   AgentRunEvent,
   AgentRunEventListResponse,
+  AssistantConversationHistory,
+  AssistantConversationHistoryResponse,
   AssistantTurn,
   AssistantTurnResponse,
 } from './generated/client';
@@ -196,6 +198,12 @@ export interface SmartCanteenApiPort {
     idempotencyKey: string,
     requestId?: string,
   ): Promise<AssistantTurn>;
+  getAssistantHistory?(
+    conversationId: string,
+    scope: CanteenScope,
+    limit?: number,
+    requestId?: string,
+  ): Promise<AssistantConversationHistory>;
   reportAlert?(request: AlertReportRequest): Promise<AlertRecord>;
   disposeAlert?(warnId: string, request: AlertDisposalRequest): Promise<AlertRecord>;
   queryAlerts?(filters?: {
@@ -448,6 +456,22 @@ export class SmartCanteenApi implements SmartCanteenApiPort {
           ...(requestId ? { 'X-Request-Id': requestId } : {}),
         },
         params: scope,
+      },
+    );
+    return unwrap(response);
+  }
+
+  async getAssistantHistory(
+    conversationId: string,
+    scope: CanteenScope,
+    limit = 50,
+    requestId?: string,
+  ): Promise<AssistantConversationHistory> {
+    const response = await this.client.get<AssistantConversationHistoryResponse>(
+      `/api/v1/assistant/conversations/${encodeURIComponent(conversationId)}/messages`,
+      {
+        headers: requestId ? { 'X-Request-Id': requestId } : undefined,
+        params: { ...scope, limit },
       },
     );
     return unwrap(response);

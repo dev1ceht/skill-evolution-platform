@@ -4,6 +4,10 @@ export type AssistantMessageRequest = {
   message: string;
 };
 
+export type MenuQueryIntent = {
+  menuId: string;
+};
+
 export type AssistantTurn = {
   conversationId: string;
   turnId: string;
@@ -22,6 +26,25 @@ export type AssistantTurnResponse = {
   code: number;
   message: string;
   data: AssistantTurn;
+};
+
+export type AssistantConversationHistoryEntry = {
+  userMessage: string;
+  response: AssistantTurn;
+};
+
+export type AssistantConversationHistory = {
+  conversationId: string;
+  status: string;
+  createdAt?: string;
+  updatedAt?: string;
+  turns: Array<AssistantConversationHistoryEntry>;
+};
+
+export type AssistantConversationHistoryResponse = {
+  code: number;
+  message: string;
+  data: AssistantConversationHistory;
 };
 
 export type AgentRunStartRequest = {
@@ -1648,6 +1671,21 @@ export async function disposeAlert(warnId: string, body: AlertDisposalRequest): 
   const response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body) });
   if (!response.ok) throw new Error(`API request failed: ${response.status}`);
   return response.json() as Promise<AlertResponse>;
+}
+
+export async function getAssistantConversationHistory(conversationId: string, schoolId: string, canteenId: string, xRequestId?: string, limit?: number): Promise<AssistantConversationHistoryResponse> {
+  const encodedConversationId = encodeURIComponent(String(conversationId));
+  let path = "/api/v1/assistant/conversations/{conversationId}/messages";
+  path = path.replace("{conversationId}", encodedConversationId);
+  const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
+  if (limit !== undefined) url.searchParams.set("limit", String(limit));
+  const headers: Record<string, string> = {};
+  if (xRequestId !== undefined) headers["X-Request-Id"] = String(xRequestId);
+  const response = await fetch(url, { method: 'GET', headers: headers });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<AssistantConversationHistoryResponse>;
 }
 
 export async function sendAssistantMessage(conversationId: string, idempotencyKey: string, schoolId: string, canteenId: string, body: AssistantMessageRequest, xRequestId?: string): Promise<AssistantTurnResponse> {

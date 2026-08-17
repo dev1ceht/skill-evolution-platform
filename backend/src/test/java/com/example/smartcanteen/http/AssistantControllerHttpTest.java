@@ -1,5 +1,6 @@
 package com.example.smartcanteen.http;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -132,6 +133,56 @@ class AssistantControllerHttpTest {
                 .andExpect(jsonPath("$.data.message").value(
                         org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString(
                                 "Traceability code not found"))));
+    }
+
+    @Test
+    void resolves_a_menu_query_and_returns_the_menu_result() throws Exception {
+        jdbc.update(
+                "INSERT INTO daily_menus (school_id, canteen_id, menu_id, menu_date, meal_time, status, version) "
+                        + "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                SCHOOL_ID, CANTEEN_ID, "MENU-ASSIST-001", "2026-08-17", "LUNCH", "PUBLISHED", 2);
+        jdbc.update(
+                "INSERT INTO daily_menu_items (school_id, canteen_id, menu_id, dish_id, estimated_quantity, sort_order) "
+                        + "VALUES (?, ?, ?, ?, ?, ?)",
+                SCHOOL_ID, CANTEEN_ID, "MENU-ASSIST-001", "DISH-ASSIST-001", 120, 1);
+
+        mvc.perform(message("menu-message-001", "请查询 MENU-ASSIST-001 的菜单", "CONV-ASSIST-MENU"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.kind").value("RESULT"))
+                .andExpect(jsonPath("$.data.intent").value("menu.query"))
+                .andExpect(jsonPath("$.data.runStatus").value("SUCCEEDED"))
+                .andExpect(jsonPath("$.data.result.id").value("MENU-ASSIST-001"))
+                .andExpect(jsonPath("$.data.result.status").value("PUBLISHED"))
+                .andExpect(jsonPath("$.data.result.items[0].dishId").value("DISH-ASSIST-001"));
+    }
+
+    @Test
+    void returns_the_owned_conversation_history_without_creating_a_new_turn() throws Exception {
+        mvc.perform(message("history-message-001", "查询 TRACE-ASSIST-001", "CONV-ASSIST-HISTORY"))
+                .andExpect(status().isOk());
+
+        mvc.perform(get("/api/v1/assistant/conversations/{conversationId}/messages", "CONV-ASSIST-HISTORY")
+                        .queryParam("schoolId", SCHOOL_ID)
+                        .queryParam("canteenId", CANTEEN_ID)
+                        .requestAttr(AuthPrincipal.class.getName(), PRINCIPAL))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.conversationId").value("CONV-ASSIST-HISTORY"))
+                .andExpect(jsonPath("$.data.turns.length()").value(1))
+                .andExpect(jsonPath("$.data.turns[0].userMessage").value("查询 TRACE-ASSIST-001"))
+                .andExpect(jsonPath("$.data.turns[0].response.runId").isNotEmpty());
+    }
+
+    @Test
+    void rejects_history_from_a_different_scope() throws Exception {
+        mvc.perform(message("history-message-002", "查询 TRACE-ASSIST-001", "CONV-ASSIST-SCOPE"))
+                .andExpect(status().isOk());
+
+        mvc.perform(get("/api/v1/assistant/conversations/{conversationId}/messages", "CONV-ASSIST-SCOPE")
+                        .queryParam("schoolId", "OTHER-SCHOOL")
+                        .queryParam("canteenId", "OTHER-CANTEEN")
+                        .requestAttr(AuthPrincipal.class.getName(), PRINCIPAL))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value(40300));
     }
 
     private MockHttpServletRequestBuilder message(

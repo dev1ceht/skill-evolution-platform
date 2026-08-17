@@ -10,10 +10,12 @@ import com.example.smartcanteen.agent.domain.StartRunCommand;
 import com.example.smartcanteen.agent.port.SkillRegistry;
 import com.example.smartcanteen.application.BusinessAuthorizationPolicy;
 import com.example.smartcanteen.assistant.domain.AssistantConversation;
+import com.example.smartcanteen.assistant.domain.AssistantConversationHistory;
 import com.example.smartcanteen.assistant.domain.AssistantResolution;
 import com.example.smartcanteen.assistant.domain.AssistantTurn;
 import com.example.smartcanteen.assistant.port.AssistantConversationStore;
 import com.example.smartcanteen.security.AuthPrincipal;
+import com.example.smartcanteen.security.ForbiddenException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -135,6 +137,12 @@ public class AssistantConversationService {
                     normalizedKey,
                     context,
                     principal);
+            case MENU_QUERY -> executeMenu(
+                    conversation,
+                    resolution,
+                    normalizedKey,
+                    context,
+                    principal);
         };
 
         AssistantConversationStore.StoredTurn stored = new AssistantConversationStore.StoredTurn(
@@ -166,22 +174,90 @@ public class AssistantConversationService {
         return response;
     }
 
+    @Transactional(readOnly = true)
+    public AssistantConversationHistory history(
+            String conversationId,
+            ExecutionContext context,
+            int limit) {
+        String normalizedConversationId = requireText("conversationId", conversationId, 64);
+        if (limit < 1 || limit > 100) {
+            throw new IllegalArgumentException("limit must be between 1 and 100");
+        }
+        Objects.requireNonNull(context, "context");
+        Optional<AssistantConversation> existing = conversations.findConversation(
+                normalizedConversationId);
+        if (existing.isEmpty()) {
+            return AssistantConversationHistory.empty(normalizedConversationId);
+        }
+        AssistantConversation conversation = existing.get();
+        if (!conversation.actorUserId().equals(context.actorUserId())
+                || !conversation.scope().equals(context.scope())) {
+            throw new ForbiddenException("Conversation is outside the requested scope");
+        }
+        List<AssistantConversationHistory.Entry> entries = conversations.listTurns(
+                        normalizedConversationId, limit)
+                .stream()
+                .map(stored -> new AssistantConversationHistory.Entry(
+                        stored.message(), parseTurn(stored.responseJson())))
+                .toList();
+        return new AssistantConversationHistory(
+                conversation.conversationId(),
+                conversation.status(),
+                conversation.createdAt(),
+                conversation.updatedAt(),
+                entries);
+    }
+
     private AssistantTurn executeTraceability(
             AssistantConversation conversation,
             AssistantResolution resolution,
             String idempotencyKey,
             ExecutionContext context,
             AuthPrincipal principal) {
-        SkillDefinition skill = skills.findByIntent(resolution.intent())
+        return executeReadOnly(
+                conversation,
+                resolution.intent(),
+                Map.of("traceCode", resolution.traceCode()),
+                idempotencyKey,
+                context,
+                principal,
+                (run, result) -> assistantMessage(run, result, resolution.traceCode()));
+    }
+
+    private AssistantTurn executeMenu(
+            AssistantConversation conversation,
+            AssistantResolution resolution,
+            String idempotencyKey,
+            ExecutionContext context,
+            AuthPrincipal principal) {
+        return executeReadOnly(
+                conversation,
+                resolution.intent(),
+                Map.of("menuId", resolution.menuId()),
+                idempotencyKey,
+                context,
+                principal,
+                (run, result) -> assistantMenuMessage(run, result, resolution.menuId()));
+    }
+
+    private AssistantTurn executeReadOnly(
+            AssistantConversation conversation,
+            String intent,
+            Map<String, Object> input,
+            String idempotencyKey,
+            ExecutionContext context,
+            AuthPrincipal principal,
+            java.util.function.BiFunction<AgentRun, JsonNode, String> messageFactory) {
+        SkillDefinition skill = skills.findByIntent(intent)
                 .filter(SkillDefinition::isAvailable)
                 .orElseThrow(() -> new IllegalStateException(
-                        "No active Skill is registered for intent: " + resolution.intent()));
+                        "No active Skill is registered for intent: " + intent));
         policy.requireSkillAccess(principal, skill);
-        policy.requireIntentAccess(context, resolution.intent());
+        policy.requireIntentAccess(context, intent);
 
         String inputJson;
         try {
-            inputJson = objectMapper.writeValueAsString(Map.of("traceCode", resolution.traceCode()));
+            inputJson = objectMapper.writeValueAsString(input);
         } catch (JsonProcessingException exception) {
             throw new IllegalStateException("Unable to serialize assistant tool input", exception);
         }
@@ -190,7 +266,7 @@ public class AssistantConversationService {
         AgentRun run = runtime.start(
                 new StartRunCommand(
                         context.requestId(),
-                        resolution.intent(),
+                        intent,
                         inputJson,
                         runIdempotencyKey),
                 context);
@@ -198,13 +274,12 @@ public class AssistantConversationService {
             run = execution.execute(run, context);
         }
         JsonNode result = parseNullable(run.resultJson());
-        String message = assistantMessage(run, result, resolution.traceCode());
         return newTurn(
                 conversation,
                 conversations.nextSequence(conversation.conversationId()),
                 "RESULT",
-                message,
-                resolution.intent(),
+                messageFactory.apply(run, result),
+                intent,
                 run.runId(),
                 run.status().name(),
                 result,
@@ -244,6 +319,20 @@ public class AssistantConversationService {
         String supplier = textOr(result, "supplierName", textOr(result, "supplierId", "未知供应商"));
         return "已完成溯源查询：" + traceCode + " 对应食材「" + ingredient
                 + "」、批次「" + batch + "」、供应商「" + supplier + "」。";
+    }
+
+    private static String assistantMenuMessage(AgentRun run, JsonNode result, String menuId) {
+        if (!"SUCCEEDED".equals(run.status().name())) {
+            return "菜单查询未完成，请查看运行状态后重试或人工处理。";
+        }
+        String date = textOr(result, "menuDate", "未知日期");
+        String mealTime = textOr(result, "mealTime", "未知餐次");
+        String status = textOr(result, "status", "未知状态");
+        String version = textOr(result, "version", "未知版本");
+        int itemCount = result != null && result.path("items").isArray()
+                ? result.path("items").size() : 0;
+        return "已完成菜单查询：" + menuId + "，日期「" + date + "」、餐次「" + mealTime
+                + "」、状态「" + status + "」、版本「" + version + "」，共 " + itemCount + " 道菜。";
     }
 
     private static String textOr(JsonNode node, String field, String fallback) {

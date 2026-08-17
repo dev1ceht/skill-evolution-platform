@@ -54,7 +54,12 @@ function scopeFromSession(value: AuthSession | null): CanteenScope {
       <button type="button" @click="signOut">退出登录</button>
     </header>
     <OperationsOverview :api="api" :scope="scope" />
-    <AssistantWorkspace v-if="assistantEnabled" :api="api" :scope="scope" />
+    <AssistantWorkspace
+      v-if="assistantEnabled"
+      :api="api"
+      :scope="scope"
+      :actor-id="session?.userInfo.userId"
+    />
     <AgentTraceabilityWorkspace :api="api" :scope="scope" />
     <AgentMenuApprovalWorkspace v-if="agentMenuEnabled" :api="api" :scope="scope" />
     <ProcurementPlanWorkspace :api="api" :scope="scope" />

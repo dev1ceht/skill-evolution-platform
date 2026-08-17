@@ -35,8 +35,23 @@ public class RuleBasedAssistantIntentResolver implements AssistantIntentResolver
             return AssistantResolution.clarification(
                     "请提供批次溯源码，例如 TRACE-001。", "traceCode");
         }
+        boolean menuRequest = normalized.contains("菜单")
+                || normalized.contains("食谱")
+                || normalized.contains("daily menu")
+                || normalized.contains("menu");
+        if (menuRequest) {
+            Matcher matcher = TRACE_CODE.matcher(message.trim());
+            while (matcher.find()) {
+                String candidate = matcher.group(1).toUpperCase(Locale.ROOT);
+                if (candidate.startsWith("MENU-") || candidate.startsWith("MENU_")) {
+                    return AssistantResolution.menuQuery(candidate);
+                }
+            }
+            return AssistantResolution.clarification(
+                    "请提供日菜单 ID，例如 MENU-001。", "menuId");
+        }
         return AssistantResolution.unsupported(
-                "当前助手已开放食品溯源查询。请说明“查询 TRACE-001 的溯源信息”，"
-                        + "采购、菜单和预警助手将在后续阶段开放。");
+                "当前助手已开放食品溯源和日菜单只读查询。请说明“查询 TRACE-001 的溯源信息”"
+                        + "或“查询 MENU-001 的菜单”，采购和预警助手将在后续阶段开放。");
     }
 }

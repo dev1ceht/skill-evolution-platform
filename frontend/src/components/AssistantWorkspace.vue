@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import type { AssistantTurn } from '../api/generated/client';
 import type { CanteenScope, SmartCanteenApiPort } from '../api/smartCanteenApi';
 
 const props = defineProps<{
   api: SmartCanteenApiPort;
   scope: CanteenScope;
+  actorId?: string;
 }>();
 
 type Message = {
@@ -15,17 +16,31 @@ type Message = {
   turn?: AssistantTurn;
 };
 
-const conversationId = `conversation-${newId()}`;
+const conversationId = conversationIdForScope(props.scope, props.actorId);
 const message = ref('');
 const messages = ref<Message[]>([]);
 const loading = ref(false);
 const error = ref('');
+let historyLoadVersion = 0;
 
 function newId(): string {
   if (typeof globalThis.crypto?.randomUUID === 'function') {
     return globalThis.crypto.randomUUID();
   }
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+function conversationIdForScope(scope: CanteenScope, actorId?: string): string {
+  const key = `smart-canteen-assistant:${actorId ?? 'anonymous'}:${scope.schoolId}:${scope.canteenId}`;
+  try {
+    const existing = globalThis.localStorage?.getItem(key);
+    if (existing) return existing;
+    const created = `conversation-${newId()}`;
+    globalThis.localStorage?.setItem(key, created);
+    return created;
+  } catch {
+    return `conversation-${newId()}`;
+  }
 }
 
 function messageOf(reason: unknown): string {
@@ -41,10 +56,46 @@ function resultSummary(turn: AssistantTurn): string {
   const supplier = typeof turn.result.supplierName === 'string'
     ? turn.result.supplierName
     : typeof turn.result.supplierId === 'string' ? turn.result.supplierId : '';
-  return [ingredient, batch && `批次 ${batch}`, supplier && `供应商 ${supplier}`]
+  const menuDate = typeof turn.result.menuDate === 'string' ? turn.result.menuDate : '';
+  const mealTime = typeof turn.result.mealTime === 'string' ? turn.result.mealTime : '';
+  const menuStatus = typeof turn.result.status === 'string' ? turn.result.status : '';
+  const menuItems = Array.isArray(turn.result.items) ? `菜品 ${turn.result.items.length} 道` : '';
+  return [
+    ingredient,
+    batch && `批次 ${batch}`,
+    supplier && `供应商 ${supplier}`,
+    menuDate && `日期 ${menuDate}`,
+    mealTime && `餐次 ${mealTime}`,
+    menuStatus && turn.intent === 'menu.query' && `状态 ${menuStatus}`,
+    menuItems,
+  ]
     .filter(Boolean)
     .join(' · ');
 }
+
+async function loadHistory(): Promise<void> {
+  if (!props.api.getAssistantHistory) return;
+  const requestVersion = ++historyLoadVersion;
+  try {
+    const history = await props.api.getAssistantHistory(conversationId, props.scope, 50);
+    if (requestVersion !== historyLoadVersion) return;
+    messages.value = history.turns.flatMap((entry) => [
+      { id: `user-${entry.response.turnId}`, role: 'user' as const, text: entry.userMessage },
+      {
+        id: entry.response.turnId,
+        role: 'assistant' as const,
+        text: entry.response.message,
+        turn: entry.response,
+      },
+    ]);
+  } catch {
+    // A history read is best-effort; a new message can still start the conversation.
+  }
+}
+
+onMounted(() => {
+  void loadHistory();
+});
 
 async function send(): Promise<void> {
   const text = message.value.trim();
@@ -56,6 +107,7 @@ async function send(): Promise<void> {
     error.value = '当前客户端未接入智能助手';
     return;
   }
+  historyLoadVersion += 1;
   loading.value = true;
   error.value = '';
   messages.value.push({ id: `user-${newId()}`, role: 'user', text });
@@ -87,14 +139,14 @@ async function send(): Promise<void> {
       <div>
         <p class="eyebrow">ASSISTANT PILOT · READ ONLY</p>
         <h2>智能业务助手</h2>
-        <p class="description">先从食品溯源查询开始。助手会识别意图、补齐必要信息，并关联可审计的 Agent Run。</p>
+        <p class="description">支持食品溯源和日菜单只读查询。助手会识别意图、补齐必要信息，并关联可审计的 Agent Run。</p>
       </div>
       <span class="scope">{{ scope.schoolId }} · {{ scope.canteenId }}</span>
     </div>
 
     <div class="messages" aria-live="polite">
       <p v-if="!messages.length" class="empty" data-testid="assistant-empty">
-        试试：查询 TRACE-001 的食品溯源
+        试试：查询 TRACE-001 的食品溯源，或查询 MENU-001 的菜单
       </p>
       <article
         v-for="item in messages"
