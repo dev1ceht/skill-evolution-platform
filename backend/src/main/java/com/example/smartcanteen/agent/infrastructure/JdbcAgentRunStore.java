@@ -1,19 +1,23 @@
 package com.example.smartcanteen.agent.infrastructure;
 
 import com.example.smartcanteen.agent.domain.AgentRun;
-import com.example.smartcanteen.agent.domain.AgentStep;
+import com.example.smartcanteen.agent.domain.AgentRunClaim;
+import com.example.smartcanteen.agent.domain.AgentRunClaimLostException;
 import com.example.smartcanteen.agent.domain.AgentRunDecision;
 import com.example.smartcanteen.agent.domain.AgentRunEvent;
+import com.example.smartcanteen.agent.domain.AgentStep;
 import com.example.smartcanteen.agent.domain.RunStatus;
 import com.example.smartcanteen.agent.port.AgentRunStore;
 import com.example.smartcanteen.domain.CanteenScope;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.List;
-import java.time.Instant;
+import java.util.UUID;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Propagation;
@@ -291,6 +295,128 @@ public class JdbcAgentRunStore implements AgentRunStore {
     }
 
     @Override
+    public boolean supportsExecutionClaims() {
+        return true;
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public Optional<AgentRunClaim> claimExecution(
+            String runId, String ownerId, Duration leaseDuration) {
+        if (leaseDuration == null || leaseDuration.isZero() || leaseDuration.isNegative()) {
+            throw new IllegalArgumentException("Execution lease duration must be positive");
+        }
+        String status = jdbc.query(
+                        "SELECT status FROM agent_runs WHERE run_id = ? FOR UPDATE",
+                        (result, row) -> result.getString("status"),
+                        runId)
+                .stream()
+                .findFirst()
+                .orElse(null);
+        if (!"PLANNED".equals(status)) {
+            return Optional.empty();
+        }
+        Instant now = databaseNow();
+        Optional<AgentRunClaim> existing = jdbc.query(
+                        "SELECT run_id, owner_id, claim_token, claimed_at, expires_at "
+                                + "FROM agent_run_claims WHERE run_id = ? FOR UPDATE",
+                        this::mapClaim,
+                        runId)
+                .stream()
+                .findFirst();
+        if (existing.isPresent() && existing.get().expiresAt().isAfter(now)) {
+            return Optional.empty();
+        }
+        Instant expiresAt = now.plus(leaseDuration);
+        AgentRunClaim next = new AgentRunClaim(
+                runId,
+                ownerId,
+                "CLAIM-" + UUID.randomUUID(),
+                now,
+                expiresAt);
+        if (existing.isPresent()) {
+            jdbc.update(
+                    "UPDATE agent_run_claims SET owner_id = ?, claim_token = ?, "
+                            + "claimed_at = ?, expires_at = ? WHERE run_id = ?",
+                    next.ownerId(),
+                    next.token(),
+                    Timestamp.from(next.claimedAt()),
+                    Timestamp.from(next.expiresAt()),
+                    next.runId());
+        } else {
+            jdbc.update(
+                    "INSERT INTO agent_run_claims "
+                            + "(run_id, owner_id, claim_token, claimed_at, expires_at) "
+                            + "VALUES (?, ?, ?, ?, ?)",
+                    next.runId(),
+                    next.ownerId(),
+                    next.token(),
+                    Timestamp.from(next.claimedAt()),
+                    Timestamp.from(next.expiresAt()));
+        }
+        return Optional.of(next);
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public boolean renewExecutionClaim(AgentRunClaim claim, Duration leaseDuration) {
+        if (leaseDuration == null || leaseDuration.isZero() || leaseDuration.isNegative()) {
+            throw new IllegalArgumentException("Execution lease duration must be positive");
+        }
+        Instant now = databaseNow();
+        int changed = jdbc.update(
+                "UPDATE agent_run_claims SET expires_at = ? WHERE run_id = ? "
+                        + "AND owner_id = ? AND claim_token = ? AND expires_at > ?",
+                Timestamp.from(now.plus(leaseDuration)),
+                claim.runId(),
+                claim.ownerId(),
+                claim.token(),
+                Timestamp.from(now));
+        return changed == 1;
+    }
+
+    @Override
+    public boolean releaseExecutionClaim(AgentRunClaim claim) {
+        return jdbc.update(
+                "DELETE FROM agent_run_claims WHERE run_id = ? AND owner_id = ? AND claim_token = ?",
+                claim.runId(),
+                claim.ownerId(),
+                claim.token()) == 1;
+    }
+
+    @Override
+    @Transactional
+    public void updateClaimed(AgentRun expected, AgentRun updated, AgentRunClaim claim) {
+        requireClaimRun(expected.runId(), claim);
+        requireClaimRun(updated.runId(), claim);
+        requireClaim(claim);
+        update(expected, updated);
+    }
+
+    @Override
+    @Transactional
+    public void updateStepClaimed(AgentStep step, AgentRunClaim claim) {
+        requireClaimRun(step.runId(), claim);
+        requireClaim(claim);
+        updateStep(step);
+    }
+
+    @Override
+    @Transactional
+    public void appendEventClaimed(
+            String runId,
+            String eventType,
+            String fromStatus,
+            String toStatus,
+            String actorUserId,
+            String payloadJson,
+            AgentRunClaim claim) {
+        requireClaimRun(runId, claim);
+        requireClaim(claim);
+        appendEvent(runId, eventType, fromStatus, toStatus, actorUserId, payloadJson);
+    }
+
+    @Override
     public void appendEvent(
             String runId,
             String eventType,
@@ -345,5 +471,47 @@ public class JdbcAgentRunStore implements AgentRunStore {
                 result.getLong("version"),
                 result.getTimestamp("created_at").toInstant(),
                 result.getTimestamp("updated_at").toInstant());
+    }
+
+    private AgentRunClaim mapClaim(ResultSet result, int row) throws SQLException {
+        return new AgentRunClaim(
+                result.getString("run_id"),
+                result.getString("owner_id"),
+                result.getString("claim_token"),
+                result.getTimestamp("claimed_at").toInstant(),
+                result.getTimestamp("expires_at").toInstant());
+    }
+
+    private void requireClaim(AgentRunClaim claim) {
+        jdbc.queryForObject(
+                "SELECT run_id FROM agent_runs WHERE run_id = ? FOR UPDATE",
+                String.class,
+                claim.runId());
+        Optional<AgentRunClaim> current = jdbc.query(
+                        "SELECT run_id, owner_id, claim_token, claimed_at, expires_at "
+                                + "FROM agent_run_claims WHERE run_id = ? FOR UPDATE",
+                        this::mapClaim,
+                        claim.runId())
+                .stream()
+                        .findFirst();
+        if (current.isEmpty()
+                || !claim.ownerId().equals(current.get().ownerId())
+                || !claim.token().equals(current.get().token())
+                || !current.get().expiresAt().isAfter(databaseNow())) {
+            throw new AgentRunClaimLostException(claim.runId());
+        }
+    }
+
+    private Instant databaseNow() {
+        return jdbc.queryForObject(
+                "SELECT CURRENT_TIMESTAMP",
+                (result, row) -> result.getTimestamp(1).toInstant());
+    }
+
+    private void requireClaimRun(String runId, AgentRunClaim claim) {
+        if (!claim.runId().equals(runId)) {
+            throw new IllegalArgumentException(
+                    "Agent execution claim does not belong to Run: " + runId);
+        }
     }
 }

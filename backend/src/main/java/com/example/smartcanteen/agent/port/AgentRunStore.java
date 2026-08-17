@@ -1,13 +1,15 @@
 package com.example.smartcanteen.agent.port;
 
 import com.example.smartcanteen.agent.domain.AgentRun;
-import com.example.smartcanteen.agent.domain.AgentStep;
+import com.example.smartcanteen.agent.domain.AgentRunClaim;
 import com.example.smartcanteen.agent.domain.AgentRunDecision;
 import com.example.smartcanteen.agent.domain.AgentRunEvent;
+import com.example.smartcanteen.agent.domain.AgentStep;
 import com.example.smartcanteen.domain.CanteenScope;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
-import java.time.Instant;
 
 public interface AgentRunStore {
 
@@ -45,6 +47,54 @@ public interface AgentRunStore {
 
     default List<AgentRun> findStaleExecuting(Instant cutoff) {
         return List.of();
+    }
+
+    /** Returns true when this store provides durable, fenced execution claims. */
+    default boolean supportsExecutionClaims() {
+        return false;
+    }
+
+    /** Claims a planned Run for one worker for the supplied lease duration. */
+    default Optional<AgentRunClaim> claimExecution(
+            String runId, String ownerId, Duration leaseDuration) {
+        return Optional.empty();
+    }
+
+    /** Extends a still-owned claim; implementations return false after fencing or expiry. */
+    default boolean renewExecutionClaim(AgentRunClaim claim, Duration leaseDuration) {
+        return false;
+    }
+
+    /** Releases a claim only when its owner and fencing token still match. */
+    default boolean releaseExecutionClaim(AgentRunClaim claim) {
+        return false;
+    }
+
+    /** Persists a Run transition while holding the supplied fencing claim. */
+    default void updateClaimed(AgentRun expected, AgentRun updated, AgentRunClaim claim) {
+        throw claimsUnsupported();
+    }
+
+    /** Persists a Step checkpoint while holding the supplied fencing claim. */
+    default void updateStepClaimed(AgentStep step, AgentRunClaim claim) {
+        throw claimsUnsupported();
+    }
+
+    /** Appends an event while holding the supplied fencing claim. */
+    default void appendEventClaimed(
+            String runId,
+            String eventType,
+            String fromStatus,
+            String toStatus,
+            String actorUserId,
+            String payloadJson,
+            AgentRunClaim claim) {
+        throw claimsUnsupported();
+    }
+
+    private static UnsupportedOperationException claimsUnsupported() {
+        return new UnsupportedOperationException(
+                "This AgentRunStore does not support execution claim fencing");
     }
 
     void appendEvent(

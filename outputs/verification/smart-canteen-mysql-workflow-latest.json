@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "recordedAt": "2026-08-17T13:45:24.4313824Z",
+  "recordedAt": "2026-08-17T14:11:18.6717880Z",
   "result": "passed",
-  "database": "smart_canteen_it_9a32d75d522d",
+  "database": "smart_canteen_it_0826b6340714",
   "databaseRemoved": true,
   "mysqlImage": "smart-canteen/mysql:8.4.11",
   "flywayVersion": "11.20.3",
@@ -21,6 +21,8 @@
     "Agent plan audit evidence is durable",
     "same-transaction duplicate Agent start reuses the uncommitted winner",
     "outer transaction rollback leaves no Agent Run or audit orphan",
-    "same-key different-payload Agent request is rejected"
+    "same-key different-payload Agent request is rejected",
+    "concurrent Agent workers obtain one execution claim",
+    "expired Agent claim can be replaced and the old token is fenced"
   ]
 }

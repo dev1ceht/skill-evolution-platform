@@ -6,13 +6,18 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.example.smartcanteen.SmartCanteenApplication;
 import com.example.smartcanteen.agent.application.AgentRuntime;
 import com.example.smartcanteen.agent.domain.AgentRun;
+import com.example.smartcanteen.agent.domain.AgentRunClaim;
 import com.example.smartcanteen.agent.domain.ExecutionContext;
 import com.example.smartcanteen.agent.domain.StartRunCommand;
 import com.example.smartcanteen.agent.port.AgentRunStore;
 import com.example.smartcanteen.domain.CanteenScope;
 import com.example.smartcanteen.security.AuthPrincipal;
 import com.example.smartcanteen.security.Role;
+import java.sql.Timestamp;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CyclicBarrier;
@@ -138,6 +143,41 @@ class AgentRuntimeMySqlIntegrationTest {
                             + "AND request_id = ?",
                     Integer.class,
                     rollbackCommand.requestId())).isZero();
+
+            List<Optional<AgentRunClaim>> claims = runConcurrently(
+                    () -> runs.claimExecution(
+                            runId, "mysql-claim-worker-a", Duration.ofSeconds(30)),
+                    () -> runs.claimExecution(
+                            runId, "mysql-claim-worker-b", Duration.ofSeconds(30)));
+            assertThat(claims.stream().filter(Optional::isPresent)).hasSize(1);
+            AgentRunClaim winner = claims.stream()
+                    .flatMap(Optional::stream)
+                    .findFirst()
+                    .orElseThrow();
+            assertThat(runs.renewExecutionClaim(
+                    winner, Duration.ofSeconds(30))).isTrue();
+            assertThat(runs.releaseExecutionClaim(winner)).isTrue();
+
+            AgentRunClaim expiring = runs.claimExecution(
+                            runId,
+                            "mysql-claim-expiring",
+                            Duration.ofSeconds(30))
+                    .orElseThrow();
+            jdbc.update(
+                    "UPDATE agent_run_claims SET claimed_at = ?, expires_at = ? WHERE run_id = ?",
+                    Timestamp.from(Instant.now().minusSeconds(60)),
+                    Timestamp.from(Instant.now().minusSeconds(1)),
+                    runId);
+            AgentRunClaim replacement = runs.claimExecution(
+                            runId,
+                            "mysql-claim-replacement",
+                            Duration.ofSeconds(30))
+                    .orElseThrow();
+            assertThat(runs.renewExecutionClaim(
+                    expiring, Duration.ofSeconds(30))).isFalse();
+            assertThat(runs.renewExecutionClaim(
+                    replacement, Duration.ofSeconds(30))).isTrue();
+            assertThat(runs.releaseExecutionClaim(replacement)).isTrue();
         }
 
         try (ConfigurableApplicationContext second = start()) {

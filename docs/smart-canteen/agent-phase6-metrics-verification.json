@@ -23,6 +23,6 @@
   },
   "known_limits": [
     "the unlabelled process-local Micrometer denial counter is supplementary and resets on restart",
-    "real MySQL concurrency/claim-lease acceptance and long-term metric retention remain release gates"
+    "real MySQL concurrency and claim-lease foundation acceptance passed; complete worker scheduling and long-term metric retention remain release gates"
   ]
 }

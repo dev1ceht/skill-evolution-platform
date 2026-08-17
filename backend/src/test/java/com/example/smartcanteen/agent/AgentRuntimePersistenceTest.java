@@ -1,15 +1,22 @@
 package com.example.smartcanteen.agent;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.example.smartcanteen.agent.application.AgentRuntime;
 import com.example.smartcanteen.agent.domain.AgentRun;
+import com.example.smartcanteen.agent.domain.AgentRunClaim;
+import com.example.smartcanteen.agent.domain.AgentRunClaimLostException;
+import com.example.smartcanteen.agent.domain.AgentStep;
 import com.example.smartcanteen.agent.domain.ExecutionContext;
 import com.example.smartcanteen.agent.domain.StartRunCommand;
 import com.example.smartcanteen.agent.port.AgentRunStore;
 import com.example.smartcanteen.domain.CanteenScope;
 import com.example.smartcanteen.security.AuthPrincipal;
 import com.example.smartcanteen.security.Role;
+import java.sql.Timestamp;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -36,6 +43,7 @@ class AgentRuntimePersistenceTest {
 
     @BeforeEach
     void clearRuntimeState() {
+        jdbc.update("DELETE FROM agent_run_claims");
         jdbc.update("DELETE FROM agent_run_events");
         jdbc.update("DELETE FROM agent_steps");
         jdbc.update("DELETE FROM agent_run_decisions");
@@ -44,18 +52,7 @@ class AgentRuntimePersistenceTest {
 
     @Test
     void persists_run_step_and_initial_event_in_one_runtime_transaction() {
-        ExecutionContext context = ExecutionContext.fromTrustedPrincipal(
-                "request-persistence-001",
-                new AuthPrincipal(
-                        "USER-RUNTIME-001",
-                        "runtime-user",
-                        "Runtime User",
-                        Role.CANTEEN_STAFF,
-                        "SCHOOL-001",
-                        "CANTEEN-001"),
-                new CanteenScope("SCHOOL-001", "CANTEEN-001"),
-                Set.of(Role.CANTEEN_STAFF),
-                Set.of("TRACEABILITY_READ"));
+        ExecutionContext context = persistenceContext("request-persistence-001");
 
         AgentRun created = runtime.start(new StartRunCommand(
                 "request-persistence-001",
@@ -79,5 +76,188 @@ class AgentRuntimePersistenceTest {
                 "SELECT status FROM agent_steps WHERE run_id = ? AND step_id = 'step-1'",
                 String.class,
                 created.runId())).isEqualTo("PENDING");
+    }
+
+    @Test
+    void claims_a_planned_run_once_renews_it_and_allows_a_new_owner_after_release() {
+        AgentRun created = runtime.start(
+                new StartRunCommand(
+                        "request-claim-001",
+                        "traceability.query",
+                        "{\"traceCode\":\"TRACE-CLAIM-001\"}",
+                        "runtime-claim-001"),
+                persistenceContext("request-claim-001"));
+        AgentRunClaim first = runs.claimExecution(
+                created.runId(), "worker-a", Duration.ofSeconds(30))
+                .orElseThrow();
+
+        assertThat(runs.claimExecution(
+                        created.runId(), "worker-b", Duration.ofSeconds(30)))
+                .isEmpty();
+        assertThat(runs.renewExecutionClaim(
+                first, Duration.ofSeconds(30))).isTrue();
+        assertThat(runs.releaseExecutionClaim(first)).isTrue();
+        assertThat(runs.claimExecution(
+                        created.runId(), "worker-b", Duration.ofSeconds(30)))
+                .isPresent();
+    }
+
+    @Test
+    void an_expired_replacement_fences_the_previous_worker() {
+        AgentRun created = runtime.start(
+                new StartRunCommand(
+                        "request-claim-002",
+                        "traceability.query",
+                        "{\"traceCode\":\"TRACE-CLAIM-002\"}",
+                        "runtime-claim-002"),
+                persistenceContext("request-claim-002"));
+        Instant now = Instant.now();
+        AgentRunClaim first = runs.claimExecution(
+                created.runId(), "worker-a", Duration.ofSeconds(30))
+                .orElseThrow();
+        jdbc.update(
+                "UPDATE agent_run_claims SET claimed_at = ?, expires_at = ? WHERE run_id = ?",
+                Timestamp.from(now.minusSeconds(60)),
+                Timestamp.from(now.minusSeconds(1)),
+                created.runId());
+        AgentRunClaim replacement = runs.claimExecution(
+                created.runId(), "worker-b", Duration.ofSeconds(30))
+                .orElseThrow();
+
+        AgentRun executing = created.withStatus(
+                com.example.smartcanteen.agent.domain.RunStatus.EXECUTING,
+                "step-1",
+                now.plusSeconds(2));
+        assertThatThrownBy(() -> runs.updateClaimed(created, executing, first))
+                .isInstanceOf(AgentRunClaimLostException.class);
+        assertThat(runs.renewExecutionClaim(
+                replacement, Duration.ofSeconds(30))).isTrue();
+    }
+
+    @Test
+    void a_claim_cannot_be_reused_for_another_run_or_step() {
+        AgentRun first = runtime.start(
+                new StartRunCommand(
+                        "request-claim-003",
+                        "traceability.query",
+                        "{\"traceCode\":\"TRACE-CLAIM-003\"}",
+                        "runtime-claim-003"),
+                persistenceContext("request-claim-003"));
+        AgentRun second = runtime.start(
+                new StartRunCommand(
+                        "request-claim-004",
+                        "traceability.query",
+                        "{\"traceCode\":\"TRACE-CLAIM-004\"}",
+                        "runtime-claim-004"),
+                persistenceContext("request-claim-004"));
+        AgentRunClaim secondClaim = runs.claimExecution(
+                        second.runId(), "worker-b", Duration.ofSeconds(30))
+                .orElseThrow();
+        AgentRun updated = first.withStatus(
+                com.example.smartcanteen.agent.domain.RunStatus.EXECUTING,
+                "step-1",
+                Instant.now());
+        AgentStep step = new AgentStep(
+                first.runId(),
+                "step-1",
+                0,
+                "traceability.query",
+                "step-key",
+                "input-digest",
+                "PENDING",
+                0,
+                null,
+                null,
+                null,
+                null,
+                null);
+
+        assertThatThrownBy(() -> runs.updateClaimed(first, updated, secondClaim))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> runs.updateStepClaimed(step, secondClaim))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> runs.appendEventClaimed(
+                        first.runId(),
+                        "TEST",
+                        "PLANNED",
+                        "EXECUTING",
+                        "runtime-user",
+                        "{}",
+                        secondClaim))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void a_valid_claim_fences_and_persists_run_step_and_event() {
+        AgentRun created = runtime.start(
+                new StartRunCommand(
+                        "request-claim-005",
+                        "traceability.query",
+                        "{\"traceCode\":\"TRACE-CLAIM-005\"}",
+                        "runtime-claim-005"),
+                persistenceContext("request-claim-005"));
+        AgentRunClaim claim = runs.claimExecution(
+                        created.runId(), "worker-a", Duration.ofSeconds(30))
+                .orElseThrow();
+        Instant now = Instant.now();
+        AgentRun executing = created.withStatus(
+                com.example.smartcanteen.agent.domain.RunStatus.EXECUTING,
+                "step-1",
+                now);
+        String stepId = jdbc.queryForObject(
+                "SELECT step_id FROM agent_steps WHERE run_id = ?",
+                String.class,
+                created.runId());
+        AgentStep checkpoint = new AgentStep(
+                created.runId(),
+                stepId,
+                0,
+                "traceability.query",
+                "runtime-claim-005",
+                "input-digest",
+                "SUCCEEDED",
+                1,
+                "{}",
+                null,
+                null,
+                now,
+                now);
+
+        runs.updateClaimed(created, executing, claim);
+        runs.updateStepClaimed(checkpoint, claim);
+        runs.appendEventClaimed(
+                created.runId(),
+                "CLAIMED_WRITE",
+                "PLANNED",
+                "EXECUTING",
+                "runtime-user",
+                "{}",
+                claim);
+
+        assertThat(runs.findById(created.runId()).orElseThrow().status())
+                .isEqualTo(com.example.smartcanteen.agent.domain.RunStatus.EXECUTING);
+        assertThat(jdbc.queryForObject(
+                "SELECT status FROM agent_steps WHERE run_id = ? AND step_id = ?",
+                String.class,
+                created.runId(),
+                stepId)).isEqualTo("SUCCEEDED");
+        assertThat(runs.listEvents(created.runId()))
+                .extracting(event -> event.eventType())
+                .contains("CLAIMED_WRITE");
+    }
+
+    private ExecutionContext persistenceContext(String requestId) {
+        return ExecutionContext.fromTrustedPrincipal(
+                requestId,
+                new AuthPrincipal(
+                        "USER-RUNTIME-001",
+                        "runtime-user",
+                        "Runtime User",
+                        Role.CANTEEN_STAFF,
+                        "SCHOOL-001",
+                        "CANTEEN-001"),
+                new CanteenScope("SCHOOL-001", "CANTEEN-001"),
+                Set.of(Role.CANTEEN_STAFF),
+                Set.of("TRACEABILITY_READ"));
     }
 }

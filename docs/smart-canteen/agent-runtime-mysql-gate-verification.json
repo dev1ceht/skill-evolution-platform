@@ -14,6 +14,8 @@
     "same-transaction duplicate Agent start reuses the uncommitted winner",
     "outer transaction rollback leaves no Agent Run or audit orphan",
     "same-key different-payload Agent request is rejected",
+    "concurrent Agent workers obtain one execution claim",
+    "expired Agent claim can be replaced and the old token is fenced",
     "Agent evidence survives Spring application restart",
     "existing SmartCanteen workflow concurrency and restart checks remain green"
   ],
@@ -27,6 +29,7 @@
   },
   "knownLimits": [
     "SMART_CANTEEN_MYSQL_IT=true and Docker/CI credentials are required for a pass result",
-    "distributed claim lease scheduling and long-term metrics retention/alerts remain separate release gates"
+    "the recorded pass predates the final database-clock/transaction-fencing hardening; rerun the gate in Docker/CI before production release",
+    "complete worker claim scheduling and long-term metrics retention/alerts remain separate release gates"
   ]
 }

@@ -47,7 +47,7 @@
   ],
   "known_limits": [
     "This file records the phase 0-3 baseline; the phase 4-6 implementation and evidence are in agent-runtime-phase4-6-verification.json.",
-    "Distributed claim leases, sensitive result references, retention jobs and metrics remain follow-up hardening.",
+    "Complete worker claim scheduling, sensitive result references, retention jobs and long-term metrics remain follow-up hardening.",
     "Procurement, inventory and alert write Skills remain unavailable until their domain-model gates pass."
   ]
 }

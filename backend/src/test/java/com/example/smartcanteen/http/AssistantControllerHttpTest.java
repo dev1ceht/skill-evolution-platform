@@ -48,6 +48,7 @@ class AssistantControllerHttpTest {
         jdbc.update("DELETE FROM agent_run_events");
         jdbc.update("DELETE FROM agent_steps");
         jdbc.update("DELETE FROM agent_run_decisions");
+        jdbc.update("DELETE FROM agent_run_claims");
         jdbc.update("DELETE FROM agent_runs");
         jdbc.update("DELETE FROM traceability_records WHERE school_id = ?", SCHOOL_ID);
         jdbc.update("DELETE FROM inventory_batches WHERE school_id = ?", SCHOOL_ID);

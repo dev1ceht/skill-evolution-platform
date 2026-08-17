@@ -50,6 +50,8 @@ class AgentMetricsControllerHttpTest {
                 "RUN-METRICS-1", "RUN-METRICS-2", "RUN-METRICS-OLD");
         jdbc.update("DELETE FROM agent_steps WHERE run_id IN (?, ?, ?)",
                 "RUN-METRICS-1", "RUN-METRICS-2", "RUN-METRICS-OLD");
+        jdbc.update("DELETE FROM agent_run_claims WHERE run_id IN (?, ?, ?)",
+                "RUN-METRICS-1", "RUN-METRICS-2", "RUN-METRICS-OLD");
         jdbc.update("DELETE FROM agent_runs WHERE run_id IN (?, ?, ?)",
                 "RUN-METRICS-1", "RUN-METRICS-2", "RUN-METRICS-OLD");
         insertRun(

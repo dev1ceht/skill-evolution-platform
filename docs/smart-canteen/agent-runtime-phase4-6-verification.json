@@ -1,6 +1,6 @@
 {
   "phase": "agent-runtime-phases-4-6",
-  "captured_at": "2026-08-17T21:48:24+08:00",
+  "captured_at": "2026-08-17T22:51:15+08:00",
   "scope": "canonical daily-menu writes, runtime reliability hardening, and API/frontend pilot entry",
   "contract": {
     "operations": 116,
@@ -13,7 +13,7 @@
     {
       "command": "mvn --batch-mode test",
       "result": "passed",
-      "evidence": "149 tests, 0 failures, 0 errors; 2 environment-gated MySQL tests skipped in the default H2 run; both classes pass in the real MySQL gate"
+      "evidence": "153 tests, 0 failures, 0 errors; 2 environment-gated MySQL tests skipped in the default H2 run; both classes pass in the real MySQL gate"
     },
     {
       "command": "infra/verify-mysql-workflow.ps1",
@@ -28,7 +28,7 @@
     {
       "command": "npm test -- --run",
       "result": "passed",
-      "evidence": "140 Vitest tests passed, including domain-state lookup, immutable menu plan confirmation and Agent contract tests"
+      "evidence": "151 Vitest tests passed, including domain-state lookup, immutable menu plan confirmation and Agent contract tests"
     },
     {
       "command": "npm run build",
@@ -56,10 +56,11 @@
     "scope-limited Agent Runtime metrics query and frontend dashboard"
   ],
   "known_limits": [
-    "Real MySQL migration/concurrency acceptance passed in the isolated gate; legacy menus compatibility migration is not yet closed.",
-    "Execution uses optimistic version authority and explicit resume/reconciliation; a distributed claim lease scheduler is not yet enabled.",
+    "Real MySQL migration/concurrency and claim-lease foundation acceptance passed in the isolated gate; legacy menus compatibility migration is not yet closed.",
+    "The recorded MySQL pass predates the final database-clock/transaction-fencing hardening; Docker/CI rerun is required before production release.",
+    "Execution uses optimistic version authority and explicit resume/reconciliation; the claim-lease storage/fencing foundation is present, but a complete worker scheduler and automatic stale-run recovery are not yet enabled.",
     "In-process deadline enforcement classifies completed late calls; JDBC query timeout and cancellation are still adapter-specific.",
-    "Sensitive result reference storage, retention/cleanup jobs, distributed claim leases, long-term metrics retention/alerts and production kill switch remain follow-up gates.",
+    "Sensitive result reference storage, retention/cleanup jobs, complete worker claim scheduling, long-term metrics retention/alerts and production kill switch remain follow-up gates.",
     "Procurement, inventory and alert write Skills remain behind their domain-model and pilot gates."
   ]
 }

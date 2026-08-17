@@ -41,6 +41,10 @@ sops:
         - "backend/src/main/java/com/example/smartcanteen/assistant/port/AssistantModelResolver.java"
         - "backend/src/main/java/com/example/smartcanteen/application/BusinessAuthorizationPolicy.java"
         - "backend/src/main/java/com/example/smartcanteen/agent/application/AgentRuntime.java"
+        - "backend/src/main/java/com/example/smartcanteen/agent/domain/AgentRunClaim.java"
+        - "backend/src/main/java/com/example/smartcanteen/agent/domain/AgentRunClaimLostException.java"
+        - "backend/src/main/java/com/example/smartcanteen/agent/port/AgentRunStore.java"
+        - "backend/src/main/java/com/example/smartcanteen/agent/infrastructure/JdbcAgentRunStore.java"
         - "backend/src/main/java/com/example/smartcanteen/agent/infrastructure/MenuToolExecutor.java"
         - "backend/src/main/java/com/example/smartcanteen/application/DailyMenuService.java"
         - "backend/src/main/java/com/example/smartcanteen/application/AssistantRolloutPolicy.java"
@@ -60,6 +64,7 @@ sops:
         - "backend/src/main/resources/db/migration/V16__create_assistant_conversations.sql"
         - "backend/src/main/resources/db/migration/V17__add_menu_read_permission.sql"
         - "backend/src/main/resources/db/migration/V18__create_assistant_clarifications.sql"
+        - "backend/src/main/resources/db/migration/V20__create_agent_run_claims.sql"
       tests:
         - "backend/src/test/java/com/example/smartcanteen/assistant/RuleBasedAssistantIntentResolverTest.java"
         - "backend/src/test/java/com/example/smartcanteen/assistant/AssistantIntentResolverRouterTest.java"
@@ -69,6 +74,7 @@ sops:
         - "backend/src/test/java/com/example/smartcanteen/http/AssistantControllerRolloutHttpTest.java"
         - "backend/src/test/java/com/example/smartcanteen/agent/AgentMetricsServiceTest.java"
         - "backend/src/test/java/com/example/smartcanteen/http/AgentMetricsControllerHttpTest.java"
+        - "backend/src/test/java/com/example/smartcanteen/agent/AgentRuntimePersistenceTest.java"
         - "backend/src/test/java/com/example/smartcanteen/application/AgentRuntimeMySqlIntegrationTest.java"
       verification:
         - "docs/smart-canteen/assistant-phase2-verification.json"
@@ -101,6 +107,7 @@ sops:
       - "docs/smart-canteen/assistant-phase5-rollout.md"
       - "docs/smart-canteen/agent-phase6-metrics.md"
       - "docs/smart-canteen/agent-runtime-mysql-gate.md"
+      - "docs/smart-canteen/agent-runtime-claim-lease.md"
     status: "implemented"
 
   - id: "smart-canteen.menu-validation"
@@ -178,6 +185,10 @@ sops:
         - "backend/src/main/java/com/example/smartcanteen/application/DailyMenuService.java"
         - "backend/src/main/java/com/example/smartcanteen/agent/application/AgentRuntime.java"
         - "backend/src/main/java/com/example/smartcanteen/agent/application/AgentExecutionService.java"
+        - "backend/src/main/java/com/example/smartcanteen/agent/domain/AgentRunClaim.java"
+        - "backend/src/main/java/com/example/smartcanteen/agent/domain/AgentRunClaimLostException.java"
+        - "backend/src/main/java/com/example/smartcanteen/agent/port/AgentRunStore.java"
+        - "backend/src/main/java/com/example/smartcanteen/agent/infrastructure/JdbcAgentRunStore.java"
         - "backend/src/main/java/com/example/smartcanteen/agent/infrastructure/MenuToolExecutor.java"
         - "backend/src/main/java/com/example/smartcanteen/http/AgentController.java"
         - "backend/src/main/java/com/example/smartcanteen/assistant/application/AssistantConversationService.java"
@@ -207,6 +218,7 @@ sops:
         - "backend/src/main/resources/db/migration/V16__create_assistant_conversations.sql"
         - "backend/src/main/resources/db/migration/V18__create_assistant_clarifications.sql"
         - "backend/src/main/resources/db/migration/V19__create_assistant_pending_actions.sql"
+        - "backend/src/main/resources/db/migration/V20__create_agent_run_claims.sql"
       tests:
         - "backend/src/test/java/com/example/smartcanteen/http/OperationalCoreHttpTest.java"
         - "backend/src/test/java/com/example/smartcanteen/application/DailyMenuApprovalModuleTest.java"
@@ -218,6 +230,7 @@ sops:
         - "backend/src/test/java/com/example/smartcanteen/http/AssistantControllerRolloutHttpTest.java"
         - "backend/src/test/java/com/example/smartcanteen/agent/AgentMetricsServiceTest.java"
         - "backend/src/test/java/com/example/smartcanteen/http/AgentMetricsControllerHttpTest.java"
+        - "backend/src/test/java/com/example/smartcanteen/agent/AgentRuntimePersistenceTest.java"
         - "backend/src/test/java/com/example/smartcanteen/application/AgentRuntimeMySqlIntegrationTest.java"
       verification:
         - "docs/smart-canteen/agent-runtime-phase4-6-verification.json"
@@ -250,6 +263,7 @@ sops:
       - "docs/smart-canteen/assistant-phase5-rollout.md"
       - "docs/smart-canteen/agent-phase6-metrics.md"
       - "docs/smart-canteen/agent-runtime-mysql-gate.md"
+      - "docs/smart-canteen/agent-runtime-claim-lease.md"
     status: "implemented"
 
   - id: "smart-canteen.procurement"
@@ -423,6 +437,10 @@ sops:
       modules:
         - "backend/src/main/java/com/example/smartcanteen/application/DashboardService.java"
         - "backend/src/main/java/com/example/smartcanteen/agent/application/AgentRuntime.java"
+        - "backend/src/main/java/com/example/smartcanteen/agent/domain/AgentRunClaim.java"
+        - "backend/src/main/java/com/example/smartcanteen/agent/domain/AgentRunClaimLostException.java"
+        - "backend/src/main/java/com/example/smartcanteen/agent/port/AgentRunStore.java"
+        - "backend/src/main/java/com/example/smartcanteen/agent/infrastructure/JdbcAgentRunStore.java"
         - "backend/src/main/java/com/example/smartcanteen/http/AgentController.java"
         - "backend/src/main/java/com/example/smartcanteen/assistant/application/AssistantIntentResolver.java"
         - "backend/src/main/java/com/example/smartcanteen/assistant/application/AssistantIntentResolverRouter.java"
@@ -448,6 +466,7 @@ sops:
         - "backend/src/main/resources/db/migration/V5__create_operational_core.sql"
         - "backend/src/main/resources/db/migration/V16__create_assistant_conversations.sql"
         - "backend/src/main/resources/db/migration/V18__create_assistant_clarifications.sql"
+        - "backend/src/main/resources/db/migration/V20__create_agent_run_claims.sql"
       tests:
         - "backend/src/test/java/com/example/smartcanteen/http/OperationalCoreHttpTest.java"
         - "backend/src/test/java/com/example/smartcanteen/agent/AgentRuntimeTest.java"
@@ -462,6 +481,7 @@ sops:
         - "backend/src/test/java/com/example/smartcanteen/http/AssistantControllerRolloutHttpTest.java"
         - "backend/src/test/java/com/example/smartcanteen/agent/AgentMetricsServiceTest.java"
         - "backend/src/test/java/com/example/smartcanteen/http/AgentMetricsControllerHttpTest.java"
+        - "backend/src/test/java/com/example/smartcanteen/agent/AgentRuntimePersistenceTest.java"
         - "backend/src/test/java/com/example/smartcanteen/application/AgentRuntimeMySqlIntegrationTest.java"
       verification:
         - "docs/smart-canteen/phase5-verification.json"
@@ -494,6 +514,7 @@ sops:
       - "docs/smart-canteen/assistant-phase5-rollout.md"
       - "docs/smart-canteen/agent-phase6-metrics.md"
       - "docs/smart-canteen/agent-runtime-mysql-gate.md"
+      - "docs/smart-canteen/agent-runtime-claim-lease.md"
     status: "implemented"
 
 compositions:

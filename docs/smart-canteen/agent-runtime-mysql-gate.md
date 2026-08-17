@@ -1,6 +1,6 @@
 # Agent Runtime 真实 MySQL 8 验收门禁
 
-本门禁把 Agent Runtime 的关键并发与重启路径接入现有 MySQL 8 验收脚本。它不替代 H2 单元/HTTP 回归，也不宣称 claim lease 或生产调度已经完成。
+本门禁把 Agent Runtime 的关键并发、重启和 claim lease 基础路径接入现有 MySQL 8 验收脚本。它不替代 H2 单元/HTTP 回归，也不宣称完整 worker claim 调度或生产调度已经完成。
 
 ## 执行方式
 
@@ -24,9 +24,13 @@
 - 同一个外层事务内重复启动同一幂等键时复用未提交的首个 Run，不误报不可恢复竞态；
 - 外层会话事务回滚时不留下孤立的 Agent Run 或计划审计记录；
 - 同一幂等键携带不同输入时拒绝；
+- 两个 MySQL worker 并发 claim 同一个 `PLANNED` Run 时只有一个获得租约；
+- 租约过期后可由新 worker 接管，旧 worker 的 token 不能续租；
 - 关闭并重新启动 Spring 上下文后，Run、Step/Event 证据仍可读取；
-- 迁移在真实 MySQL 8 上完成，且测试数据库不会污染默认业务库。
+- V20 claim 表迁移在真实 MySQL 8 上完成，且测试数据库不会污染默认业务库。
 
 验证证据写入 `outputs/verification/smart-canteen-mysql-workflow-latest.json`，其中记录 MySQL 镜像、Flyway 版本、测试类和清单。
 
-本轮已在 MySQL 8.4.11 隔离数据库上通过该门禁，数据库完成 schema migration V19（Flyway 11.20.3）后自动删除测试库；后续仍需在 CI 中持续执行以防止回归。
+本轮已在 MySQL 8.4.11 隔离数据库上通过该门禁，数据库完成 schema migration V20（Flyway 11.20.3）后自动删除测试库；后续仍需在 CI 中持续执行以防止回归。
+
+本机本轮最终硬化后的重跑因 Docker Desktop 未启动而未执行；交付前应在 Docker/CI 环境重新确认数据库时钟、事务 fencing 和 MySQL 并发路径。

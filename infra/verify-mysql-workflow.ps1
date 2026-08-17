@@ -127,6 +127,8 @@ try {
             "same-transaction duplicate Agent start reuses the uncommitted winner"
             "outer transaction rollback leaves no Agent Run or audit orphan"
             "same-key different-payload Agent request is rejected"
+            "concurrent Agent workers obtain one execution claim"
+            "expired Agent claim can be replaced and the old token is fenced"
         )
     } | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $EvidencePath -Encoding utf8
     Write-Output "MySQL workflow evidence: $EvidencePath"
