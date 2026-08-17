@@ -79,6 +79,8 @@ import type {
   AgentRunResponse,
   AgentRunEvent,
   AgentRunEventListResponse,
+  AssistantTurn,
+  AssistantTurnResponse,
 } from './generated/client';
 
 interface ApiEnvelope<T> {
@@ -187,6 +189,13 @@ export interface SmartCanteenApiPort {
     scope: CanteenScope,
     requestId?: string,
   ): Promise<AgentRunEvent[]>;
+  sendAssistantMessage?(
+    conversationId: string,
+    message: string,
+    scope: CanteenScope,
+    idempotencyKey: string,
+    requestId?: string,
+  ): Promise<AssistantTurn>;
   reportAlert?(request: AlertReportRequest): Promise<AlertRecord>;
   disposeAlert?(warnId: string, request: AlertDisposalRequest): Promise<AlertRecord>;
   queryAlerts?(filters?: {
@@ -412,6 +421,27 @@ export class SmartCanteenApi implements SmartCanteenApiPort {
     const response = await this.client.post<AgentRunResponse>(
       '/api/v1/agent/runs',
       { intent: 'traceability.query', input: { traceCode } },
+      {
+        headers: {
+          'Idempotency-Key': idempotencyKey,
+          ...(requestId ? { 'X-Request-Id': requestId } : {}),
+        },
+        params: scope,
+      },
+    );
+    return unwrap(response);
+  }
+
+  async sendAssistantMessage(
+    conversationId: string,
+    message: string,
+    scope: CanteenScope,
+    idempotencyKey: string,
+    requestId?: string,
+  ): Promise<AssistantTurn> {
+    const response = await this.client.post<AssistantTurnResponse>(
+      `/api/v1/assistant/conversations/${encodeURIComponent(conversationId)}/messages`,
+      { message },
       {
         headers: {
           'Idempotency-Key': idempotencyKey,

@@ -8,6 +8,8 @@ spring:
     enabled: true
 
 smart-canteen:
+  assistant:
+    enabled: true
   security:
     enabled: false
     jwt-secret: test-only-jwt-secret-change-me-please-32

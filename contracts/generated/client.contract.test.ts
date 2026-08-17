@@ -115,6 +115,16 @@ describe("Smart Canteen Workflow API contract", () => {
     expect(options.headers["Content-Type"]).toBe("application/json");
     expect(JSON.parse(options.body)).toEqual({});
   });
+  it("sendAssistantMessage sends POST /api/v1/assistant/conversations/{conversationId}/messages", async () => {
+    await client.sendAssistantMessage('fixture', 'fixture', 'fixture', 'fixture', {} as never, 'fixture');
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/assistant/conversations/fixture/messages");
+    expect(options.method).toBe("POST");
+    expect(options.headers["Idempotency-Key"]).toBe('fixture');
+    expect(options.headers["X-Request-Id"]).toBe('fixture');
+    expect(options.headers["Content-Type"]).toBe("application/json");
+    expect(JSON.parse(options.body)).toEqual({});
+  });
   it("listAuditLogs sends GET /api/v1/audit-logs", async () => {
     await client.listAuditLogs(undefined);
     const [requestUrl, options] = fetchMock.mock.calls[0];

@@ -1,0 +1,41 @@
+package com.example.smartcanteen.assistant;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import com.example.smartcanteen.assistant.application.RuleBasedAssistantIntentResolver;
+import com.example.smartcanteen.assistant.domain.AssistantResolution;
+import org.junit.jupiter.api.Test;
+
+class RuleBasedAssistantIntentResolverTest {
+
+    private final RuleBasedAssistantIntentResolver resolver =
+            new RuleBasedAssistantIntentResolver();
+
+    @Test
+    void resolves_a_traceability_message_with_a_trace_code() {
+        AssistantResolution result = resolver.resolve("请查询 TRACE-001 的食品溯源信息");
+
+        assertThat(result.type()).isEqualTo(AssistantResolution.Type.TRACEABILITY_QUERY);
+        assertThat(result.intent()).isEqualTo("traceability.query");
+        assertThat(result.traceCode()).isEqualTo("TRACE-001");
+        assertThat(result.missingFields()).isEmpty();
+    }
+
+    @Test
+    void asks_for_the_trace_code_when_the_user_requests_traceability_without_one() {
+        AssistantResolution result = resolver.resolve("帮我查一下这批食材的溯源");
+
+        assertThat(result.type()).isEqualTo(AssistantResolution.Type.CLARIFICATION);
+        assertThat(result.missingFields()).containsExactly("traceCode");
+        assertThat(result.message()).contains("溯源码");
+    }
+
+    @Test
+    void explains_the_supported_capability_for_an_unrelated_message() {
+        AssistantResolution result = resolver.resolve("帮我安排明天的采购");
+
+        assertThat(result.type()).isEqualTo(AssistantResolution.Type.UNSUPPORTED);
+        assertThat(result.intent()).isNull();
+        assertThat(result.message()).contains("食品溯源");
+    }
+}

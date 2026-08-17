@@ -25,6 +25,8 @@ management:
       show-details: when_authorized
 
 smart-canteen:
+  assistant:
+    enabled: ${SMART_CANTEEN_ASSISTANT_ENABLED:false}
   security:
     enabled: ${SMART_CANTEEN_AUTH_ENABLED:true}
     # Local development default; use a secret manager in production.

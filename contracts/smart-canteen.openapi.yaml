@@ -8,6 +8,36 @@ servers:
 security:
   - bearerAuth: []
 paths:
+  /api/v1/assistant/conversations/{conversationId}/messages:
+    post:
+      operationId: sendAssistantMessage
+      tags: [assistant]
+      parameters:
+        - name: conversationId
+          in: path
+          required: true
+          schema: { type: string, minLength: 1, maxLength: 64 }
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/RequestId'
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssistantMessageRequest'
+      responses:
+        '200':
+          description: 助手澄清、未支持提示或只读业务结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssistantTurnResponse'
+        '400':
+          $ref: '#/components/responses/BusinessError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
   /api/v1/agent/runs:
     post:
       operationId: startAgentRun
@@ -2660,6 +2690,45 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
   schemas:
+    AssistantMessageRequest:
+      type: object
+      required: [message]
+      additionalProperties: false
+      properties:
+        message:
+          type: string
+          minLength: 1
+          maxLength: 2000
+          description: 用户本轮自然语言消息；身份和业务范围不从消息中读取。
+    AssistantTurn:
+      type: object
+      required: [conversationId, turnId, sequence, kind, message, missingFields, createdAt]
+      properties:
+        conversationId: { type: string }
+        turnId: { type: string }
+        sequence: { type: integer, format: int64, minimum: 1 }
+        kind:
+          type: string
+          enum: [CLARIFICATION, UNSUPPORTED, RESULT]
+        message: { type: string }
+        intent: { type: string, nullable: true }
+        runId: { type: string, nullable: true }
+        runStatus: { type: string, nullable: true }
+        result:
+          type: object
+          additionalProperties: true
+          nullable: true
+        missingFields:
+          type: array
+          items: { type: string }
+        createdAt: { type: string, format: date-time }
+    AssistantTurnResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code: { type: integer }
+        message: { type: string }
+        data: { $ref: '#/components/schemas/AssistantTurn' }
     AgentRunStartRequest:
       type: object
       required: [intent, input]

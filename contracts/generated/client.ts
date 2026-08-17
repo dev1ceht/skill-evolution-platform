@@ -1,5 +1,29 @@
 // Generated from API IR. Review before production use.
 
+export type AssistantMessageRequest = {
+  message: string;
+};
+
+export type AssistantTurn = {
+  conversationId: string;
+  turnId: string;
+  sequence: number;
+  kind: string;
+  message: string;
+  intent?: string;
+  runId?: string;
+  runStatus?: string;
+  result?: Record<string, unknown>;
+  missingFields: Array<string>;
+  createdAt: string;
+};
+
+export type AssistantTurnResponse = {
+  code: number;
+  message: string;
+  data: AssistantTurn;
+};
+
 export type AgentRunStartRequest = {
   intent: string;
   input: Record<string, unknown>;
@@ -1624,6 +1648,22 @@ export async function disposeAlert(warnId: string, body: AlertDisposalRequest): 
   const response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body) });
   if (!response.ok) throw new Error(`API request failed: ${response.status}`);
   return response.json() as Promise<AlertResponse>;
+}
+
+export async function sendAssistantMessage(conversationId: string, idempotencyKey: string, schoolId: string, canteenId: string, body: AssistantMessageRequest, xRequestId?: string): Promise<AssistantTurnResponse> {
+  const encodedConversationId = encodeURIComponent(String(conversationId));
+  let path = "/api/v1/assistant/conversations/{conversationId}/messages";
+  path = path.replace("{conversationId}", encodedConversationId);
+  const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
+  const headers: Record<string, string> = {};
+  headers["Idempotency-Key"] = String(idempotencyKey);
+  if (xRequestId !== undefined) headers["X-Request-Id"] = String(xRequestId);
+  headers["Content-Type"] = "application/json";
+  const response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body) });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<AssistantTurnResponse>;
 }
 
 export async function listAuditLogs(limit?: number): Promise<AuditLogListResponse> {

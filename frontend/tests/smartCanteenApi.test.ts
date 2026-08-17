@@ -3,6 +3,47 @@ import { describe, expect, it, vi } from 'vitest';
 import { SmartCanteenApi } from '../src/api/smartCanteenApi';
 
 describe('SmartCanteenApi', () => {
+  it('sends an assistant message with explicit scope and idempotency', async () => {
+    const post = vi.fn().mockResolvedValue({
+      data: {
+        code: 0,
+        message: 'success',
+        data: {
+          conversationId: 'CONV-001',
+          turnId: 'TURN-001',
+          sequence: 1,
+          kind: 'CLARIFICATION',
+          message: '请提供批次溯源码',
+          missingFields: ['traceCode'],
+          createdAt: '2026-08-17T05:00:00Z',
+        },
+      },
+    });
+    const api = new SmartCanteenApi({ post } as unknown as AxiosInstance);
+    const scope = { schoolId: 'SCHOOL-001', canteenId: 'CANTEEN-001' };
+
+    const turn = await api.sendAssistantMessage(
+      'CONV-001',
+      '帮我查一下这批食材的溯源',
+      scope,
+      'assistant-message-001',
+      'request-001',
+    );
+
+    expect(post).toHaveBeenCalledWith(
+      '/api/v1/assistant/conversations/CONV-001/messages',
+      { message: '帮我查一下这批食材的溯源' },
+      {
+        headers: {
+          'Idempotency-Key': 'assistant-message-001',
+          'X-Request-Id': 'request-001',
+        },
+        params: scope,
+      },
+    );
+    expect(turn.kind).toBe('CLARIFICATION');
+  });
+
   it('encodes path parameters and unwraps code-message-data responses', async () => {
     const post = vi.fn().mockResolvedValue({
       data: {
