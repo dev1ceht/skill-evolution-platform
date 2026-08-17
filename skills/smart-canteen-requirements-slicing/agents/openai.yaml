@@ -1,4 +1,0 @@
-interface:
-  display_name: "Smart Canteen Requirements Slicing"
-  short_description: "Turn canteen requirements into traceable slices"
-  default_prompt: "Use $smart-canteen-requirements-slicing to turn this smart-canteen requirement into an approved, traceable vertical-slice plan."

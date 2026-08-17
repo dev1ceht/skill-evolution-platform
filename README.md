@@ -1,72 +1,73 @@
-# Skill Evolution Platform
+# 智慧食堂 Agent 与业务 Skill
 
-一个可运行、可审计的实习项目原型，展示两项产出：
+这是一个以智慧食堂为主项目的可运行业务系统，围绕“菜单 → 采购 → 入库 → 台账/预警 → 溯源”构建前后端闭环，并将真实业务 SOP 封装为可触发、可执行、可审计的 Agent Skill。
 
-- **前后端接口自动化对接 Skill**：OpenAPI → API IR → 页面任务 → TypeScript client → 契约测试与版本 Diff。
-- **Skill 在线自进化系统**：pending window → 候选抽取 → add/merge/discard → replay → 提升/回滚。
+## 项目边界
 
-## 项目 Skills
+- `backend/`：Java 17 + Spring Boot 3，负责菜单、采购、库存、台账、预警、溯源、权限和审计等业务规则。
+- `frontend/`：Vue 3 + TypeScript + Vite，承载运营人员的登录、审批、采购、库存和安全治理操作。
+- `contracts/`：智慧食堂 OpenAPI 契约、API IR、生成客户端和契约测试。
+- `infra/`：MySQL、Redis、RabbitMQ 的本地 Docker 编排和运行验收脚本。
+- `skills/smart-canteen-sop/`：主业务 Skill，声明触发条件、权限、风险、审批、幂等、超时、回滚、Adapter 边界和证据要求。
+- `docs/smart-canteen/`：阶段计划、需求追踪、架构决策和验证证据。
+- `docs/smart-canteen/agent-runtime-execution-plan.md`：Agent / Skill 运行时的完整构建计划、MVP 切片和验收标准。
+- `sop-runs/`：一次“菜单到溯源”组合流程的运行记录样例。
 
-仓库内 Skill 按研发阶段组合使用：
+## 业务 Agent 如何调用 Skill
 
-| 阶段 | Skill | 主要产出 |
-| --- | --- | --- |
-| 需求与切片 | [`smart-canteen-requirements-slicing`](skills/smart-canteen-requirements-slicing/SKILL.md) | 可追溯需求、included/deferred、阶段计划与验收条件 |
-| 领域设计 | [`smart-canteen-domain-modeling`](skills/smart-canteen-domain-modeling/SKILL.md) | 统一语言、聚合、不变量、模块接口与 ADR |
-| 后端实现 | [`smart-canteen-backend`](skills/smart-canteen-backend/SKILL.md) | 领域规则、端口、Flyway、OpenAPI 与后端测试 |
-| 数据迁移 | [`smart-canteen-data-migration`](skills/smart-canteen-data-migration/SKILL.md) | Flyway、数据回填、租户约束、兼容发布与恢复方案 |
-| API 治理 | [`smart-canteen-api-lifecycle`](skills/smart-canteen-api-lifecycle/SKILL.md) | 兼容性分类、版本迁移、弃用计划与消费者门禁 |
-| 前端对接 | [`frontend-api-integration`](skills/frontend-api-integration/SKILL.md) | API IR、任务计划、TypeScript client、契约测试与版本 Diff |
-| 安全审查 | [`smart-canteen-secure-integration`](skills/smart-canteen-secure-integration/SKILL.md) | 信任边界、租户隔离、外部接入控制与滥用测试 |
-| 可观测与故障 | [`smart-canteen-observability-incident`](skills/smart-canteen-observability-incident/SKILL.md) | 日志/指标/追踪、告警、事故时间线与恢复证明 |
-| 验收发布 | [`smart-canteen-verification`](skills/smart-canteen-verification/SKILL.md) | 分层测试、fresh evidence、追溯与发布门禁 |
-| 提效评估 | [`skill-evolution-benchmarking`](skills/skill-evolution-benchmarking/SKILL.md) | 成对基准、来源哈希、指标与声明可信度 |
-| 反馈演化 | [`skill-evolution-governance`](skills/skill-evolution-governance/SKILL.md) | candidate/replay/promotion/rollback 的治理证据 |
+用户在页面或对话中提出“发布今天的食谱”“按已发布食谱生成采购计划”“验收入库”“处理预警”或“查询溯源”等操作意图后，Agent 按以下边界执行：
 
-## 快速运行
-
-```powershell
-cd D:\project\skill-evolution-platform
-python -m pip install -e .
-python -m skill_evolution.cli demo
-python -m skill_evolution.cli serve
+```text
+用户意图
+  → 选择匹配 SOP Skill
+  → 校验 schoolId/canteenId、角色、审批和前置状态
+  → 调用业务 API 或声明的 Adapter
+  → 按幂等、事务和回滚规则执行
+  → 返回业务结果、风险提示和运行证据
 ```
 
-浏览器访问 `http://127.0.0.1:8765`。
+当前已沉淀的业务 SOP 包括菜单审批、采购履约、库存、台账、预警处置和食品溯源；组合流程见 [`docs/smart-canteen/sop-manifests.yaml`](docs/smart-canteen/sop-manifests.yaml)。第三方平台、明厨亮灶和晨检设备在真实合同、凭据和网络策略具备前保持 `port-only`，不会伪装成已接通。
 
-## 智慧食堂真实业务示例
+## 快速验证
 
-[`examples/smart-canteen`](examples/smart-canteen/README.md) 依据智慧食堂设计文档实现了菜单审批、采购缺口、库存入库与台账预警闭环，并展示 OpenAPI 生成、Vue/Spring 对接和候选回放提升。
-
-## 提效基准与证据
-
-项目提供成对任务基准 CLI，输出 P50/P90、总耗时加权提速、首轮通过率、返工、缺陷和 Token 指标，同时保留输入 SHA-256 与来源引用：
+需要 Python 3.11+、Java 17、Maven、Node.js 20+；Docker 验收还需要 Docker Desktop 或兼容 Docker Engine。
 
 ```powershell
-python -m skill_evolution.cli benchmark `
-  --input examples/benchmarks/synthetic-sample.csv `
-  --name local-demo
-```
-
-报告写入 `outputs/benchmarks/local-demo.json` 和 `outputs/benchmarks/local-demo.html`。仓库样例明确标记为 `synthetic`，不会被当作“20×”证据；完整采样规范见 [`docs/benchmark-methodology.md`](docs/benchmark-methodology.md)。
-
-## 持续集成
-
-GitHub Actions 在 push/PR 上执行 Python 平台与 Skill replay、Vue 测试和构建、Spring/H2 测试；三路通过后，再构建 MySQL、Redis、RabbitMQ 镜像并执行真实 MySQL 工作流。基准报告和运行验证 JSON 会上传为 Actions artifacts。
-
-## 验证
-
-```powershell
+python -m pip install -e ".[dev]"
 python -m pytest
-python -m skill_evolution.cli benchmark --input examples/benchmarks/synthetic-sample.csv --name local-demo
-python C:\Users\th\.codex\skills\.system\skill-creator\scripts\quick_validate.py skills\frontend-api-integration
+python skills/smart-canteen-sop/scripts/validate_sop_manifest.py `
+  --run sop-runs/menu-to-traceability.yaml
+python skills/frontend-api-integration/scripts/normalize_openapi.py `
+  contracts/smart-canteen.openapi.yaml `
+  -o contracts/generated/api-ir.json
 ```
 
-## 安全边界
+分别验证应用：
 
-- 用户反馈只生成 staged candidate，不直接修改生产 Skill。
-- 只有 replay 与离线评测通过的候选才能提升。
-- 每次提升保存前后内容、来源、评测和哈希，可一键回滚。
-- HTTP 文件服务使用固定根目录并阻止路径穿越。
+```powershell
+cd backend
+mvn --batch-mode test
 
-详细需求见 [`docs/PRD.md`](docs/PRD.md)，架构见 [`docs/architecture.md`](docs/architecture.md)。
+cd ../frontend
+npm ci
+npm test
+npm run build
+
+cd ../infra
+docker compose --env-file .env.example config --quiet
+```
+
+需要运行完整本地中间件验收时，先复制 `infra/.env.example` 为 `infra/.env` 并配置密码，再执行 `infra/verify-stack.ps1` 和 `infra/verify-mysql-workflow.ps1`。
+
+## 业务 Skill 入口
+
+使用 [`skills/smart-canteen-sop/SKILL.md`](skills/smart-canteen-sop/SKILL.md) 时，给 Agent 提供用户意图、学校/食堂范围、操作者角色以及必要的业务输入。例如：
+
+```text
+$smart-canteen-sop
+请为 SCHOOL-001/CANTEEN-001 执行“发布 2026-08-17 午餐食谱”，
+当前操作者是 CANTEEN_STAFF。先检查菜品、配方和审批前置条件，
+只在满足审批规则时发布，并输出状态变化、幂等结果和证据路径。
+```
+
+Skill 只负责业务流程的触发、判断、执行边界与证据要求；最终写入仍由后端服务和受控 Adapter 完成。

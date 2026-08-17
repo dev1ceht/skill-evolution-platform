@@ -1,4 +1,0 @@
-interface:
-  display_name: "Smart Canteen Backend"
-  short_description: "Implement traceable smart-canteen backend changes"
-  default_prompt: "Use $smart-canteen-backend to turn the smart-canteen design requirements into a tested Spring Boot backend change."

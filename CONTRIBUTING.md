@@ -1,9 +1,8 @@
-# Engineering standards
+# 智慧食堂贡献约定
 
-- Keep domain logic independent from HTTP and SQLite adapters.
-- Validate all identifiers and confine file writes to the configured Skill root.
-- Test behavior through public service and HTTP boundaries.
-- Prefer deterministic assertions over model-based judging.
-- Store provenance for every candidate, decision, evaluation, and version.
-- Never overwrite a production Skill before evaluation passes; use atomic writes and retain rollback content.
-
+- 先阅读 [CONTEXT.md](./CONTEXT.md) 和对应的 SOP Manifest，使用统一业务术语。
+- 新增或修改菜单、采购、库存、台账、预警和溯源行为时，同步更新后端不变量、OpenAPI 契约、前端状态和 `skills/smart-canteen-sop` 的证据引用。
+- 所有写操作必须明确学校/食堂范围、权限、幂等键、事务边界、失败恢复和超时状态。
+- 外部厂商接入先实现端口、规范化模型和契约测试；没有真实合同、凭据和网络策略时，不声称已经完成生产接入。
+- 业务规则优先通过后端公开服务和 HTTP 边界测试；SOP 运行记录只描述已发生的行为，不替代业务实现。
+- 变更后至少运行 Python SOP/契约测试、后端测试和前端测试；涉及中间件时补充 `infra` 验收。

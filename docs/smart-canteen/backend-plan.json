@@ -3,7 +3,7 @@
   "objective": "将全局台账完成标记改造成按学校、食堂、周期隔离且可恢复的后端模块",
   "scope": {
     "included": [
-      "requirements catalog and backend Skill",
+      "business requirements catalog and backend service boundary",
       "scoped ledger cycle domain and application port",
       "Flyway V2 migration for school/canteen/cycle/requirement/alert tables",
       "REST v1 cycle start, record completion and current alert query",
@@ -34,7 +34,7 @@
     "alert": "OPEN while missingLedgerCodes is non-empty, otherwise CLEARED"
   },
   "database_migration": {
-    "file": "examples/smart-canteen/backend/src/main/resources/db/migration/V2__add_scoped_ledger_cycles.sql",
+    "file": "backend/src/main/resources/db/migration/V2__add_scoped_ledger_cycles.sql",
     "from": "V1",
     "to": "V2",
     "supports": ["H2 MySQL mode", "MySQL 8"]

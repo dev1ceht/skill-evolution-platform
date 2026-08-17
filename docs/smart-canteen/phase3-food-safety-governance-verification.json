@@ -6,7 +6,7 @@
     "docs/smart-canteen/phase3-food-safety-governance-plan.json",
     "docs/smart-canteen/phase3-food-safety-governance-requirements.yaml",
     "docs/smart-canteen/phase3-food-safety-governance-traceability.md",
-    "examples/smart-canteen/contracts/smart-canteen.openapi.yaml"
+    "contracts/smart-canteen.openapi.yaml"
   ],
   "commands": [
     {
@@ -27,7 +27,7 @@
     {
       "command": "python -m pytest -q -p no:cacheprovider --basetemp=tmp/pytest-all-stage3-rerun -k 'not project_skills'",
       "result": "passed",
-      "evidence": "24 Python tests passed; the unrelated untracked skills/frontend-api-integration-workspace directory is excluded"
+      "evidence": "24 Python tests passed"
     },
     {
       "command": "strict OpenAPI YAML parse and reference resolution",
@@ -43,7 +43,6 @@
   ],
   "known_limits": [
     "MySQL acceptance remains environment-gated by SMART_CANTEEN_MYSQL_IT",
-    "real SMS/WeChat, object storage, OCR, municipal reporting and external device adapters remain deferred by the phase boundary",
-    "the repository-wide project skill metadata test cannot run cleanly while the unrelated untracked skills/frontend-api-integration-workspace directory lacks SKILL.md"
+    "real SMS/WeChat, object storage, OCR, municipal reporting and external device adapters remain deferred by the phase boundary"
   ]
 }

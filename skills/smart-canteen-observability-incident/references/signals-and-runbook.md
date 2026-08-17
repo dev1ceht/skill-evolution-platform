@@ -13,7 +13,7 @@
 | MySQL | pool saturation, query latency, deadlocks, migration version, storage |
 | Redis | hit/miss only after real caching exists, latency, eviction, connection failures |
 | RabbitMQ | publish/consume failures, unacked count, retry/dead-letter rate and oldest-message age |
-| Skill evolution | pending age, candidate decisions, replay failures, promotion/rollback and recovery-required intents |
+| Business Agent/SOP | trigger match, precondition rejection, approval wait, idempotency conflict, timeout and evidence completion |
 
 Avoid unbounded metric labels such as raw user IDs, menu IDs, warning IDs, URLs or error messages. Logs may carry a controlled correlation ID; metrics use bounded categories.
 
@@ -26,4 +26,3 @@ time | observation/action | evidence source | result | next hypothesis
 ## Recovery proof
 
 Verify one representative business flow, persisted state after restart where relevant, queue/cache convergence, error/latency return to baseline and absence of new cross-tenant or duplicate effects.
-

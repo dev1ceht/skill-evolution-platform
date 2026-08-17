@@ -14,7 +14,7 @@ permissions:
   contents: read
 
 jobs:
-  platform:
+  quality:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -24,38 +24,33 @@ jobs:
           python-version: "3.13"
           cache: pip
           cache-dependency-path: pyproject.toml
-      - name: Install platform
-        run: python -m pip install --editable '.[dev]'
-      - name: Test platform, replay, and evolution
+      - name: Install project validation tools
+        run: python -m pip install --editable ".[dev]"
+      - name: Run SOP and contract tests
         run: python -m pytest
-      - name: Exercise end-to-end evolution demo
-        run: python -m skill_evolution.cli demo
-      - name: Build auditable benchmark report
+      - name: Validate the business SOP run
         run: >-
-          python -m skill_evolution.cli benchmark
-          --input examples/benchmarks/synthetic-sample.csv
-          --name ci
-      - name: Upload benchmark evidence
-        uses: actions/upload-artifact@v7
-        with:
-          name: benchmark-evidence
-          path: outputs/benchmarks/ci.*
-          if-no-files-found: error
-          retention-days: 30
+          python skills/smart-canteen-sop/scripts/validate_sop_manifest.py
+          --run sop-runs/menu-to-traceability.yaml
+      - name: Normalize the OpenAPI contract
+        run: >-
+          python skills/frontend-api-integration/scripts/normalize_openapi.py
+          contracts/smart-canteen.openapi.yaml
+          -o contracts/generated/api-ir.json
 
   frontend:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     defaults:
       run:
-        working-directory: examples/smart-canteen/frontend
+        working-directory: frontend
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
           node-version: "22.20.0"
           cache: npm
-          cache-dependency-path: examples/smart-canteen/frontend/package-lock.json
+          cache-dependency-path: frontend/package-lock.json
       - run: npm ci
       - run: npm test
       - run: npm run build
@@ -65,7 +60,7 @@ jobs:
     timeout-minutes: 20
     defaults:
       run:
-        working-directory: examples/smart-canteen/backend
+        working-directory: backend
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-java@v5
@@ -73,11 +68,11 @@ jobs:
           distribution: temurin
           java-version: "17"
           cache: maven
-          cache-dependency-path: examples/smart-canteen/backend/pom.xml
+          cache-dependency-path: backend/pom.xml
       - run: mvn --batch-mode test
 
   runtime:
-    needs: [platform, frontend, backend]
+    needs: [quality, frontend, backend]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -87,7 +82,7 @@ jobs:
           distribution: temurin
           java-version: "17"
           cache: maven
-          cache-dependency-path: examples/smart-canteen/backend/pom.xml
+          cache-dependency-path: backend/pom.xml
       - name: Create ephemeral middleware credentials
         shell: pwsh
         run: |
@@ -102,22 +97,19 @@ jobs:
             "RABBITMQ_VHOST=smart_canteen"
           )
           [IO.File]::WriteAllLines(
-            "examples/smart-canteen/infra/.env",
+            "infra/.env",
             $values,
             [Text.UTF8Encoding]::new($false)
           )
       - name: Remove stale verification evidence
         shell: pwsh
-        run: |
-          Remove-Item -Force -ErrorAction SilentlyContinue `
-            outputs/verification/smart-canteen-runtime-latest.json, `
-            outputs/verification/smart-canteen-mysql-workflow-latest.json
+        run: Remove-Item -Force -ErrorAction SilentlyContinue outputs/verification/smart-canteen-runtime-latest.json, outputs/verification/smart-canteen-mysql-workflow-latest.json
       - name: Build and verify Docker middleware
         shell: pwsh
-        run: ./examples/smart-canteen/infra/verify-stack.ps1
+        run: ./infra/verify-stack.ps1
       - name: Verify workflow against real MySQL
         shell: pwsh
-        run: ./examples/smart-canteen/infra/verify-mysql-workflow.ps1
+        run: ./infra/verify-mysql-workflow.ps1
       - name: Upload runtime evidence
         if: always()
         uses: actions/upload-artifact@v7
@@ -130,6 +122,6 @@ jobs:
         if: always()
         run: >-
           docker compose
-          --env-file examples/smart-canteen/infra/.env
-          -f examples/smart-canteen/infra/compose.yaml
+          --env-file infra/.env
+          -f infra/compose.yaml
           down --volumes --remove-orphans

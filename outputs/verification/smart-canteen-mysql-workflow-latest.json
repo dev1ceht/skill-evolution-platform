@@ -1,17 +1,17 @@
-﻿{
-    "schemaVersion":  1,
-    "recordedAt":  "2026-08-10T17:35:21.4599287Z",
-    "result":  "passed",
-    "database":  "smart_canteen_it_c3a8e4263234",
-    "databaseRemoved":  true,
-    "mysqlImage":  "smart-canteen/mysql:8.4.11",
-    "flywayVersion":  "11.20.3",
-    "testClass":  "SmartCanteenMySqlIntegrationTest",
-    "checks":  [
-                   "flyway migration on MySQL",
-                   "same-key concurrent receipt is applied once",
-                   "concurrent first-material receipts preserve both quantities",
-                   "incompatible unit rolls back receipt reservation",
-                   "state survives Spring application restart"
-               ]
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-08-16T14:42:27.6137826Z",
+  "result": "passed",
+  "database": "smart_canteen_it_11b9d05a4e11",
+  "databaseRemoved": true,
+  "mysqlImage": "smart-canteen/mysql:8.4.11",
+  "flywayVersion": "11.20.3",
+  "testClass": "SmartCanteenMySqlIntegrationTest",
+  "checks": [
+    "flyway migration on MySQL",
+    "same-key concurrent receipt is applied once",
+    "concurrent first-material receipts preserve both quantities",
+    "incompatible unit rolls back receipt reservation",
+    "state survives Spring application restart"
+  ]
 }

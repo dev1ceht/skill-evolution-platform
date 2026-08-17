@@ -1,16 +1,30 @@
-# Architecture
+# 智慧食堂架构
 
 ```text
-Browser UI -> HTTP adapter -> Application service
-                              |-> API IR / client generator
-                              |-> evolution engine
-                              |-> replay evaluator
-                              |-> SQLite repository
-                              `-> versioned Skill store
+运营人员 / Agent
+       |
+       v
+Vue 页面与业务状态
+       |
+       v
+Spring Boot REST API
+       |
+       +--> 菜单 / 采购 / 库存 / 台账 / 预警 / 溯源领域服务
+       |             |
+       |             +--> 事务、范围授权、幂等与审计
+       |             +--> Jdbc Adapter --> MySQL
+       |
+       +--> 规范化外部 Adapter 端口
+                     |
+                     +--> 区县平台 / 明厨亮灶 / 晨检设备 / 通知渠道
 
-Benchmark CSV/JSON -> input validation/provenance adapter
-                   -> deterministic paired-metric calculation
-                   -> JSON evidence + HTML dashboard
+SOP Manifest + Skill
+       |
+       +--> 触发判断、前置校验、状态迁移、运行证据
 ```
 
-The application service and benchmark CLI are public use-case boundaries. Domain functions are deterministic. Benchmark ingestion, clock capture, rendering, and atomic file writes stay in adapters. SQLite stores operational and audit state. Skill file changes are staged, evaluated, atomically promoted, and recoverable from immutable version rows.
+`smart-canteen-sop` 是业务编排边界，不是数据库访问层。它可以决定某个用户操作应该进入哪个 SOP、需要什么权限和审批，但所有写入都必须经过后端服务的授权、事务和幂等控制。
+
+OpenAPI 契约位于 `contracts/`。Python 工具只负责规范化契约、生成 TypeScript 客户端/契约测试和比较版本；生成结果必须经过前端已有的 API adapter 和页面测试。
+
+外部平台和设备只通过端口接入。端口实现必须完成认证、范围映射、来源唯一性、超时、重试和错误规范化；缺少真实合同或凭据时保持 `port-only`。

@@ -7,7 +7,7 @@
     "docs/smart-canteen/phase2-requirements.yaml",
     "docs/smart-canteen/phase2-plan.json",
     "docs/smart-canteen/phase2-traceability.md",
-    "examples/smart-canteen/backend/src/main/java/com/example/smartcanteen/application/port"
+    "backend/src/main/java/com/example/smartcanteen/application/port"
   ],
   "environment": {
     "java": "17.0.18",

@@ -1,49 +1,25 @@
-# Skill Evolution Platform MVP
+# 智慧食堂 Agent 与业务 Skill 范围
 
-## Goal
+## 目标
 
-Demonstrate two independently valuable internship outputs in one auditable product:
+交付一个可运行的智慧食堂业务闭环，并让 Agent 能够基于业务意图调用结构化 SOP Skill，安全地完成菜单、采购、库存、台账、预警和溯源操作。
 
-1. Convert OpenAPI contracts into normalized API IR, frontend task plans, typed request clients, tests, and version reports.
-2. Capture later user feedback, extract improvement candidates, decide add/merge/discard, replay source-linked cases, and promote or roll back Skill versions.
+## 业务闭环
 
-## Functional requirements
+1. 运营人员创建日食谱并提交审批。
+2. Agent/Skill 检查范围、角色、菜品配方和审批状态，发布有效食谱。
+3. 根据已发布食谱、库存和未入库订单生成采购计划，确认后转采购订单。
+4. 供应商送货后按单位换算、批次和订单剩余量验收，事务内写入库存和溯源码。
+5. 台账记录聚合缺项并生成预警；责任人完成处置后关闭预警。
+6. 通过溯源码查询从库存批次回溯到验收、订单、供应商和食材事实。
 
-### R1 — API integration
+## Skill 运行要求
 
-- Accept an OpenAPI 3 JSON or YAML document.
-- Normalize every operation into API IR with method, path, operation ID, tags, request, response, and provenance.
-- Generate a page-oriented task plan and a TypeScript fetch client.
-- Compare two API IR snapshots and report added, removed, and breaking operations.
+- 触发条件可由用户页面操作或自然语言意图匹配。
+- 每个 SOP 声明范围、权限、风险等级、审批要求、前置条件、步骤、幂等、超时、回滚和证据。
+- Agent 不得越过后端 API 直接写库，不得把未配置的外部系统说成已接通。
+- 运行结果必须包含业务状态、冲突/幂等命中、风险阻断和证据路径。
 
-### R2 — Pending feedback
+## 交付边界
 
-- Record an episode with task, retrieved Skill/version, output summary, and expiration.
-- Associate later feedback with an open episode.
-- Extract at most one structured candidate per feedback event.
-
-### R3 — Evolution decisions
-
-- Retrieve similar existing rules.
-- Decide `add`, `merge`, or `discard`, retaining low-confidence data as `pending`.
-- Create a staged patch without immediately modifying the production Skill.
-
-### R4 — Evaluation and governance
-
-- Construct provenance-linked replay cases.
-- Compare baseline and candidate with deterministic checks and an extensible judge interface.
-- Promote only passing candidates, append an immutable version record, and support rollback.
-- Preserve audit events for every state transition.
-
-### R5 — Demonstration UI
-
-- Display dashboard metrics, the integration workflow, candidates, evaluation results, versions, and audit events.
-- Include one-click demo actions using bundled sample data.
-
-## Acceptance criteria
-
-- `python -m pytest` passes.
-- `python -m skill_evolution.cli demo` completes both end-to-end flows.
-- `python -m skill_evolution.cli serve` serves the UI and JSON API without external web-framework dependencies.
-- The bundled Skill passes Codex `quick_validate.py`.
-
+当前切片已实现 MySQL 持久化、Vue/Spring 操作界面、OpenAPI 契约和六类业务 SOP。真实微信/SSO、明厨亮灶、晨检设备、区县平台、对象存储和通知渠道保留为 Adapter 边界，待外部合同、凭据和网络策略满足后接入。

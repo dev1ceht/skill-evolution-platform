@@ -1,0 +1,35 @@
+schema_version: "1.0"
+run_id: "smart-canteen-sop-demo-001"
+skill: "smart-canteen-sop"
+skill_version: "1.0.0"
+composition_id: "smart-canteen.menu-to-traceability"
+scope:
+  school_id: "SCHOOL-001"
+  canteen_id: "CANTEEN-001"
+actor_role: "CANTEEN_STAFF"
+status: "passed"
+steps:
+  - id: "menu-approval"
+    sop_id: "smart-canteen.menu-approval"
+    status: "passed"
+    result: "published menu was accepted as the procurement input"
+  - id: "procurement"
+    sop_id: "smart-canteen.procurement"
+    status: "passed"
+    result: "snapshot plan converted to an order and received idempotently"
+  - id: "inventory"
+    sop_id: "smart-canteen.inventory"
+    status: "passed"
+    result: "batch inventory and trace node were written in one workflow"
+  - id: "traceability"
+    sop_id: "smart-canteen.traceability"
+    status: "passed"
+    result: "traceCode returned batch, supplier, receipt, order, and ingredient facts"
+evidence:
+  requirements: ["MENU-001", "PROCUREMENT-001", "INVENTORY-001", "DASHBOARD-001"]
+  tests:
+    - "backend/src/test/java/com/example/smartcanteen/http/OperationalCoreHttpTest.java"
+  verification:
+    - "docs/smart-canteen/phase5-verification.json"
+  traceability:
+    - "docs/smart-canteen/phase5-traceability.md"

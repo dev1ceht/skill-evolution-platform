@@ -41,7 +41,7 @@
     "docs/smart-canteen/phase1-platform-foundation-requirements.yaml",
     "docs/smart-canteen/phase1-platform-foundation-traceability.md",
     "docs/smart-canteen/phase1-platform-foundation-verification.json",
-    "examples/smart-canteen/backend/src/main/resources/db/migration/V6__create_platform_foundation.sql"
+    "backend/src/main/resources/db/migration/V6__create_platform_foundation.sql"
   ],
   "exit_criteria": [
     "组织、用户、角色、权限和范围授权 API 可在 H2 上完整运行",

@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-08-16T14:41:42.5359978Z",
+  "result": "passed",
+  "failureStage": null,
+  "error": null,
+  "composeProject": "smart-canteen-infra",
+  "containers": [
+    {
+      "Service": "mysql",
+      "Image": "smart-canteen/mysql:8.4.11",
+      "State": "running",
+      "Health": "healthy",
+      "ExitCode": 0,
+      "Publishers": [
+        {
+          "URL": "127.0.0.1",
+          "TargetPort": 3306,
+          "PublishedPort": 3306,
+          "Protocol": "tcp"
+        }
+      ]
+    },
+    {
+      "Service": "rabbitmq",
+      "Image": "smart-canteen/rabbitmq:4.3.4",
+      "State": "running",
+      "Health": "healthy",
+      "ExitCode": 0,
+      "Publishers": [
+        {
+          "URL": "127.0.0.1",
+          "TargetPort": 5672,
+          "PublishedPort": 5672,
+          "Protocol": "tcp"
+        },
+        {
+          "URL": "127.0.0.1",
+          "TargetPort": 15672,
+          "PublishedPort": 25672,
+          "Protocol": "tcp"
+        }
+      ]
+    },
+    {
+      "Service": "redis",
+      "Image": "smart-canteen/redis:7.4.10",
+      "State": "running",
+      "Health": "healthy",
+      "ExitCode": 0,
+      "Publishers": [
+        {
+          "URL": "127.0.0.1",
+          "TargetPort": 6379,
+          "PublishedPort": 6379,
+          "Protocol": "tcp"
+        }
+      ]
+    }
+  ],
+  "images": [
+    {
+      "Repository": "smart-canteen/redis",
+      "Tag": "7.4.10",
+      "ID": "sha256:04b29db2c3fcc774f432149d1dcda954067c98251cc046ddd92d9130cb0d5a30",
+      "Platform": "linux/amd64",
+      "Size": 16267742
+    },
+    {
+      "Repository": "smart-canteen/mysql",
+      "Tag": "8.4.11",
+      "ID": "sha256:e381ce5daae703b04b3de6267d44a44832aeafd1ef1cff7587d39eda714650c6",
+      "Platform": "linux/amd64",
+      "Size": 238989427
+    },
+    {
+      "Repository": "smart-canteen/rabbitmq",
+      "Tag": "4.3.4",
+      "ID": "sha256:f81b620d424d471fbb257353be553bad7e8ab0d739cb889fcd17b0cc7337ca3e",
+      "Platform": "linux/amd64",
+      "Size": 88784388
+    }
+  ]
+}

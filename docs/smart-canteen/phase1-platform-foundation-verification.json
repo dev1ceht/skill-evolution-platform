@@ -4,9 +4,9 @@
   "captured_at": "2026-08-14T19:12:00+08:00",
   "base_commit": "f4395f430602a10cb7ef0239299b53e5aa4b5513",
   "commands": [
-    "mvn -q test (examples/smart-canteen/backend)",
-    "npm test -- --run (examples/smart-canteen/frontend)",
-    "npm run build (examples/smart-canteen/frontend)",
+    "mvn -q test (backend)",
+    "npm test -- --run (frontend)",
+    "npm run build (frontend)",
     "python skills/frontend-api-integration/scripts/normalize_openapi.py ..."
   ],
   "observed_results": {

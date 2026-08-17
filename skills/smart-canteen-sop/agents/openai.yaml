@@ -1,0 +1,4 @@
+interface:
+  display_name: "Smart Canteen SOP"
+  short_description: "将智慧食堂业务 SOP 封装为可验证 Skill 流程"
+  default_prompt: "Use $smart-canteen-sop to execute a smart-canteen business SOP with explicit preconditions, idempotency, evidence, and rollback."

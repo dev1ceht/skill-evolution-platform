@@ -6,7 +6,7 @@
   "inputs": [
     "docs/smart-canteen/four-phase-alignment.json",
     "docs/smart-canteen/four-phase-alignment.md",
-    "examples/smart-canteen/contracts/smart-canteen.openapi.yaml"
+    "contracts/smart-canteen.openapi.yaml"
   ],
   "environment": {
     "java": "17.0.18",
@@ -48,7 +48,7 @@
       "evidence": "vue-tsc and Vite production build completed"
     },
     {
-      "command": "PYTHONPATH=src python skills/frontend-api-integration/scripts/normalize_openapi.py examples/smart-canteen/contracts/smart-canteen.openapi.yaml -o examples/smart-canteen/contracts/generated/api-ir.json",
+      "command": "python skills/frontend-api-integration/scripts/normalize_openapi.py contracts/smart-canteen.openapi.yaml -o contracts/generated/api-ir.json",
       "result": "passed",
       "evidence": "10 operations normalized; generated clients and contract tests refreshed"
     }

@@ -3,9 +3,12 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
-from skill_evolution.contracts import generate_typescript_client
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "src"))
+
+from smart_canteen_contracts.contracts import generate_typescript_client
 
 
 def main() -> None:
@@ -22,4 +25,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

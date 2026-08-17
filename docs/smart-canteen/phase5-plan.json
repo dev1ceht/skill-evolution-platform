@@ -41,7 +41,7 @@
     "no external integration is reported as connected without credentials"
   ],
   "migration": {
-    "file": "examples/smart-canteen/backend/src/main/resources/db/migration/V5__create_operational_core.sql",
+    "file": "backend/src/main/resources/db/migration/V5__create_operational_core.sql",
     "strategy": "additive expand; existing V1-V4 remain unchanged",
     "rollback": "restore database backup or deploy a forward repair; no destructive contract in this phase"
   },

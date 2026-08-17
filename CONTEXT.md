@@ -1,11 +1,43 @@
-# Domain context
+# Smart Canteen Domain Context
 
-- **API contract**: an OpenAPI-compatible description supplied by a backend team.
-- **API IR**: normalized operations consumed by planning, code generation, testing, and version diffing.
-- **episode**: one Skill execution and the artifacts needed to attribute later feedback.
-- **pending window**: a time-bounded set of episodes awaiting user feedback.
-- **candidate**: a structured, source-linked proposal to improve a Skill.
-- **decision**: `add`, `merge`, or `discard`; low-confidence proposals remain `pending`.
-- **replay case**: a reproducible task derived from provenance and used for regression evaluation.
-- **promotion**: an evaluated candidate becoming a new immutable Skill version.
+本仓库的唯一主领域是智慧食堂。它服务学校食堂的日常运营、食品安全和监管数据共享，业务规则由后端服务执行，由 `smart-canteen-sop` Skill 负责把用户操作意图映射为受约束的 SOP 运行。
 
+## 组织与参与方
+
+**School（学校）**：承担食堂运营责任的教育组织，是监管和数据归属的上级范围。
+
+**Canteen（食堂）**：学校内独立核算、采购、库存和食品安全责任的运营单元。
+
+**Operator（操作人员）**：执行采购、验收、保管、加工或台账工作的人员；登录身份统一称为 Account/User，不替代业务职责。
+
+**Supplier（供应商）**：提供食材或商品并承担资质和履约责任的外部主体。
+
+**Regulator（监管人员）**：按授权区域查看统计、风险、预警和整改情况的业务参与方。
+
+## 核心业务对象
+
+- **Ingredient（食材）**：可采购、验收、入库和领用的原材料，具有基础单位、规格和营养属性。
+- **Dish（菜品）**：一个餐次中可以供应的成品菜，引用一个或多个食材及标准用量。
+- **Recipe（配方）**：菜品使用哪些食材、每种食材用量及适用就餐对象的定义。
+- **Menu（食谱）**：指定日期和餐次提供的菜品编排及预计份数。
+- **Procurement Plan（采购计划）**：根据已发布食谱、有效库存和未入库订单计算的采购建议，不代表已经下单。
+- **Purchase Order（采购订单）**：食堂向供应商提交的正式采购承诺。
+- **Receipt（验收入库）**：对实际送达商品完成数量、价格、批次、日期和资质确认后形成的入库事实。
+- **Inventory Batch（库存批次）**：一次验收入库形成的、可独立追踪的库存单元。
+- **Stock-out（领用出库）**：从库存批次扣减食材，用于加工、报损或其他明确用途的业务事实。
+- **Ledger Cycle / Record（台账周期/记录）**：一段时间内的台账要求及操作人员提交的内容、照片、时间和责任人证据。
+- **Alert（预警）**：系统或外部设备发现风险后生成、需要跟进和处置的事件。
+- **Disposal（预警处置）**：责任人确认、说明、上传证据并关闭预警的过程。
+- **Traceability Code（溯源码）**：连接菜品、餐次、出库、库存批次、采购、供应商、验收和留样信息的查询标识。
+
+## 统一不变量
+
+1. 所有菜单、采购、库存、台账、预警和溯源数据绑定 `schoolId + canteenId`；监管汇总查询必须服从显式授权范围。
+2. 已发布食谱、已确认订单、已入库批次和已处置预警不能被隐式覆盖，只能通过声明的状态迁移或新版本变更。
+3. 采购计划只消费已发布食谱，并保存食谱、库存和未入库订单快照；确认后才允许转成采购订单。
+4. 收货、库存批次、库存余额和溯源码在同一事务内写入；单位不兼容、库存不足或同键异载荷时整笔失败。
+5. 外部平台和设备只通过 Adapter 端口进入领域；缺少合同、凭据或网络策略时只能返回明确的 `port-only`/`deferred` 状态。
+
+## Agent 与 Skill 边界
+
+`smart-canteen-sop` Skill 负责识别业务触发、读取 Manifest、检查权限和前置条件、编排步骤、遵守幂等/超时/回滚约束并生成运行证据。它不绕过后端授权、不直接修改数据库、不虚构外部适配器结果，也不把一次运行记录当成新的业务规则。

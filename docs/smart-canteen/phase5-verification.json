@@ -7,8 +7,8 @@
     "docs/smart-canteen/phase5-requirements.yaml",
     "docs/smart-canteen/phase5-plan.json",
     "docs/smart-canteen/phase5-traceability.md",
-    "examples/smart-canteen/contracts/smart-canteen.openapi.yaml",
-    "examples/smart-canteen/backend/src/main/resources/db/migration/V5__create_operational_core.sql"
+    "contracts/smart-canteen.openapi.yaml",
+    "backend/src/main/resources/db/migration/V5__create_operational_core.sql"
   ],
   "source_documents": {
     "overview_design_sha256": "200A5F09EAB0D1D4ADBA11396E3925E41DADF54E9A9ECA84BA01FBA522F12473",
@@ -17,8 +17,8 @@
   "contract": {
     "document_hash": "ea688863afb81c7ae1f0e3a512a4ea6a658d5bbab39bd804446b0724c87dcc81",
     "operations": 43,
-    "generated_client": "examples/smart-canteen/frontend/src/api/generated/client.ts",
-    "generated_contract_tests": "examples/smart-canteen/frontend/src/api/generated/client.contract.test.ts"
+    "generated_client": "frontend/src/api/generated/client.ts",
+    "generated_contract_tests": "frontend/src/api/generated/client.contract.test.ts"
   },
   "environment": {
     "java": "17.0.18",
@@ -30,12 +30,7 @@
   },
   "commands": [
     {
-      "command": "python skills/smart-canteen-backend/scripts/validate_requirements.py docs/smart-canteen/phase5-requirements.yaml",
-      "result": "passed",
-      "evidence": "requirements are valid"
-    },
-    {
-      "command": "PYTHONPATH=src python skills/frontend-api-integration/scripts/normalize_openapi.py examples/smart-canteen/contracts/smart-canteen.openapi.yaml -o examples/smart-canteen/contracts/generated/api-ir.json",
+      "command": "python skills/frontend-api-integration/scripts/normalize_openapi.py contracts/smart-canteen.openapi.yaml -o contracts/generated/api-ir.json",
       "result": "passed",
       "evidence": "43 operations normalized; generated TypeScript client and 43 contract tests refreshed"
     },

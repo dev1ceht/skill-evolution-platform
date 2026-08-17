@@ -42,7 +42,7 @@
   ],
   "artifacts": [
     "CONTEXT-MAP.md",
-    "examples/smart-canteen/CONTEXT.md",
+    "CONTEXT.md",
     "docs/adr/0001-smart-canteen-canonical-operational-model.md",
     "docs/smart-canteen/phase0-scope.md",
     "docs/smart-canteen/phase0-domain-model.md",

@@ -3,17 +3,14 @@ requires = ["setuptools>=75"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "skill-evolution-platform"
+name = "smart-canteen-agent"
 version = "0.1.0"
-description = "Auditable API integration skills and self-evolution platform"
+description = "Smart Canteen business Agent, SOP manifests, and API contract utilities"
 requires-python = ">=3.11"
 dependencies = ["PyYAML>=6.0"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0"]
-
-[project.scripts]
-skill-evolution = "skill_evolution.cli:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
@@ -24,4 +21,4 @@ where = ["src"]
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]
-addopts = "-q --basetemp=.pytest-tmp"
+addopts = "-q"

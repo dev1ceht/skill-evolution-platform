@@ -3,20 +3,20 @@ from pathlib import Path
 import yaml
 
 
-def test_ci_workflow_covers_product_and_evidence_boundaries() -> None:
+def test_ci_workflow_covers_business_product_and_evidence_boundaries() -> None:
     workflow_path = Path(".github/workflows/ci.yml")
     workflow = yaml.safe_load(workflow_path.read_text(encoding="utf-8"))
 
     assert workflow["permissions"] == {"contents": "read"}
-    assert set(workflow["jobs"]) == {"platform", "frontend", "backend", "runtime"}
+    assert set(workflow["jobs"]) == {"quality", "frontend", "backend", "runtime"}
     assert all(job.get("timeout-minutes", 0) > 0 for job in workflow["jobs"].values())
-    assert workflow["jobs"]["runtime"]["needs"] == ["platform", "frontend", "backend"]
+    assert workflow["jobs"]["runtime"]["needs"] == ["quality", "frontend", "backend"]
 
     source = workflow_path.read_text(encoding="utf-8")
     for command in (
         "python -m pytest",
-        "python -m skill_evolution.cli demo",
-        "python -m skill_evolution.cli benchmark",
+        "python skills/smart-canteen-sop/scripts/validate_sop_manifest.py",
+        "python skills/frontend-api-integration/scripts/normalize_openapi.py",
         "npm ci",
         "npm test",
         "npm run build",
@@ -31,4 +31,3 @@ def test_ci_workflow_covers_product_and_evidence_boundaries() -> None:
     assert "actions/setup-java@v5" in source
     assert "actions/upload-artifact@v7" in source
     assert "outputs/verification/*.json" in source
-    assert "outputs/benchmarks/ci.*" in source

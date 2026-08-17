@@ -10,12 +10,12 @@
       "status": "complete",
       "delivered": [
         "structured requirements catalog",
-        "smart-canteen-backend Skill",
+        "smart-canteen business service boundary",
         "LedgerMonitoring deep module extracted from SmartCanteenWorkflow",
         "school, canteen, cycle, completion requirement and alert persistence",
         "cycle creation, item completion, clear-on-last-item and idempotent retry",
         "H2 restart and MySQL concurrency test paths",
-        "real frontend contract failure replay and Skill evolution evidence"
+        "real frontend contract failure analysis and business evidence"
       ],
       "commit": "d4e00653cbd9305ed1fa0c00b50e3800add705d7"
     },

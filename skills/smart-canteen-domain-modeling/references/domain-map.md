@@ -9,7 +9,7 @@
 | Ledger monitoring | scoped cycle, required codes, completion and current ledger alert | general alert-center disposal lifecycle |
 | Alert center | normalized external/internal alert, query and disposal state | vendor authentication and raw transport model |
 | Integration adapters | district platform, bright-kitchen and inspection-device protocols | core business invariants |
-| Skill evolution | episode, candidate, replay, evaluation, version and audit | smart-canteen transaction state |
+| Business SOP runtime | trigger, precondition, step, idempotency, evidence and adapter status | smart-canteen transaction state |
 
 ## Identity and consistency
 
@@ -21,4 +21,3 @@
 ## Decision test
 
 Put two rules in the same module when they share language, invariants and change cadence. Put them in separate modules when they can fail, evolve or be verified independently. Do not split solely because classes are large or merge solely because one screen calls both.
-

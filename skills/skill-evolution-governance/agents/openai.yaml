@@ -1,4 +1,0 @@
-interface:
-  display_name: "Skill Evolution Governance"
-  short_description: "Govern safe replay, promotion, and rollback"
-  default_prompt: "Use $skill-evolution-governance to evaluate this feedback candidate and decide whether it can be promoted safely."

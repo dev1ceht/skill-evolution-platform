@@ -1,4 +1,0 @@
-interface:
-  display_name: "Skill Evolution Benchmarking"
-  short_description: "Measure skill gains with auditable paired evidence"
-  default_prompt: "Use $skill-evolution-benchmarking to design or audit a paired benchmark for this Skill workflow."

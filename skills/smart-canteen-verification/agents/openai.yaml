@@ -1,4 +1,0 @@
-interface:
-  display_name: "Smart Canteen Verification"
-  short_description: "Verify every layer and capture auditable evidence"
-  default_prompt: "Use $smart-canteen-verification to run the smallest complete test matrix and produce fresh verification evidence."

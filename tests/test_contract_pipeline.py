@@ -4,11 +4,11 @@ from pathlib import Path
 
 import pytest
 
-from skill_evolution.contracts import build_integration, diff_contracts, normalize_openapi
+from smart_canteen_contracts.contracts import build_integration, diff_contracts, normalize_openapi
 
 
 def test_openapi_contract_produces_ir_tasks_and_typed_client() -> None:
-    sample = Path("examples/user-api.openapi.json").read_text(encoding="utf-8")
+    sample = Path("contracts/user-api.openapi.json").read_text(encoding="utf-8")
 
     result = build_integration(sample, page_name="UserListPage")
 
@@ -27,7 +27,7 @@ def test_openapi_contract_produces_ir_tasks_and_typed_client() -> None:
 
 
 def test_contract_diff_detects_required_parameter_as_breaking() -> None:
-    document = json.loads(Path("examples/user-api.openapi.json").read_text(encoding="utf-8"))
+    document = json.loads(Path("contracts/user-api.openapi.json").read_text(encoding="utf-8"))
     changed = copy.deepcopy(document)
     changed["paths"]["/api/users"]["get"]["parameters"].append(
         {"name": "tenantId", "in": "query", "required": True, "schema": {"type": "string"}}
@@ -73,7 +73,7 @@ def test_generated_client_interpolates_and_encodes_path_parameters() -> None:
 
 
 def test_normalization_resolves_reusable_parameter_components() -> None:
-    source = Path("examples/smart-canteen/contracts/smart-canteen.openapi.yaml").read_text(
+    source = Path("contracts/smart-canteen.openapi.yaml").read_text(
         encoding="utf-8"
     )
 
@@ -89,7 +89,7 @@ def test_normalization_resolves_reusable_parameter_components() -> None:
 
 
 def test_smart_canteen_alert_schemas_include_compliance_source() -> None:
-    source = Path("examples/smart-canteen/contracts/smart-canteen.openapi.yaml").read_text(
+    source = Path("contracts/smart-canteen.openapi.yaml").read_text(
         encoding="utf-8"
     )
 

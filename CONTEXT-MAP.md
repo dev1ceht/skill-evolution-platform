@@ -1,13 +1,22 @@
 # Context Map
 
-本仓库包含技能演化平台和智慧食堂示例两个相互独立的领域上下文。根级 [CONTEXT.md](./CONTEXT.md) 描述技能演化平台；智慧食堂业务语言位于 [examples/smart-canteen/CONTEXT.md](./examples/smart-canteen/CONTEXT.md)。
+智慧食堂是本仓库的主项目，前端、后端、OpenAPI、基础设施和业务 Skill 共同服务同一个业务上下文。
 
-## Contexts
+## 主项目上下文
 
-- [Skill Evolution Platform](./CONTEXT.md) — 管理 Skill、候选、评估、回放和版本提升。
-- [Smart Canteen](./examples/smart-canteen/CONTEXT.md) — 管理学校食堂的食谱、采购、库存、台账、食安和监管数据。
+- [Smart Canteen Domain](./CONTEXT.md)：学校、食堂、食材、食谱、采购、库存、台账、预警和溯源的统一业务语言。
+- [Backend](./backend)：落实领域不变量、权限范围、事务和持久化。
+- [Frontend](./frontend)：承载操作人员的业务操作和状态反馈。
+- [Business SOP Skill](./skills/smart-canteen-sop/SKILL.md)：把用户意图转换为受约束的业务 SOP 运行。
 
-## Relationships
+## 关系
 
-- **Skill Evolution Platform → Smart Canteen**：平台提供需求切片、API契约、测试证据和阶段治理能力；不拥有食堂业务对象。
-- **Smart Canteen → Skill Evolution Platform**：智慧食堂阶段计划和验收记录作为平台的工程产物保存；不把食堂业务数据写入平台领域模型。
+- **用户/运营人员 → Agent**：以自然语言或页面操作提出业务意图、范围和必要输入。
+- **Agent → Business Skill**：选择匹配 SOP，检查触发条件、角色、风险、审批和前置状态。
+- **Business Skill → Backend API / Adapter**：只调用 Manifest 声明的业务端口，遵守幂等、超时、回滚和证据约束。
+- **Backend → MySQL**：在学校/食堂范围内持久化业务事实、审计记录和溯源链路。
+- **External Adapter → Alert/Traceability domain**：先完成认证、规范化和来源唯一性校验，再进入核心领域。
+
+## 不属于主领域的内容
+
+通用开发工具只作为辅助脚本存在，不拥有菜单、采购或库存业务对象；业务 Skill 运行记录也不会自动修改 Skill 或生产规则。

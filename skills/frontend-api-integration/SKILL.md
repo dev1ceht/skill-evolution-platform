@@ -44,5 +44,5 @@ Produce these artifacts as applicable:
 - Resolve reusable local OpenAPI parameter references before generation; stop on unresolved or external references instead of emitting incomplete client code.
 - Encode every path parameter, collision-check generated TypeScript identifiers, escape wire values as string literals, and preserve original query/Header names on the HTTP request.
 - Adapt `{ code, message, data }` envelopes at the repository HTTP boundary so pages consume domain data and receive typed business errors.
-- Replay approval transitions, unit conversion, idempotency headers, and alert clearance when an interface participates in a stateful business workflow.
+- Verify approval transitions, unit conversion, idempotency headers, and alert clearance when an interface participates in a stateful business workflow.
 

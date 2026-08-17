@@ -7,7 +7,7 @@
 | Application → MySQL | durable domain and audit state | cross-tenant reads, partial writes, migration loss | composite scope keys, parameterized SQL, transactions, additive Flyway migrations, restore test |
 | Application → Redis | cached or ephemeral state | stale data, key collision, secret exposure | scoped keys, TTL/invalidations, fallback behavior, authenticated local/private endpoint |
 | Application → RabbitMQ | commands/events | duplicates, reordering, poison messages | message ID, idempotent consumer, bounded retry, dead letter, observable lag |
-| Feedback/LLM → Skill candidate | executable instructions and production behavior | prompt injection, unsafe promotion, provenance loss | treat output as data, staged patch, deterministic replay, approval, immutable audit |
+| User/Agent → Business SOP | operation parameters and business behavior | prompt injection, unauthorized write, scope loss | treat output as data, schema validation, scope authorization, approval, idempotency, audit |
 | File/contract import → repository | OpenAPI, recipes and evidence | traversal, oversized input, malicious content | fixed root, size/type limits, schema validation, no command execution |
 
 ## Review questions
@@ -18,4 +18,3 @@
 - 日志和验证产物是否可能泄漏凭据、PII 或完整外部载荷？
 - 外部系统不可用时，业务是失败关闭、延迟处理还是安全降级？
 - 新权限、CORS、网络出口、数据类别或凭据是否需要人工批准？
-

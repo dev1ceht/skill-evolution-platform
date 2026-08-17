@@ -7,7 +7,7 @@
     "docs/smart-canteen/phase4-requirements.yaml",
     "docs/smart-canteen/phase4-plan.json",
     "docs/smart-canteen/phase4-traceability.md",
-    "examples/smart-canteen/contracts/smart-canteen.openapi.yaml"
+    "contracts/smart-canteen.openapi.yaml"
   ],
   "environment": {
     "java": "17.0.18",
@@ -24,7 +24,7 @@
       "evidence": "new phase-4 module and HTTP tests passed; Flyway V4 applied in H2"
     },
     {
-      "command": "PYTHONPATH=src python skills/frontend-api-integration/scripts/normalize_openapi.py examples/smart-canteen/contracts/smart-canteen.openapi.yaml -o examples/smart-canteen/contracts/generated/api-ir.json",
+      "command": "python skills/frontend-api-integration/scripts/normalize_openapi.py contracts/smart-canteen.openapi.yaml -o contracts/generated/api-ir.json",
       "result": "passed",
       "evidence": "16 operations normalized; generated client and contract tests refreshed"
     },
