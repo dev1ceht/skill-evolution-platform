@@ -43,6 +43,7 @@ sops:
         - "backend/src/main/java/com/example/smartcanteen/agent/application/AgentRuntime.java"
         - "backend/src/main/java/com/example/smartcanteen/agent/infrastructure/MenuToolExecutor.java"
         - "backend/src/main/java/com/example/smartcanteen/application/DailyMenuService.java"
+        - "backend/src/main/java/com/example/smartcanteen/application/AssistantRolloutPolicy.java"
         - "backend/src/main/java/com/example/smartcanteen/http/AssistantController.java"
         - "frontend/src/api/smartCanteenApi.ts"
         - "frontend/src/components/AssistantWorkspace.vue"
@@ -57,9 +58,12 @@ sops:
         - "backend/src/test/java/com/example/smartcanteen/assistant/AssistantIntentResolverRouterTest.java"
         - "backend/src/test/java/com/example/smartcanteen/assistant/AssistantConversationServiceTest.java"
         - "backend/src/test/java/com/example/smartcanteen/http/AssistantControllerHttpTest.java"
+        - "backend/src/test/java/com/example/smartcanteen/assistant/AssistantRolloutPolicyTest.java"
+        - "backend/src/test/java/com/example/smartcanteen/http/AssistantControllerRolloutHttpTest.java"
       verification:
         - "docs/smart-canteen/assistant-phase2-verification.json"
         - "docs/smart-canteen/assistant-phase3-verification.json"
+        - "docs/smart-canteen/assistant-phase5-rollout-verification.json"
     adapters:
       - name: "JdbcOperationalStore"
         status: "implemented"
@@ -82,6 +86,7 @@ sops:
     evidence:
       - "docs/smart-canteen/assistant-phase2-menu-history.md"
       - "docs/smart-canteen/assistant-phase3-clarification-model.md"
+      - "docs/smart-canteen/assistant-phase5-rollout.md"
     status: "implemented"
 
   - id: "smart-canteen.menu-validation"
@@ -170,6 +175,7 @@ sops:
         - "backend/src/main/java/com/example/smartcanteen/assistant/infrastructure/JdbcAssistantConversationStore.java"
         - "backend/src/main/java/com/example/smartcanteen/assistant/port/AssistantConversationStore.java"
         - "backend/src/main/java/com/example/smartcanteen/http/AssistantController.java"
+        - "backend/src/main/java/com/example/smartcanteen/application/AssistantRolloutPolicy.java"
       apis: ["contracts/smart-canteen.openapi.yaml"]
       migrations:
         - "backend/src/main/resources/db/migration/V5__create_operational_core.sql"
@@ -187,9 +193,12 @@ sops:
         - "backend/src/test/java/com/example/smartcanteen/assistant/RuleBasedAssistantIntentResolverTest.java"
         - "backend/src/test/java/com/example/smartcanteen/assistant/AssistantIntentResolverRouterTest.java"
         - "backend/src/test/java/com/example/smartcanteen/http/AssistantControllerHttpTest.java"
+        - "backend/src/test/java/com/example/smartcanteen/assistant/AssistantRolloutPolicyTest.java"
+        - "backend/src/test/java/com/example/smartcanteen/http/AssistantControllerRolloutHttpTest.java"
       verification:
         - "docs/smart-canteen/agent-runtime-phase4-6-verification.json"
         - "docs/smart-canteen/assistant-phase4-verification.json"
+        - "docs/smart-canteen/assistant-phase5-rollout-verification.json"
     adapters:
       - name: "JdbcOperationalStore"
         status: "implemented"
@@ -212,6 +221,7 @@ sops:
     evidence:
       - "docs/smart-canteen/agent-runtime-phase4-6-traceability.md"
       - "docs/smart-canteen/assistant-phase4-write-confirmation.md"
+      - "docs/smart-canteen/assistant-phase5-rollout.md"
     status: "implemented"
 
   - id: "smart-canteen.procurement"
@@ -397,6 +407,7 @@ sops:
         - "backend/src/main/java/com/example/smartcanteen/assistant/port/AssistantConversationStore.java"
         - "backend/src/main/java/com/example/smartcanteen/assistant/port/AssistantModelResolver.java"
         - "backend/src/main/java/com/example/smartcanteen/http/AssistantController.java"
+        - "backend/src/main/java/com/example/smartcanteen/application/AssistantRolloutPolicy.java"
       apis: ["contracts/smart-canteen.openapi.yaml"]
       migrations:
         - "backend/src/main/resources/db/migration/V5__create_operational_core.sql"
@@ -412,10 +423,13 @@ sops:
         - "backend/src/test/java/com/example/smartcanteen/assistant/AssistantConversationServiceTest.java"
         - "backend/src/test/java/com/example/smartcanteen/http/AssistantControllerHttpTest.java"
         - "backend/src/test/java/com/example/smartcanteen/http/AssistantControllerDisabledHttpTest.java"
+        - "backend/src/test/java/com/example/smartcanteen/assistant/AssistantRolloutPolicyTest.java"
+        - "backend/src/test/java/com/example/smartcanteen/http/AssistantControllerRolloutHttpTest.java"
       verification:
         - "docs/smart-canteen/phase5-verification.json"
         - "docs/smart-canteen/assistant-phase1-verification.json"
         - "docs/smart-canteen/assistant-phase3-verification.json"
+        - "docs/smart-canteen/assistant-phase5-rollout-verification.json"
     adapters:
       - name: "JdbcOperationalStore"
         status: "implemented"
@@ -437,6 +451,7 @@ sops:
       - "docs/smart-canteen/phase5-traceability.md"
       - "docs/smart-canteen/assistant-phase1-readonly.md"
       - "docs/smart-canteen/assistant-phase3-clarification-model.md"
+      - "docs/smart-canteen/assistant-phase5-rollout.md"
     status: "implemented"
 
 compositions:

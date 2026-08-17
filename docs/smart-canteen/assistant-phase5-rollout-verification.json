@@ -1,0 +1,33 @@
+{
+  "phase": "assistant-phase5-rollout",
+  "status": "implemented",
+  "scope_gate": {
+    "component": "backend/src/main/java/com/example/smartcanteen/application/AssistantRolloutPolicy.java",
+    "global_switch": "SMART_CANTEEN_ASSISTANT_ENABLED",
+    "allowlist": "SMART_CANTEEN_ASSISTANT_SCOPES",
+    "format": "comma-separated SCHOOL-ID/CANTEEN-ID entries",
+    "default": "disabled globally and fail closed for an empty or malformed allowlist",
+    "wildcard": "not supported; every enabled scope must be explicitly listed"
+  },
+  "http_boundary": {
+    "controller": "backend/src/main/java/com/example/smartcanteen/http/AssistantController.java",
+    "protected_operations": [
+      "POST /api/v1/assistant/conversations/{conversationId}/messages",
+      "GET /api/v1/assistant/conversations/{conversationId}/messages"
+    ],
+    "fallback": "disabling the assistant leaves existing page/API paths unchanged"
+  },
+  "commands": {
+    "targeted_backend": "19 rollout/assistant HTTP tests passed, including 6 new rollout-gate tests",
+    "backend_full_regression": "143 backend tests passed; 1 environment-gated MySQL test skipped",
+    "frontend_tests": "147 frontend tests passed",
+    "frontend_build": "vue-tsc --noEmit && vite build passed",
+    "python_tests": "17 Python tests passed",
+    "sop_manifest": "Validated 8 SOPs and 1 composition"
+  },
+  "known_limits": [
+    "运行指标看板和真实 MySQL 并发验收仍是上线门禁",
+    "范围白名单只控制助手入口，不会开放采购、库存或预警写入",
+    "真实模型供应商仍是 port-only，LLM Resolver 默认关闭"
+  ]
+}

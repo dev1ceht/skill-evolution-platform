@@ -27,6 +27,8 @@ management:
 smart-canteen:
   assistant:
     enabled: ${SMART_CANTEEN_ASSISTANT_ENABLED:false}
+    # Comma-separated SCHOOL-ID/CANTEEN-ID entries; an empty list fails closed.
+    allowed-scopes: ${SMART_CANTEEN_ASSISTANT_SCOPES:}
     model:
       enabled: ${SMART_CANTEEN_ASSISTANT_MODEL_ENABLED:false}
   security:

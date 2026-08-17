@@ -1,6 +1,7 @@
 package com.example.smartcanteen.http;
 
 import com.example.smartcanteen.agent.domain.ExecutionContext;
+import com.example.smartcanteen.application.AssistantRolloutPolicy;
 import com.example.smartcanteen.application.BusinessAuthorizationPolicy;
 import com.example.smartcanteen.assistant.application.AssistantConversationService;
 import com.example.smartcanteen.assistant.domain.AssistantConversationHistory;
@@ -13,7 +14,6 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import java.util.UUID;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -30,15 +30,15 @@ public class AssistantController {
 
     private final AssistantConversationService conversations;
     private final BusinessAuthorizationPolicy policy;
-    private final boolean enabled;
+    private final AssistantRolloutPolicy rollout;
 
     public AssistantController(
             AssistantConversationService conversations,
             BusinessAuthorizationPolicy policy,
-            @Value("${smart-canteen.assistant.enabled:true}") boolean enabled) {
+            AssistantRolloutPolicy rollout) {
         this.conversations = conversations;
         this.policy = policy;
-        this.enabled = enabled;
+        this.rollout = rollout;
     }
 
     @PostMapping("/conversations/{conversationId}/messages")
@@ -50,14 +50,12 @@ public class AssistantController {
             @RequestParam String schoolId,
             @RequestParam String canteenId,
             @Valid @RequestBody MessageRequest body) {
-        if (!enabled) {
-            throw new ForbiddenException("Assistant pilot is disabled");
-        }
+        CanteenScope scope = new CanteenScope(schoolId, canteenId);
+        rollout.requireEnabled(scope);
         AuthPrincipal principal = principal(request);
         String resolvedRequestId = requestId == null || requestId.isBlank()
                 ? UUID.randomUUID().toString()
                 : requestId;
-        CanteenScope scope = new CanteenScope(schoolId, canteenId);
         // The assistant persists conversation turns and may create a confirmation-gated
         // menu publish Run; use write scope checks so disabled canteens cannot create records.
         ExecutionContext context = policy.establishContext(
@@ -81,9 +79,8 @@ public class AssistantController {
             @RequestParam String canteenId,
             @RequestParam(defaultValue = "50") int limit,
             @RequestHeader(value = "X-Request-Id", required = false) String requestId) {
-        if (!enabled) {
-            throw new ForbiddenException("Assistant pilot is disabled");
-        }
+        CanteenScope scope = new CanteenScope(schoolId, canteenId);
+        rollout.requireEnabled(scope);
         AuthPrincipal principal = principal(request);
         String resolvedRequestId = requestId == null || requestId.isBlank()
                 ? UUID.randomUUID().toString()
@@ -91,7 +88,7 @@ public class AssistantController {
         ExecutionContext context = policy.establishContext(
                 principal,
                 resolvedRequestId,
-                new CanteenScope(schoolId, canteenId),
+                scope,
                 false);
         return ApiResponse.ok(conversations.history(conversationId, context, limit));
     }
