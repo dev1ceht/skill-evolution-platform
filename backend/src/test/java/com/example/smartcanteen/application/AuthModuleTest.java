@@ -50,6 +50,8 @@ class AuthModuleTest {
                 "INSERT INTO canteens (id, school_id, name, status) VALUES (?, ?, ?, 'ACTIVE')",
                 "CANTEEN-AUTH", "SCHOOL-AUTH", "Auth Canteen");
         jdbc.update("DELETE FROM auth_refresh_sessions WHERE user_id = ?", "USER-AUTH-TEST");
+        jdbc.update("DELETE FROM audit_logs WHERE actor_user_id IN (?, ?)",
+                "USER-AUTH-TEST", "USER-AUTH-SUPPLIER");
         jdbc.update("DELETE FROM app_users WHERE user_id = ?", "USER-AUTH-TEST");
         jdbc.update("DELETE FROM auth_refresh_sessions WHERE user_id = ?", "USER-AUTH-SUPPLIER");
         jdbc.update("DELETE FROM app_users WHERE user_id = ?", "USER-AUTH-SUPPLIER");

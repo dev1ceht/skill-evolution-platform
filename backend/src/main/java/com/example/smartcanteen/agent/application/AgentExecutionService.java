@@ -275,7 +275,7 @@ public class AgentExecutionService {
         }
         try {
             audits.append(new AuditLog(
-                    "AUDIT-AGENT-" + run.runId() + "-" + action,
+                    AgentAuditId.forRun(run.runId(), action),
                     context.actorUserId(),
                     action,
                     "AGENT_RUN",

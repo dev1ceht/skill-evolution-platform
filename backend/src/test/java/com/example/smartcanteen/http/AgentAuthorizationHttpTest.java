@@ -40,6 +40,7 @@ class AgentAuthorizationHttpTest {
     @BeforeEach
     void seedUserAndScope() {
         jdbc.update("DELETE FROM auth_refresh_sessions WHERE user_id = ?", "USER-AGENT-AUTH");
+        jdbc.update("DELETE FROM audit_logs WHERE actor_user_id = ?", "USER-AGENT-AUTH");
         jdbc.update("DELETE FROM app_users WHERE user_id = ?", "USER-AGENT-AUTH");
         jdbc.update("DELETE FROM canteens WHERE id = ?", CANTEEN_ID);
         jdbc.update("DELETE FROM schools WHERE id = ?", SCHOOL_ID);

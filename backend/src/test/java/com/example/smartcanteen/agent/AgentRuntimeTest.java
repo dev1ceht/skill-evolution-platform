@@ -3,8 +3,6 @@ package com.example.smartcanteen.agent;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -27,8 +25,8 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.Optional;
 import java.util.Set;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.dao.DuplicateKeyException;
 
 class AgentRuntimeTest {
 
@@ -53,6 +51,15 @@ class AgentRuntimeTest {
             new CanteenScope("SCHOOL-001", "CANTEEN-001"),
             Set.of(Role.CANTEEN_STAFF),
             Set.of("TRACEABILITY_READ"));
+
+    @BeforeEach
+    void default_to_winning_the_idempotency_insert() {
+        when(runs.insert(
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.anyList()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+    }
+
     private final SkillDefinition traceability = new SkillDefinition(
             "smart-canteen.traceability",
             "1.0.0",
@@ -147,16 +154,14 @@ class AgentRuntimeTest {
         when(skills.findByIntent("traceability.query")).thenReturn(Optional.of(traceability));
         when(runs.findByIdempotency("USER-001", context.scope(), "agent-race"))
                 .thenReturn(Optional.empty(), Optional.empty());
-        doNothing().when(runs).insert(
-                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.anyList());
         AgentRun first = runtime.start(new StartRunCommand(
                 "request-001", "traceability.query", "{\"traceCode\":\"TRACE-001\"}", "agent-race"), context);
 
         when(runs.findByIdempotency("USER-001", context.scope(), "agent-race"))
                 .thenReturn(Optional.empty(), Optional.of(first));
-        doThrow(new DuplicateKeyException("concurrent idempotency insert"))
-                .when(runs)
-                .insert(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.anyList());
+        when(runs.insert(
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.anyList())).thenReturn(first);
 
         assertThat(runtime.start(new StartRunCommand(
                 "request-001", "traceability.query", "{ \"traceCode\" : \"TRACE-001\" }", "agent-race"), context))

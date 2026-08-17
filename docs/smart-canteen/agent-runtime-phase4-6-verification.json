@@ -1,6 +1,6 @@
 {
   "phase": "agent-runtime-phases-4-6",
-  "captured_at": "2026-08-16T21:36:45+08:00",
+  "captured_at": "2026-08-17T21:48:24+08:00",
   "scope": "canonical daily-menu writes, runtime reliability hardening, and API/frontend pilot entry",
   "contract": {
     "operations": 116,
@@ -13,7 +13,12 @@
     {
       "command": "mvn --batch-mode test",
       "result": "passed",
-      "evidence": "103 tests, 0 failures, 0 errors; 1 environment-gated MySQL test skipped"
+      "evidence": "149 tests, 0 failures, 0 errors; 2 environment-gated MySQL tests skipped in the default H2 run; both classes pass in the real MySQL gate"
+    },
+    {
+      "command": "infra/verify-mysql-workflow.ps1",
+      "result": "passed",
+      "evidence": "MySQL 8.4.11 isolated database passed SmartCanteenMySqlIntegrationTest and AgentRuntimeMySqlIntegrationTest; databaseRemoved=true"
     },
     {
       "command": "mvn --batch-mode -Dtest=AgentExecutionServiceTest,AgentControllerHttpTest,OperationalCoreHttpTest,ProcurementPlanClosedLoopHttpTest test",
@@ -51,7 +56,7 @@
     "scope-limited Agent Runtime metrics query and frontend dashboard"
   ],
   "known_limits": [
-    "Real MySQL migration/concurrency acceptance remains environment-gated; legacy menus compatibility migration is not yet closed.",
+    "Real MySQL migration/concurrency acceptance passed in the isolated gate; legacy menus compatibility migration is not yet closed.",
     "Execution uses optimistic version authority and explicit resume/reconciliation; a distributed claim lease scheduler is not yet enabled.",
     "In-process deadline enforcement classifies completed late calls; JDBC query timeout and cancellation are still adapter-specific.",
     "Sensitive result reference storage, retention/cleanup jobs, distributed claim leases, long-term metrics retention/alerts and production kill switch remain follow-up gates.",

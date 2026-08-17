@@ -1,0 +1,32 @@
+{
+  "phase": "agent-runtime-mysql-gate",
+  "status": "passed",
+  "command": "./infra/verify-mysql-workflow.ps1",
+  "testClasses": [
+    "SmartCanteenMySqlIntegrationTest",
+    "AgentRuntimeMySqlIntegrationTest"
+  ],
+  "checks": [
+    "Flyway migration on MySQL 8",
+    "same-key concurrent Agent start is applied once",
+    "Agent Step/Event evidence is durable",
+    "Agent plan audit evidence is durable",
+    "same-transaction duplicate Agent start reuses the uncommitted winner",
+    "outer transaction rollback leaves no Agent Run or audit orphan",
+    "same-key different-payload Agent request is rejected",
+    "Agent evidence survives Spring application restart",
+    "existing SmartCanteen workflow concurrency and restart checks remain green"
+  ],
+  "provisioning": "isolated random database is created and dropped by the verifier",
+  "lastLocalAttempt": {
+    "result": "passed",
+    "mysqlImage": "smart-canteen/mysql:8.4.11",
+    "flywayVersion": "11.20.3",
+    "databaseRemoved": true,
+    "evidencePath": "outputs/verification/smart-canteen-mysql-workflow-latest.json"
+  },
+  "knownLimits": [
+    "SMART_CANTEEN_MYSQL_IT=true and Docker/CI credentials are required for a pass result",
+    "distributed claim lease scheduling and long-term metrics retention/alerts remain separate release gates"
+  ]
+}

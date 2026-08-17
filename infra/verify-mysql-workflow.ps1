@@ -69,9 +69,9 @@ try {
 
     Push-Location (Join-Path $PSScriptRoot "..\backend")
     try {
-        & mvn -q "-Dtest=SmartCanteenMySqlIntegrationTest" test
+        & mvn -q "-Dtest=SmartCanteenMySqlIntegrationTest,AgentRuntimeMySqlIntegrationTest" test
         if ($LASTEXITCODE -ne 0) {
-            throw "Real MySQL workflow integration test failed."
+            throw "Real MySQL workflow and Agent Runtime integration tests failed."
         }
     } finally {
         Pop-Location
@@ -111,13 +111,22 @@ try {
         databaseRemoved = ($null -eq $cleanupError)
         mysqlImage = [string]$resolvedConfig.services.mysql.image
         flywayVersion = $flywayVersion
-        testClass = "SmartCanteenMySqlIntegrationTest"
+        testClasses = @(
+            "SmartCanteenMySqlIntegrationTest"
+            "AgentRuntimeMySqlIntegrationTest"
+        )
         checks = @(
             "flyway migration on MySQL"
             "same-key concurrent receipt is applied once"
             "concurrent first-material receipts preserve both quantities"
             "incompatible unit rolls back receipt reservation"
             "state survives Spring application restart"
+            "same-key concurrent Agent start is applied once"
+            "Agent Run Step/Event evidence survives Spring application restart"
+            "Agent plan audit evidence is durable"
+            "same-transaction duplicate Agent start reuses the uncommitted winner"
+            "outer transaction rollback leaves no Agent Run or audit orphan"
+            "same-key different-payload Agent request is rejected"
         )
     } | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $EvidencePath -Encoding utf8
     Write-Output "MySQL workflow evidence: $EvidencePath"

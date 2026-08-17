@@ -16,6 +16,8 @@ import java.util.List;
 import java.time.Instant;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 @Repository
 public class JdbcAgentRunStore implements AgentRunStore {
@@ -27,6 +29,10 @@ public class JdbcAgentRunStore implements AgentRunStore {
     }
 
     @Override
+    // A duplicate insert may race with a committed winner while the caller's
+    // Repeatable Read snapshot is already established. Use a fresh read so the
+    // runtime can turn that database race into a deterministic replay.
+    @Transactional(propagation = Propagation.REQUIRES_NEW, readOnly = true)
     public Optional<AgentRun> findByIdempotency(
             String actorUserId, CanteenScope scope, String idempotencyKey) {
         return jdbc.query(
@@ -49,13 +55,18 @@ public class JdbcAgentRunStore implements AgentRunStore {
     }
 
     @Override
-    public void insert(AgentRun run, List<AgentStep> steps) {
+    public AgentRun insert(AgentRun run, List<AgentStep> steps) {
+        // Duplicate-safe SQL keeps the caller's transaction usable after a
+        // concurrent winner. The bootstrap event and steps are only written by
+        // the caller whose run ID is the durable row's ID, so the whole Run
+        // remains atomic with any surrounding assistant conversation writes.
         jdbc.update(
                 "INSERT INTO agent_runs (run_id, idempotency_key, request_hash, actor_user_id, "
                         + "actor_username, school_id, canteen_id, intent, skill_id, skill_version, "
                         + "manifest_digest, plan_hash, plan_json, input_json, status, current_step, "
                         + "result_json, error_code, error_message, version, created_at, updated_at) "
-                        + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
+                        + "ON DUPLICATE KEY UPDATE run_id = run_id",
                 run.runId(),
                 run.idempotencyKey(),
                 run.requestHash(),
@@ -78,6 +89,17 @@ public class JdbcAgentRunStore implements AgentRunStore {
                 run.version(),
                 Timestamp.from(run.createdAt()),
                 Timestamp.from(run.updatedAt()));
+        AgentRun persisted = jdbc.queryForObject(
+                "SELECT * FROM agent_runs WHERE actor_user_id = ? AND school_id = ? "
+                        + "AND canteen_id = ? AND idempotency_key = ? FOR UPDATE",
+                this::map,
+                run.actorUserId(),
+                run.scope().schoolId(),
+                run.scope().canteenId(),
+                run.idempotencyKey());
+        if (!run.runId().equals(persisted.runId())) {
+            return persisted;
+        }
         jdbc.update(
                 "INSERT INTO agent_run_events (event_id, run_id, event_sequence, event_type, "
                         + "from_status, to_status, actor_user_id, payload_json, occurred_at) "
@@ -110,6 +132,7 @@ public class JdbcAgentRunStore implements AgentRunStore {
                     step.startedAt() == null ? null : Timestamp.from(step.startedAt()),
                     step.finishedAt() == null ? null : Timestamp.from(step.finishedAt()));
         }
+        return persisted;
     }
 
     @Override

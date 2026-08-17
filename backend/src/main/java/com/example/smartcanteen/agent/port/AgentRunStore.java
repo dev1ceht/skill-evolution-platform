@@ -16,7 +16,12 @@ public interface AgentRunStore {
 
     Optional<AgentRun> findById(String runId);
 
-    void insert(AgentRun run, List<AgentStep> steps);
+    /**
+     * Inserts the bootstrap atomically and returns the durable row selected under the idempotency
+     * key. The returned run is this caller's candidate when it won, or the existing winner when
+     * another transaction (including the current transaction) already owns the key.
+     */
+    AgentRun insert(AgentRun run, List<AgentStep> steps);
 
     void update(AgentRun expected, AgentRun updated);
 

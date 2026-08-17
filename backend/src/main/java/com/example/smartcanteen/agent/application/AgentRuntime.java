@@ -156,29 +156,27 @@ public class AgentRuntime {
                     null,
                     null));
         }
-        try {
-            runs.insert(run, steps);
-        } catch (DuplicateKeyException duplicate) {
+        AgentRun persisted = runs.insert(run, steps);
+        if (!run.runId().equals(persisted.runId())) {
             // The unique actor/scope/idempotency constraint is the concurrency
             // authority. A competing transaction may win between the lookup
             // above and the insert; convert that race into normal replay or a
-            // deterministic same-key/different-payload conflict.
-            AgentRun concurrent = runs.findByIdempotency(
-                            context.actorUserId(), context.scope(), command.idempotencyKey())
-                    .orElseThrow(() -> duplicate);
-            if (!concurrent.requestHash().equals(plan.inputDigest())) {
+            // deterministic same-key/different-payload conflict without
+            // committing the losing caller's partial transaction. The store
+            // returns the row selected in this transaction, so this also works
+            // when the same outer transaction starts the key twice.
+            if (!persisted.requestHash().equals(plan.inputDigest())) {
                 throw new IllegalStateException(
-                        "Idempotency key was already used for a different Agent request",
-                        duplicate);
+                        "Idempotency key was already used for a different Agent request");
             }
             runs.appendEvent(
-                    concurrent.runId(),
+                    persisted.runId(),
                     "RUN_IDEMPOTENCY_REPLAY",
-                    concurrent.status().name(),
-                    concurrent.status().name(),
+                    persisted.status().name(),
+                    persisted.status().name(),
                     context.actorUserId(),
                     null);
-            return concurrent;
+            return persisted;
         }
         appendAudit(run, context, "AGENT_RUN_PLAN", "SUCCESS", null);
         return run;
@@ -374,7 +372,7 @@ public class AgentRuntime {
         }
         try {
             audits.append(new AuditLog(
-                    "AUDIT-AGENT-" + run.runId() + "-" + action,
+                    AgentAuditId.forRun(run.runId(), action),
                     context.actorUserId(),
                     action,
                     "AGENT_RUN",
