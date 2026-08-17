@@ -47,6 +47,10 @@ public record AssistantResolution(
         } else if (traceCode != null || menuId != null) {
             throw new IllegalArgumentException(
                     "Only business resolutions may contain a resource identifier");
+        } else if (intent != null
+                && !intent.equals("traceability.query")
+                && !intent.equals("menu.query")) {
+            throw new IllegalArgumentException("Unsupported clarification intent: " + intent);
         }
     }
 
@@ -71,9 +75,19 @@ public record AssistantResolution(
     }
 
     public static AssistantResolution clarification(String message, String... missingFields) {
+        return clarification(null, message, missingFields);
+    }
+
+    public static AssistantResolution clarificationFor(
+            String intent, String message, String... missingFields) {
+        return clarification(intent, message, missingFields);
+    }
+
+    private static AssistantResolution clarification(
+            String intent, String message, String... missingFields) {
         return new AssistantResolution(
                 Type.CLARIFICATION,
-                null,
+                intent,
                 null,
                 null,
                 List.of(missingFields),

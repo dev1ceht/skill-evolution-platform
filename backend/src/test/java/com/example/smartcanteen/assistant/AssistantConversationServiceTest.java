@@ -3,6 +3,7 @@ package com.example.smartcanteen.assistant;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -28,6 +29,7 @@ import java.time.ZoneOffset;
 import java.util.Optional;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
+import org.mockito.InOrder;
 
 class AssistantConversationServiceTest {
 
@@ -77,5 +79,45 @@ class AssistantConversationServiceTest {
         verify(runtime, never()).start(any(), any());
         verify(execution, never()).execute(any(), any());
         verify(store).append(any(AssistantConversationStore.StoredTurn.class));
+    }
+
+    @Test
+    void locks_the_conversation_before_loading_pending_clarification_state() {
+        AssistantConversationStore store = mock(AssistantConversationStore.class);
+        AgentRuntime runtime = mock(AgentRuntime.class);
+        AgentExecutionService execution = mock(AgentExecutionService.class);
+        SkillRegistry skills = mock(SkillRegistry.class);
+        BusinessAuthorizationPolicy policy = mock(BusinessAuthorizationPolicy.class);
+        ExecutionContext context = ExecutionContext.fromTrustedPrincipal(
+                "request-assist-lock", PRINCIPAL, SCOPE,
+                Set.of(Role.CANTEEN_STAFF), Set.of());
+        AssistantConversation conversation = AssistantConversation.active(
+                "CONVERSATION-LOCK", context, NOW);
+        when(store.ensureConversation(anyString(), any(), any())).thenReturn(conversation);
+        when(store.findByIdempotency(anyString(), anyString(), anyString()))
+                .thenReturn(Optional.empty());
+        when(store.findClarification("CONVERSATION-LOCK")).thenReturn(Optional.empty());
+        when(store.nextSequence("CONVERSATION-LOCK")).thenReturn(1L);
+
+        AssistantConversationService service = new AssistantConversationService(
+                new RuleBasedAssistantIntentResolver(),
+                store,
+                runtime,
+                execution,
+                skills,
+                policy,
+                new ObjectMapper().findAndRegisterModules(),
+                Clock.fixed(NOW, ZoneOffset.UTC));
+
+        service.handle(
+                "CONVERSATION-LOCK",
+                "帮我安排明天的采购",
+                "lock-message-001",
+                context,
+                PRINCIPAL);
+
+        InOrder order = inOrder(store);
+        order.verify(store).lockConversation("CONVERSATION-LOCK");
+        order.verify(store).findClarification("CONVERSATION-LOCK");
     }
 }

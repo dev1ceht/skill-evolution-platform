@@ -1,6 +1,7 @@
 package com.example.smartcanteen.assistant.port;
 
 import com.example.smartcanteen.assistant.domain.AssistantConversation;
+import com.example.smartcanteen.assistant.domain.AssistantClarification;
 import com.example.smartcanteen.agent.domain.ExecutionContext;
 import java.time.Instant;
 import java.util.List;
@@ -17,6 +18,17 @@ public interface AssistantConversationStore {
             String conversationId, String actorUserId, String idempotencyKey);
 
     List<StoredTurn> listTurns(String conversationId, int limit);
+
+    /** Serializes clarification resolution and turn append for one conversation. */
+    void lockConversation(String conversationId);
+
+    void updateStatus(String conversationId, String status, Instant updatedAt);
+
+    Optional<AssistantClarification> findClarification(String conversationId);
+
+    void saveClarification(AssistantClarification clarification);
+
+    void clearClarification(String conversationId);
 
     long nextSequence(String conversationId);
 

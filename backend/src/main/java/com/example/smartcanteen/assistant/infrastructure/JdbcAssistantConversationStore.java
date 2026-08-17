@@ -1,6 +1,7 @@
 package com.example.smartcanteen.assistant.infrastructure;
 
 import com.example.smartcanteen.agent.domain.ExecutionContext;
+import com.example.smartcanteen.assistant.domain.AssistantClarification;
 import com.example.smartcanteen.assistant.domain.AssistantConversation;
 import com.example.smartcanteen.assistant.port.AssistantConversationStore;
 import com.example.smartcanteen.domain.CanteenScope;
@@ -9,6 +10,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.dao.DuplicateKeyException;
@@ -147,6 +149,81 @@ public class JdbcAssistantConversationStore implements AssistantConversationStor
                 limit);
     }
 
+    @Override
+    public void lockConversation(String conversationId) {
+        jdbc.queryForObject(
+                "SELECT conversation_id FROM assistant_conversations "
+                        + "WHERE conversation_id = ? FOR UPDATE",
+                String.class,
+                conversationId);
+    }
+
+    @Override
+    public void updateStatus(String conversationId, String status, Instant updatedAt) {
+        jdbc.update(
+                "UPDATE assistant_conversations SET status = ?, updated_at = ? "
+                        + "WHERE conversation_id = ?",
+                status,
+                Timestamp.from(updatedAt),
+                conversationId);
+    }
+
+    @Override
+    public Optional<AssistantClarification> findClarification(String conversationId) {
+        return jdbc.query(
+                        "SELECT conversation_id, intent, original_message, missing_fields, "
+                                + "created_at, updated_at FROM assistant_clarifications "
+                                + "WHERE conversation_id = ?",
+                        this::mapClarification,
+                        conversationId)
+                .stream()
+                .findFirst();
+    }
+
+    @Override
+    public void saveClarification(AssistantClarification clarification) {
+        String missingFields = String.join(",", clarification.missingFields());
+        int updated = jdbc.update(
+                "UPDATE assistant_clarifications SET intent = ?, original_message = ?, "
+                        + "missing_fields = ?, updated_at = ? WHERE conversation_id = ?",
+                clarification.intent(),
+                clarification.originalMessage(),
+                missingFields,
+                Timestamp.from(clarification.updatedAt()),
+                clarification.conversationId());
+        if (updated > 0) {
+            return;
+        }
+        try {
+            jdbc.update(
+                    "INSERT INTO assistant_clarifications (conversation_id, intent, "
+                            + "original_message, missing_fields, created_at, updated_at) "
+                            + "VALUES (?, ?, ?, ?, ?, ?)",
+                    clarification.conversationId(),
+                    clarification.intent(),
+                    clarification.originalMessage(),
+                    missingFields,
+                    Timestamp.from(clarification.createdAt()),
+                    Timestamp.from(clarification.updatedAt()));
+        } catch (DuplicateKeyException duplicate) {
+            jdbc.update(
+                    "UPDATE assistant_clarifications SET intent = ?, original_message = ?, "
+                            + "missing_fields = ?, updated_at = ? WHERE conversation_id = ?",
+                    clarification.intent(),
+                    clarification.originalMessage(),
+                    missingFields,
+                    Timestamp.from(clarification.updatedAt()),
+                    clarification.conversationId());
+        }
+    }
+
+    @Override
+    public void clearClarification(String conversationId) {
+        jdbc.update(
+                "DELETE FROM assistant_clarifications WHERE conversation_id = ?",
+                conversationId);
+    }
+
     private AssistantConversation mapConversation(ResultSet result, int row) throws SQLException {
         return new AssistantConversation(
                 result.getString("conversation_id"),
@@ -172,5 +249,16 @@ public class JdbcAssistantConversationStore implements AssistantConversationStor
                 result.getString("run_id"),
                 result.getString("run_status"),
                 result.getTimestamp("created_at").toInstant());
+    }
+
+    private AssistantClarification mapClarification(ResultSet result, int row)
+            throws SQLException {
+        return new AssistantClarification(
+                result.getString("conversation_id"),
+                result.getString("intent"),
+                result.getString("original_message"),
+                Arrays.stream(result.getString("missing_fields").split(",", -1)).toList(),
+                result.getTimestamp("created_at").toInstant(),
+                result.getTimestamp("updated_at").toInstant());
     }
 }

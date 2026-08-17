@@ -1,0 +1,37 @@
+{
+  "phase": "assistant-phase3-clarification-model",
+  "status": "implemented",
+  "contract": {
+    "source": "contracts/smart-canteen.openapi.yaml",
+    "operations": 118,
+    "document_hash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
+    "change": "no HTTP contract change; phase2 generated clients and contract tests remain valid"
+  },
+  "state_machine": {
+    "migration": "backend/src/main/resources/db/migration/V18__create_assistant_clarifications.sql",
+    "states": ["ACTIVE", "WAITING_CLARIFICATION", "CLOSED"],
+    "representation": "assistant_conversations.status is updated atomically with the pending row; a missing row means no clarification is waiting",
+    "tool_call_guard": "missing fields keep the conversation in clarification and do not start an Agent Run"
+  },
+  "model_boundary": {
+    "port": "backend/src/main/java/com/example/smartcanteen/assistant/port/AssistantModelResolver.java",
+    "default_adapter": "backend/src/main/java/com/example/smartcanteen/assistant/infrastructure/PortOnlyAssistantModelResolver.java",
+    "router": "backend/src/main/java/com/example/smartcanteen/assistant/application/AssistantIntentResolverRouter.java",
+    "default_enabled": false,
+    "safety": "deterministic rules win; explicit unsupported business topics bypass the model; model output is limited to registered read-only intents and TRACE-/MENU- resource IDs"
+  },
+  "commands": {
+    "targeted_backend": "24 assistant/resolver/clarification HTTP tests passed; Flyway V18 applied in H2",
+    "backend_full_regression": "128 backend tests passed; 1 environment-gated MySQL test skipped",
+    "frontend_tests": "147 frontend tests passed (unchanged contract)",
+    "frontend_build": "vue-tsc --noEmit && vite build passed (unchanged contract)",
+    "python_tests": "14 Python tests passed (unchanged contract)",
+    "sop_manifest": "Validated 8 SOPs and 1 composition"
+  },
+  "known_limits": [
+    "真实模型供应商仍是 port-only，未声称已接通外部 LLM",
+    "澄清只覆盖 TRACE-/MENU- 标识补充",
+    "写操作预览、确认、领域审批和执行仍未开放",
+    "真实 MySQL 并发与长期留存策略仍由上线门禁控制"
+  ]
+}

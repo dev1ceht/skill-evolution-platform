@@ -21,6 +21,11 @@ public record AssistantConversation(
         requireText("actorUsername", actorUsername, 128);
         Objects.requireNonNull(scope, "scope");
         requireText("status", status, 32);
+        if (!status.equals("ACTIVE")
+                && !status.equals("WAITING_CLARIFICATION")
+                && !status.equals("CLOSED")) {
+            throw new IllegalArgumentException("Unsupported conversation status: " + status);
+        }
         Objects.requireNonNull(createdAt, "createdAt");
         Objects.requireNonNull(updatedAt, "updatedAt");
     }

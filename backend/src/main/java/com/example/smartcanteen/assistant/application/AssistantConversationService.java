@@ -11,6 +11,7 @@ import com.example.smartcanteen.agent.port.SkillRegistry;
 import com.example.smartcanteen.application.BusinessAuthorizationPolicy;
 import com.example.smartcanteen.assistant.domain.AssistantConversation;
 import com.example.smartcanteen.assistant.domain.AssistantConversationHistory;
+import com.example.smartcanteen.assistant.domain.AssistantClarification;
 import com.example.smartcanteen.assistant.domain.AssistantResolution;
 import com.example.smartcanteen.assistant.domain.AssistantTurn;
 import com.example.smartcanteen.assistant.port.AssistantConversationStore;
@@ -109,14 +110,18 @@ public class AssistantConversationService {
             return parseTurn(stored.responseJson());
         }
 
-        AssistantResolution resolution = resolver.resolve(normalizedMessage);
+        conversations.lockConversation(conversation.conversationId());
+        Optional<AssistantClarification> pendingClarification = conversations.findClarification(
+                conversation.conversationId());
+        AssistantResolution resolution = resolver.resolve(
+                normalizedMessage, pendingClarification);
         AssistantTurn response = switch (resolution.type()) {
             case CLARIFICATION -> newTurn(
                     conversation,
                     conversations.nextSequence(conversation.conversationId()),
                     "CLARIFICATION",
                     resolution.message(),
-                    null,
+                    resolution.intent(),
                     null,
                     null,
                     null,
@@ -171,7 +176,42 @@ public class AssistantConversationService {
             }
             return parseTurn(concurrent.responseJson());
         }
+        updateClarificationState(
+                conversation,
+                normalizedMessage,
+                resolution,
+                pendingClarification);
         return response;
+    }
+
+    private void updateClarificationState(
+            AssistantConversation conversation,
+            String normalizedMessage,
+            AssistantResolution resolution,
+            Optional<AssistantClarification> previous) {
+        if (resolution.type() == AssistantResolution.Type.CLARIFICATION
+                && resolution.intent() != null
+                && !resolution.missingFields().isEmpty()) {
+            Optional<AssistantClarification> sameIntent = previous.filter(
+                    item -> item.intent().equals(resolution.intent()));
+            String originalMessage = sameIntent
+                    .map(AssistantClarification::originalMessage)
+                    .orElse(normalizedMessage);
+            Instant now = clock.instant();
+            conversations.saveClarification(new AssistantClarification(
+                    conversation.conversationId(),
+                    resolution.intent(),
+                    originalMessage,
+                    resolution.missingFields(),
+                    sameIntent.map(AssistantClarification::createdAt).orElse(now),
+                    now));
+            conversations.updateStatus(
+                    conversation.conversationId(), "WAITING_CLARIFICATION", now);
+            return;
+        }
+        Instant now = clock.instant();
+        conversations.clearClarification(conversation.conversationId());
+        conversations.updateStatus(conversation.conversationId(), "ACTIVE", now);
     }
 
     @Transactional(readOnly = true)

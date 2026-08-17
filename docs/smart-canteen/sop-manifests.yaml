@@ -28,10 +28,17 @@ sops:
     references: ["skills/smart-canteen-sop/references/menu-approval.md"]
     implementation:
       modules:
+        - "backend/src/main/java/com/example/smartcanteen/assistant/application/AssistantIntentResolver.java"
         - "backend/src/main/java/com/example/smartcanteen/assistant/application/RuleBasedAssistantIntentResolver.java"
+        - "backend/src/main/java/com/example/smartcanteen/assistant/application/AssistantIntentResolverRouter.java"
         - "backend/src/main/java/com/example/smartcanteen/assistant/application/AssistantConversationService.java"
+        - "backend/src/main/java/com/example/smartcanteen/assistant/domain/AssistantClarification.java"
         - "backend/src/main/java/com/example/smartcanteen/assistant/domain/AssistantConversationHistory.java"
+        - "backend/src/main/java/com/example/smartcanteen/assistant/domain/AssistantResolution.java"
         - "backend/src/main/java/com/example/smartcanteen/assistant/infrastructure/JdbcAssistantConversationStore.java"
+        - "backend/src/main/java/com/example/smartcanteen/assistant/infrastructure/PortOnlyAssistantModelResolver.java"
+        - "backend/src/main/java/com/example/smartcanteen/assistant/port/AssistantConversationStore.java"
+        - "backend/src/main/java/com/example/smartcanteen/assistant/port/AssistantModelResolver.java"
         - "backend/src/main/java/com/example/smartcanteen/application/BusinessAuthorizationPolicy.java"
         - "backend/src/main/java/com/example/smartcanteen/agent/application/AgentRuntime.java"
         - "backend/src/main/java/com/example/smartcanteen/agent/infrastructure/MenuToolExecutor.java"
@@ -44,13 +51,20 @@ sops:
         - "backend/src/main/resources/db/migration/V5__create_operational_core.sql"
         - "backend/src/main/resources/db/migration/V16__create_assistant_conversations.sql"
         - "backend/src/main/resources/db/migration/V17__add_menu_read_permission.sql"
+        - "backend/src/main/resources/db/migration/V18__create_assistant_clarifications.sql"
       tests:
         - "backend/src/test/java/com/example/smartcanteen/assistant/RuleBasedAssistantIntentResolverTest.java"
+        - "backend/src/test/java/com/example/smartcanteen/assistant/AssistantIntentResolverRouterTest.java"
+        - "backend/src/test/java/com/example/smartcanteen/assistant/AssistantConversationServiceTest.java"
         - "backend/src/test/java/com/example/smartcanteen/http/AssistantControllerHttpTest.java"
-      verification: ["docs/smart-canteen/assistant-phase2-verification.json"]
+      verification:
+        - "docs/smart-canteen/assistant-phase2-verification.json"
+        - "docs/smart-canteen/assistant-phase3-verification.json"
     adapters:
       - name: "JdbcOperationalStore"
         status: "implemented"
+      - name: "AssistantModelResolver"
+        status: "port-only"
     runtime:
       intents: ["menu.query"]
       input_schema: "#/components/schemas/MenuQueryIntent"
@@ -65,7 +79,9 @@ sops:
       deadline_ms: 3000
       retry_policy: "read-only-bounded"
       evidence: "required"
-    evidence: ["docs/smart-canteen/assistant-phase2-menu-history.md"]
+    evidence:
+      - "docs/smart-canteen/assistant-phase2-menu-history.md"
+      - "docs/smart-canteen/assistant-phase3-clarification-model.md"
     status: "implemented"
 
   - id: "smart-canteen.menu-validation"
@@ -351,29 +367,41 @@ sops:
         - "backend/src/main/java/com/example/smartcanteen/application/DashboardService.java"
         - "backend/src/main/java/com/example/smartcanteen/agent/application/AgentRuntime.java"
         - "backend/src/main/java/com/example/smartcanteen/http/AgentController.java"
+        - "backend/src/main/java/com/example/smartcanteen/assistant/application/AssistantIntentResolver.java"
+        - "backend/src/main/java/com/example/smartcanteen/assistant/application/AssistantIntentResolverRouter.java"
         - "backend/src/main/java/com/example/smartcanteen/assistant/application/AssistantConversationService.java"
+        - "backend/src/main/java/com/example/smartcanteen/assistant/domain/AssistantClarification.java"
+        - "backend/src/main/java/com/example/smartcanteen/assistant/domain/AssistantResolution.java"
         - "backend/src/main/java/com/example/smartcanteen/assistant/application/RuleBasedAssistantIntentResolver.java"
         - "backend/src/main/java/com/example/smartcanteen/assistant/infrastructure/JdbcAssistantConversationStore.java"
+        - "backend/src/main/java/com/example/smartcanteen/assistant/infrastructure/PortOnlyAssistantModelResolver.java"
+        - "backend/src/main/java/com/example/smartcanteen/assistant/port/AssistantConversationStore.java"
+        - "backend/src/main/java/com/example/smartcanteen/assistant/port/AssistantModelResolver.java"
         - "backend/src/main/java/com/example/smartcanteen/http/AssistantController.java"
       apis: ["contracts/smart-canteen.openapi.yaml"]
       migrations:
         - "backend/src/main/resources/db/migration/V5__create_operational_core.sql"
         - "backend/src/main/resources/db/migration/V16__create_assistant_conversations.sql"
+        - "backend/src/main/resources/db/migration/V18__create_assistant_clarifications.sql"
       tests:
         - "backend/src/test/java/com/example/smartcanteen/http/OperationalCoreHttpTest.java"
         - "backend/src/test/java/com/example/smartcanteen/agent/AgentRuntimeTest.java"
         - "backend/src/test/java/com/example/smartcanteen/http/AgentControllerHttpTest.java"
         - "backend/src/test/java/com/example/smartcanteen/http/AgentAuthorizationHttpTest.java"
         - "backend/src/test/java/com/example/smartcanteen/assistant/RuleBasedAssistantIntentResolverTest.java"
+        - "backend/src/test/java/com/example/smartcanteen/assistant/AssistantIntentResolverRouterTest.java"
         - "backend/src/test/java/com/example/smartcanteen/assistant/AssistantConversationServiceTest.java"
         - "backend/src/test/java/com/example/smartcanteen/http/AssistantControllerHttpTest.java"
         - "backend/src/test/java/com/example/smartcanteen/http/AssistantControllerDisabledHttpTest.java"
       verification:
         - "docs/smart-canteen/phase5-verification.json"
         - "docs/smart-canteen/assistant-phase1-verification.json"
+        - "docs/smart-canteen/assistant-phase3-verification.json"
     adapters:
       - name: "JdbcOperationalStore"
         status: "implemented"
+      - name: "AssistantModelResolver"
+        status: "port-only"
     runtime:
       intents: ["traceability.query"]
       input_schema: "#/components/schemas/TraceabilityIntent"
@@ -389,6 +417,7 @@ sops:
     evidence:
       - "docs/smart-canteen/phase5-traceability.md"
       - "docs/smart-canteen/assistant-phase1-readonly.md"
+      - "docs/smart-canteen/assistant-phase3-clarification-model.md"
     status: "implemented"
 
 compositions:

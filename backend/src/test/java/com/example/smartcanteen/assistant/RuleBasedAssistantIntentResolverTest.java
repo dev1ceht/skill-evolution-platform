@@ -3,7 +3,10 @@ package com.example.smartcanteen.assistant;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.example.smartcanteen.assistant.application.RuleBasedAssistantIntentResolver;
+import com.example.smartcanteen.assistant.domain.AssistantClarification;
 import com.example.smartcanteen.assistant.domain.AssistantResolution;
+import java.time.Instant;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
 class RuleBasedAssistantIntentResolverTest {
@@ -31,6 +34,14 @@ class RuleBasedAssistantIntentResolverTest {
     }
 
     @Test
+    void does_not_treat_a_menu_id_as_a_traceability_code() {
+        AssistantResolution result = resolver.resolve("查询 MENU-001 的食品溯源");
+
+        assertThat(result.type()).isEqualTo(AssistantResolution.Type.CLARIFICATION);
+        assertThat(result.missingFields()).containsExactly("traceCode");
+    }
+
+    @Test
     void explains_the_supported_capability_for_an_unrelated_message() {
         AssistantResolution result = resolver.resolve("帮我安排明天的采购");
 
@@ -55,5 +66,37 @@ class RuleBasedAssistantIntentResolverTest {
         assertThat(result.type()).isEqualTo(AssistantResolution.Type.CLARIFICATION);
         assertThat(result.missingFields()).containsExactly("menuId");
         assertThat(result.message()).contains("MENU-001");
+    }
+
+    @Test
+    void resolves_a_trace_code_as_the_answer_to_a_pending_clarification() {
+        AssistantClarification pending = new AssistantClarification(
+                "CONV-001",
+                "traceability.query",
+                "帮我查一下这批食材的溯源",
+                java.util.List.of("traceCode"),
+                Instant.parse("2026-08-17T05:00:00Z"),
+                Instant.parse("2026-08-17T05:00:00Z"));
+
+        AssistantResolution result = resolver.resolve("TRACE-001", Optional.of(pending));
+
+        assertThat(result.type()).isEqualTo(AssistantResolution.Type.TRACEABILITY_QUERY);
+        assertThat(result.traceCode()).isEqualTo("TRACE-001");
+    }
+
+    @Test
+    void does_not_consume_a_new_unsupported_request_as_a_pending_answer() {
+        AssistantClarification pending = new AssistantClarification(
+                "CONV-001",
+                "traceability.query",
+                "帮我查一下这批食材的溯源",
+                java.util.List.of("traceCode"),
+                Instant.parse("2026-08-17T05:00:00Z"),
+                Instant.parse("2026-08-17T05:00:00Z"));
+
+        AssistantResolution result = resolver.resolve("帮我安排明天的采购", Optional.of(pending));
+
+        assertThat(result.type()).isEqualTo(AssistantResolution.Type.UNSUPPORTED);
+        assertThat(result.message()).contains("食品溯源");
     }
 }

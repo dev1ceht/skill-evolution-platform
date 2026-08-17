@@ -4,6 +4,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 import com.example.smartcanteen.security.AuthPrincipal;
@@ -40,6 +41,7 @@ class AssistantControllerHttpTest {
 
     @BeforeEach
     void seedTraceabilityRecord() {
+        jdbc.update("DELETE FROM assistant_clarifications");
         jdbc.update("DELETE FROM assistant_turns");
         jdbc.update("DELETE FROM assistant_conversations");
         jdbc.update("DELETE FROM agent_run_events");
@@ -92,6 +94,69 @@ class AssistantControllerHttpTest {
                 .andExpect(jsonPath("$.data.kind").value("CLARIFICATION"))
                 .andExpect(jsonPath("$.data.missingFields[0]").value("traceCode"))
                 .andExpect(jsonPath("$.data.runId").value(org.hamcrest.Matchers.nullValue()));
+    }
+
+    @Test
+    void resumes_a_pending_clarification_when_the_user_supplies_the_missing_trace_code()
+            throws Exception {
+        mvc.perform(message(
+                        "clarification-start",
+                        "帮我查一下这批食材的溯源",
+                        "CONV-ASSIST-CLARIFY"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.kind").value("CLARIFICATION"));
+        assertEquals(
+                "WAITING_CLARIFICATION",
+                jdbc.queryForObject(
+                        "SELECT status FROM assistant_conversations WHERE conversation_id = ?",
+                        String.class,
+                        "CONV-ASSIST-CLARIFY"));
+
+        mvc.perform(message(
+                        "clarification-answer",
+                        "TRACE-ASSIST-001",
+                        "CONV-ASSIST-CLARIFY"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.kind").value("RESULT"))
+                .andExpect(jsonPath("$.data.intent").value("traceability.query"))
+                .andExpect(jsonPath("$.data.result.traceCode").value("TRACE-ASSIST-001"));
+        assertEquals(
+                "ACTIVE",
+                jdbc.queryForObject(
+                        "SELECT status FROM assistant_conversations WHERE conversation_id = ?",
+                        String.class,
+                        "CONV-ASSIST-CLARIFY"));
+    }
+
+    @Test
+    void clears_pending_clarification_for_a_new_unsupported_request() throws Exception {
+        mvc.perform(message(
+                        "new-intent-start",
+                        "帮我查一下这批食材的溯源",
+                        "CONV-ASSIST-NEW-INTENT"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.kind").value("CLARIFICATION"));
+
+        mvc.perform(message(
+                        "new-intent-unsupported",
+                        "帮我安排明天的采购",
+                        "CONV-ASSIST-NEW-INTENT"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.kind").value("UNSUPPORTED"));
+        assertEquals(
+                "ACTIVE",
+                jdbc.queryForObject(
+                        "SELECT status FROM assistant_conversations WHERE conversation_id = ?",
+                        String.class,
+                        "CONV-ASSIST-NEW-INTENT"));
+
+        mvc.perform(message(
+                        "new-intent-after-clear",
+                        "TRACE-ASSIST-001",
+                        "CONV-ASSIST-NEW-INTENT"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.kind").value("RESULT"))
+                .andExpect(jsonPath("$.data.intent").value("traceability.query"));
     }
 
     @Test
