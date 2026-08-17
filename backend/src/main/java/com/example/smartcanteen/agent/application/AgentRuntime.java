@@ -104,6 +104,13 @@ public class AgentRuntime {
                 throw new IllegalStateException(
                         "Idempotency key was already used for a different Agent request");
             }
+            runs.appendEvent(
+                    previous.runId(),
+                    "RUN_IDEMPOTENCY_REPLAY",
+                    previous.status().name(),
+                    previous.status().name(),
+                    context.actorUserId(),
+                    null);
             return previous;
         }
 
@@ -164,6 +171,13 @@ public class AgentRuntime {
                         "Idempotency key was already used for a different Agent request",
                         duplicate);
             }
+            runs.appendEvent(
+                    concurrent.runId(),
+                    "RUN_IDEMPOTENCY_REPLAY",
+                    concurrent.status().name(),
+                    concurrent.status().name(),
+                    context.actorUserId(),
+                    null);
             return concurrent;
         }
         appendAudit(run, context, "AGENT_RUN_PLAN", "SUCCESS", null);

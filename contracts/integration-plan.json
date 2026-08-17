@@ -79,6 +79,12 @@
       "operations": ["startAgentRun", "getAgentRun", "listAgentSkills"],
       "states": ["empty", "submitting", "running", "succeeded", "failed", "business-error"],
       "dependencies": ["AuthPanel:authenticated"]
+    },
+    {
+      "page": "AgentMetricsPage",
+      "operations": ["getAgentMetrics"],
+      "states": ["loading", "empty", "ready", "business-error"],
+      "dependencies": ["AuthPanel:authenticated"]
     }
   ],
   "verification": [

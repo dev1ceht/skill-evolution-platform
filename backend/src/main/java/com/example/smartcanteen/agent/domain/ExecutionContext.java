@@ -24,6 +24,10 @@ public record ExecutionContext(
         Set<Role> roles,
         Set<String> permissions) {
 
+    /** Servlet request attribute used to carry the resolved correlation ID through error handling. */
+    public static final String REQUEST_ID_ATTRIBUTE =
+            ExecutionContext.class.getName() + ".resolvedRequestId";
+
     public ExecutionContext {
         requireIdentifier("requestId", requestId, 128);
         requireIdentifier("actorUserId", actorUserId, 128);

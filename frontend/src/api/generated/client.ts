@@ -153,6 +153,35 @@ export type AgentSkillListResponse = {
   data: Array<AgentSkill>;
 };
 
+export type AgentMetrics = {
+  schoolId: string;
+  canteenId: string;
+  "from": string;
+  to: string;
+  totalRuns: number;
+  succeededRuns: number;
+  failedRuns: number;
+  rejectedRuns: number;
+  cancelledRuns: number;
+  timedOutRuns: number;
+  reconciliationRequiredRuns: number;
+  waitingConfirmationRuns: number;
+  successRate: number;
+  averageRunDurationMs: number;
+  averageConfirmationWaitMs: number;
+  toolExecutions: number;
+  toolFailures: number;
+  averageToolDurationMs: number;
+  idempotencyReplayCount: number;
+  authorizationDeniedCount: number;
+};
+
+export type AgentMetricsResponse = {
+  code: number;
+  message: string;
+  data: AgentMetrics;
+};
+
 export type LoginRequest = {
   username: string;
   password: string;
@@ -1533,6 +1562,20 @@ export async function queryExternalAlerts(schoolId?: string, canteenId?: string,
   const response = await fetch(url, { method: 'GET' });
   if (!response.ok) throw new Error(`API request failed: ${response.status}`);
   return response.json() as Promise<AlertPageResponse>;
+}
+
+export async function getAgentMetrics(schoolId: string, canteenId: string, xRequestId?: string, fromParameter?: string, to?: string): Promise<AgentMetricsResponse> {
+  const path = "/api/v1/agent/metrics";
+  const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
+  if (fromParameter !== undefined) url.searchParams.set("from", String(fromParameter));
+  if (to !== undefined) url.searchParams.set("to", String(to));
+  const headers: Record<string, string> = {};
+  if (xRequestId !== undefined) headers["X-Request-Id"] = String(xRequestId);
+  const response = await fetch(url, { method: 'GET', headers: headers });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<AgentMetricsResponse>;
 }
 
 export async function startAgentRun(idempotencyKey: string, schoolId: string, canteenId: string, body: AgentRunStartRequest, xRequestId?: string): Promise<AgentRunResponse> {

@@ -1,0 +1,28 @@
+{
+  "phase": "agent-phase6-metrics",
+  "status": "implemented",
+  "endpoint": {
+    "method": "GET",
+    "path": "/api/v1/agent/metrics",
+    "scope": "explicit schoolId + canteenId",
+    "window": "default 24 hours, maximum 31 days",
+    "roles": ["SYSTEM_ADMIN", "SCHOOL_ADMIN", "REGULATOR"],
+    "response": "bounded aggregates without run/user/menu identifiers"
+  },
+  "evidence": {
+    "store": "backend/src/main/java/com/example/smartcanteen/agent/infrastructure/JdbcAgentMetricsStore.java",
+    "service": "backend/src/main/java/com/example/smartcanteen/agent/application/AgentMetricsService.java",
+    "controller": "backend/src/main/java/com/example/smartcanteen/http/AgentMetricsController.java",
+    "filter": "backend/src/main/java/com/example/smartcanteen/agent/infrastructure/AgentMetricsFilter.java",
+    "frontend": "frontend/src/components/AgentMetricsDashboard.vue"
+  },
+  "commands": {
+    "targeted_backend": "AgentMetricsServiceTest and AgentMetricsControllerHttpTest passed",
+    "frontend_contract": "119 generated API contract tests passed",
+    "frontend_metrics": "3 AgentMetricsDashboard tests passed"
+  },
+  "known_limits": [
+    "the unlabelled process-local Micrometer denial counter is supplementary and resets on restart",
+    "real MySQL concurrency/claim-lease acceptance and long-term metric retention remain release gates"
+  ]
+}

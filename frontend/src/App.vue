@@ -2,6 +2,7 @@
 import axios from 'axios';
 import { computed, ref } from 'vue';
 import AgentTraceabilityWorkspace from './components/AgentTraceabilityWorkspace.vue';
+import AgentMetricsDashboard from './components/AgentMetricsDashboard.vue';
 import AssistantWorkspace from './components/AssistantWorkspace.vue';
 import AgentMenuApprovalWorkspace from './components/AgentMenuApprovalWorkspace.vue';
 import LoginPanel from './components/LoginPanel.vue';
@@ -18,6 +19,11 @@ const session = ref<AuthSession | null>(api.getSession());
 // Keep the view state reactive; api.hasSession() is an imperative adapter query
 // and would otherwise be evaluated only once by Vue's computed cache.
 const authenticated = computed(() => session.value !== null);
+const agentMetricsEnabled = computed(() => {
+  const userInfo = session.value?.userInfo;
+  const roles = userInfo?.roles ?? (userInfo?.role ? [userInfo.role] : []);
+  return roles.some((role) => ['SYSTEM_ADMIN', 'SCHOOL_ADMIN', 'REGULATOR'].includes(role));
+});
 const scope = ref<CanteenScope>(scopeFromSession(session.value));
 // Kill switch for the pilot write entry. Production can disable the Agent menu
 // without removing the legacy page paths by setting VITE_AGENT_MENU_ENABLED=false.
@@ -54,6 +60,7 @@ function scopeFromSession(value: AuthSession | null): CanteenScope {
       <button type="button" @click="signOut">退出登录</button>
     </header>
     <OperationsOverview :api="api" :scope="scope" />
+    <AgentMetricsDashboard v-if="agentMetricsEnabled" :api="api" :scope="scope" />
     <AssistantWorkspace
       v-if="assistantEnabled"
       :api="api"

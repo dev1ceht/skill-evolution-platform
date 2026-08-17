@@ -1,19 +1,13 @@
 {
-  "added": [],
-  "removed": [],
-  "changed": [
+  "added": [
     {
       "method": "GET",
-      "path": "/api/v1/assistant/conversations/{conversationId}/messages",
-      "breakingReasons": []
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/assistant/conversations/{conversationId}/messages",
-      "breakingReasons": []
+      "path": "/api/v1/agent/metrics"
     }
   ],
+  "removed": [],
+  "changed": [],
   "breaking": [],
-  "beforeHash": "277081fd56c7231aa01dfb6febed64ad1c21077b76fc0b2ea418ff68e7e691de",
-  "afterHash": "59c4c8264dc7ab1a254e2a97b55cbde69452a9a03fb0560408bec8c6fb20e4b8"
+  "beforeHash": "59c4c8264dc7ab1a254e2a97b55cbde69452a9a03fb0560408bec8c6fb20e4b8",
+  "afterHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db"
 }

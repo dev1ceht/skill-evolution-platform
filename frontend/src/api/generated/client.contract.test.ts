@@ -33,6 +33,13 @@ describe("Smart Canteen Workflow API contract", () => {
     expect(new URL(requestUrl).pathname).toBe("/alarmWarn/school/queryPage");
     expect(options.method).toBe("GET");
   });
+  it("getAgentMetrics sends GET /api/v1/agent/metrics", async () => {
+    await client.getAgentMetrics('fixture', 'fixture', 'fixture', undefined, undefined);
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/agent/metrics");
+    expect(options.method).toBe("GET");
+    expect(options.headers["X-Request-Id"]).toBe('fixture');
+  });
   it("startAgentRun sends POST /api/v1/agent/runs", async () => {
     await client.startAgentRun('fixture', 'fixture', 'fixture', {} as never, 'fixture');
     const [requestUrl, options] = fetchMock.mock.calls[0];

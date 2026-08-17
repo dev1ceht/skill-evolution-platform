@@ -47,13 +47,14 @@
     "menu.validate-for-submit, menu.submit, menu.record-decision and menu.publish Tool Catalog entries",
     "durable Run decisions/events, Step checkpoint, audit linkage, request-hash-bound replay, bounded read retry and deadline classification",
     "resume/reconciliation API, replay-safe Agent decisions and versioned events contract",
-    "frontend menu Agent confirmation workspace, domain-state lookup and generated API client updates"
+    "frontend menu Agent confirmation workspace, domain-state lookup and generated API client updates",
+    "scope-limited Agent Runtime metrics query and frontend dashboard"
   ],
   "known_limits": [
     "Real MySQL migration/concurrency acceptance remains environment-gated; legacy menus compatibility migration is not yet closed.",
     "Execution uses optimistic version authority and explicit resume/reconciliation; a distributed claim lease scheduler is not yet enabled.",
     "In-process deadline enforcement classifies completed late calls; JDBC query timeout and cancellation are still adapter-specific.",
-    "Sensitive result reference storage, retention/cleanup jobs, clarification orchestration, metrics dashboard and production kill switch remain follow-up gates.",
+    "Sensitive result reference storage, retention/cleanup jobs, distributed claim leases, long-term metrics retention/alerts and production kill switch remain follow-up gates.",
     "Procurement, inventory and alert write Skills remain behind their domain-model and pilot gates."
   ]
 }

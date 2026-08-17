@@ -79,6 +79,8 @@ import type {
   AgentRunResponse,
   AgentRunEvent,
   AgentRunEventListResponse,
+  AgentMetrics,
+  AgentMetricsResponse,
   AssistantConversationHistory,
   AssistantConversationHistoryResponse,
   AssistantTurn,
@@ -191,6 +193,12 @@ export interface SmartCanteenApiPort {
     scope: CanteenScope,
     requestId?: string,
   ): Promise<AgentRunEvent[]>;
+  getAgentMetrics?(
+    scope: CanteenScope,
+    from?: string,
+    to?: string,
+    requestId?: string,
+  ): Promise<AgentMetrics>;
   sendAssistantMessage?(
     conversationId: string,
     message: string,
@@ -591,6 +599,19 @@ export class SmartCanteenApi implements SmartCanteenApiPort {
         params: scope,
       },
     );
+    return unwrap(response);
+  }
+
+  async getAgentMetrics(
+    scope: CanteenScope,
+    from?: string,
+    to?: string,
+    requestId?: string,
+  ): Promise<AgentMetrics> {
+    const response = await this.client.get<AgentMetricsResponse>('/api/v1/agent/metrics', {
+      headers: requestId ? { 'X-Request-Id': requestId } : undefined,
+      params: { ...scope, ...(from ? { from } : {}), ...(to ? { to } : {}) },
+    });
     return unwrap(response);
   }
 

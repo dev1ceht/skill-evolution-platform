@@ -233,6 +233,35 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AgentSkillListResponse'
+  /api/v1/agent/metrics:
+    get:
+      operationId: getAgentMetrics
+      tags: [agent]
+      parameters:
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+        - $ref: '#/components/parameters/RequestId'
+        - name: from
+          in: query
+          required: false
+          schema: { type: string, format: date-time }
+          description: 指标窗口起点，默认最近 24 小时。
+        - name: to
+          in: query
+          required: false
+          schema: { type: string, format: date-time }
+          description: 指标窗口终点，默认当前时间；窗口最长 31 天。
+      responses:
+        '200':
+          description: 当前食堂范围内的 Agent 运行聚合指标，不包含运行或用户标识。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentMetricsResponse'
+        '400':
+          $ref: '#/components/responses/BusinessError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
 
   /api/v1/menus/{menuId}/submit:
     post:
@@ -2937,6 +2966,57 @@ components:
         data:
           type: array
           items: { $ref: '#/components/schemas/AgentSkill' }
+    AgentMetrics:
+      type: object
+      required:
+        - schoolId
+        - canteenId
+        - from
+        - to
+        - totalRuns
+        - succeededRuns
+        - failedRuns
+        - rejectedRuns
+        - cancelledRuns
+        - timedOutRuns
+        - reconciliationRequiredRuns
+        - waitingConfirmationRuns
+        - successRate
+        - averageRunDurationMs
+        - averageConfirmationWaitMs
+        - toolExecutions
+        - toolFailures
+        - averageToolDurationMs
+        - idempotencyReplayCount
+        - authorizationDeniedCount
+      properties:
+        schoolId: { type: string }
+        canteenId: { type: string }
+        from: { type: string, format: date-time }
+        to: { type: string, format: date-time }
+        totalRuns: { type: integer, format: int64 }
+        succeededRuns: { type: integer, format: int64 }
+        failedRuns: { type: integer, format: int64 }
+        rejectedRuns: { type: integer, format: int64 }
+        cancelledRuns: { type: integer, format: int64 }
+        timedOutRuns: { type: integer, format: int64 }
+        reconciliationRequiredRuns: { type: integer, format: int64 }
+        waitingConfirmationRuns: { type: integer, format: int64 }
+        successRate: { type: number, format: double, minimum: 0, maximum: 1 }
+        averageRunDurationMs: { type: integer, format: int64, minimum: 0 }
+        averageConfirmationWaitMs: { type: integer, format: int64, minimum: 0 }
+        toolExecutions: { type: integer, format: int64 }
+        toolFailures: { type: integer, format: int64 }
+        averageToolDurationMs: { type: integer, format: int64, minimum: 0 }
+        idempotencyReplayCount: { type: integer, format: int64 }
+        authorizationDeniedCount: { type: integer, format: int64 }
+    AgentMetricsResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code: { type: integer }
+        message: { type: string }
+        data: { $ref: '#/components/schemas/AgentMetrics' }
     LoginRequest:
       type: object
       required: [username, password]

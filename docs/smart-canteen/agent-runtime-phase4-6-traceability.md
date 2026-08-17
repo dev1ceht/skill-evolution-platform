@@ -30,4 +30,4 @@
 
 ## 尚未宣称完成的生产门禁
 
-真实 MySQL 8 并发/迁移、旧 `menus` 历史回填收口、分布式 claim lease、跨系统 outbox、敏感结果引用化和保留清理、clarification 编排、指标看板、生产灰度配置，以及采购/库存/预警写 Skill 仍需独立验收。
+真实 MySQL 8 并发/迁移、旧 `menus` 历史回填收口、分布式 claim lease、跨系统 outbox、敏感结果引用化和保留清理、clarification 编排、长期指标告警/保留、生产灰度配置，以及采购/库存/预警写 Skill 仍需独立验收。
