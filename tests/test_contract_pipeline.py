@@ -39,6 +39,216 @@ def test_contract_diff_detects_required_parameter_as_breaking() -> None:
     assert report["breaking"][0]["type"] == "added-required-parameter:query:tenantId"
 
 
+def test_contract_diff_records_component_schema_widening_behind_a_response_ref() -> None:
+    document = {
+        "openapi": "3.0.3",
+        "info": {"title": "Assistant API", "version": "1.0.0"},
+        "paths": {
+            "/api/v1/assistant": {
+                "post": {
+                    "operationId": "sendAssistantMessage",
+                    "responses": {
+                        "200": {
+                            "description": "ok",
+                            "content": {
+                                "application/json": {
+                                    "schema": {"$ref": "#/components/schemas/AssistantTurn"}
+                                }
+                            },
+                        }
+                    },
+                }
+            }
+        },
+        "components": {
+            "schemas": {
+                "AssistantTurn": {
+                    "type": "object",
+                    "properties": {"kind": {"type": "string", "enum": ["RESULT"]}},
+                }
+            }
+        },
+    }
+    changed = copy.deepcopy(document)
+    changed["components"]["schemas"]["AssistantTurn"]["properties"]["kind"]["enum"].append(
+        "CONFIRMATION_REQUIRED"
+    )
+
+    report = diff_contracts(normalize_openapi(document), normalize_openapi(changed))
+
+    assert report["changed"] == [
+        {"method": "POST", "path": "/api/v1/assistant", "breakingReasons": []}
+    ]
+    assert report["breaking"] == []
+
+
+def test_contract_diff_records_nested_component_schema_widening_for_history_refs() -> None:
+    document = {
+        "openapi": "3.0.3",
+        "info": {"title": "Assistant API", "version": "1.0.0"},
+        "paths": {
+            "/api/v1/assistant/conversations/{conversationId}/messages": {
+                "get": {
+                    "operationId": "listAssistantMessages",
+                    "responses": {
+                        "200": {
+                            "description": "ok",
+                            "content": {
+                                "application/json": {
+                                    "schema": {
+                                        "$ref": "#/components/schemas/AssistantConversationHistoryResponse"
+                                    }
+                                }
+                            },
+                        }
+                    },
+                }
+            },
+            "/api/v1/assistant/conversations/{conversationId}/messages/send": {
+                "post": {
+                    "operationId": "sendAssistantMessage",
+                    "responses": {
+                        "200": {
+                            "description": "ok",
+                            "content": {
+                                "application/json": {
+                                    "schema": {"$ref": "#/components/schemas/AssistantTurn"}
+                                }
+                            },
+                        }
+                    },
+                }
+            },
+        },
+        "components": {
+            "schemas": {
+                "AssistantConversationHistoryResponse": {
+                    "type": "object",
+                    "properties": {
+                        "data": {"$ref": "#/components/schemas/AssistantConversationHistory"}
+                    },
+                },
+                "AssistantConversationHistory": {
+                    "type": "object",
+                    "properties": {
+                        "turns": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/components/schemas/AssistantConversationHistoryEntry"
+                            },
+                        }
+                    },
+                },
+                "AssistantConversationHistoryEntry": {
+                    "type": "object",
+                    "properties": {
+                        "response": {"$ref": "#/components/schemas/AssistantTurn"}
+                    },
+                },
+                "AssistantTurn": {
+                    "type": "object",
+                    "properties": {"kind": {"type": "string", "enum": ["RESULT"]}},
+                },
+            }
+        },
+    }
+    changed = copy.deepcopy(document)
+    changed["components"]["schemas"]["AssistantTurn"]["properties"]["kind"]["enum"].append(
+        "CONFIRMATION_REQUIRED"
+    )
+
+    report = diff_contracts(normalize_openapi(document), normalize_openapi(changed))
+
+    assert report["changed"] == [
+        {
+            "method": "GET",
+            "path": "/api/v1/assistant/conversations/{conversationId}/messages",
+            "breakingReasons": [],
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/assistant/conversations/{conversationId}/messages/send",
+            "breakingReasons": [],
+        },
+    ]
+    assert report["breaking"] == []
+
+
+def test_contract_diff_detects_nested_component_enum_narrowing_as_breaking() -> None:
+    document = {
+        "openapi": "3.0.3",
+        "info": {"title": "Assistant API", "version": "1.0.0"},
+        "paths": {
+            "/api/v1/assistant/history": {
+                "get": {
+                    "operationId": "getAssistantHistory",
+                    "responses": {
+                        "200": {
+                            "description": "ok",
+                            "content": {
+                                "application/json": {
+                                    "schema": {
+                                        "$ref": "#/components/schemas/AssistantConversationHistoryResponse"
+                                    }
+                                }
+                            },
+                        }
+                    },
+                }
+            }
+        },
+        "components": {
+            "schemas": {
+                "AssistantConversationHistoryResponse": {
+                    "type": "object",
+                    "properties": {
+                        "data": {"$ref": "#/components/schemas/AssistantConversationHistory"}
+                    },
+                },
+                "AssistantConversationHistory": {
+                    "type": "object",
+                    "properties": {
+                        "turns": {
+                            "type": "array",
+                            "items": {"$ref": "#/components/schemas/AssistantTurn"},
+                        }
+                    },
+                },
+                "AssistantTurn": {
+                    "type": "object",
+                    "properties": {
+                        "kind": {
+                            "type": "string",
+                            "enum": ["RESULT", "CONFIRMATION_REQUIRED"],
+                        }
+                    },
+                },
+            }
+        },
+    }
+    changed = copy.deepcopy(document)
+    changed["components"]["schemas"]["AssistantTurn"]["properties"]["kind"]["enum"] = [
+        "RESULT"
+    ]
+
+    report = diff_contracts(normalize_openapi(document), normalize_openapi(changed))
+
+    assert report["changed"] == [
+        {
+            "method": "GET",
+            "path": "/api/v1/assistant/history",
+            "breakingReasons": ["response-schema-became-incompatible"],
+        }
+    ]
+    assert report["breaking"] == [
+        {
+            "type": "response-schema-became-incompatible",
+            "method": "GET",
+            "path": "/api/v1/assistant/history",
+        }
+    ]
+
+
 def test_generated_client_interpolates_and_encodes_path_parameters() -> None:
     document = {
         "openapi": "3.0.3",

@@ -23,6 +23,7 @@ public record AssistantConversation(
         requireText("status", status, 32);
         if (!status.equals("ACTIVE")
                 && !status.equals("WAITING_CLARIFICATION")
+                && !status.equals("WAITING_CONFIRMATION")
                 && !status.equals("CLOSED")) {
             throw new IllegalArgumentException("Unsupported conversation status: " + status);
         }

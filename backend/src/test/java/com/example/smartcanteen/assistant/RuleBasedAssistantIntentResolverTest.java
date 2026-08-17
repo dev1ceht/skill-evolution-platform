@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.example.smartcanteen.assistant.application.RuleBasedAssistantIntentResolver;
 import com.example.smartcanteen.assistant.domain.AssistantClarification;
+import com.example.smartcanteen.assistant.domain.AssistantPendingAction;
 import com.example.smartcanteen.assistant.domain.AssistantResolution;
 import java.time.Instant;
 import java.util.Optional;
@@ -69,6 +70,51 @@ class RuleBasedAssistantIntentResolverTest {
     }
 
     @Test
+    void resolves_a_menu_publish_request_without_executing_it() {
+        AssistantResolution result = resolver.resolve("请发布 MENU-001");
+
+        assertThat(result.type()).isEqualTo(AssistantResolution.Type.MENU_PUBLISH_REQUEST);
+        assertThat(result.intent()).isEqualTo("menu.publish");
+        assertThat(result.menuId()).isEqualTo("MENU-001");
+    }
+
+    @Test
+    void rejects_a_procurement_publish_request_before_menu_publish_matching() {
+        AssistantResolution result = resolver.resolve("请发布采购计划");
+
+        assertThat(result.type()).isEqualTo(AssistantResolution.Type.UNSUPPORTED);
+        assertThat(result.intent()).isNull();
+        assertThat(result.menuId()).isNull();
+        assertThat(result.message()).contains("采购");
+    }
+
+    @Test
+    void asks_for_a_menu_id_when_publish_request_is_missing_one() {
+        AssistantResolution result = resolver.resolve("请发布今天的菜单");
+
+        assertThat(result.type()).isEqualTo(AssistantResolution.Type.CLARIFICATION);
+        assertThat(result.intent()).isEqualTo("menu.publish");
+        assertThat(result.missingFields()).containsExactly("menuId");
+    }
+
+    @Test
+    void resolves_a_menu_id_as_the_answer_to_a_pending_menu_publish_clarification() {
+        AssistantClarification pending = new AssistantClarification(
+                "CONV-001",
+                "menu.publish",
+                "请发布今天的菜单",
+                java.util.List.of("menuId"),
+                Instant.parse("2026-08-17T05:00:00Z"),
+                Instant.parse("2026-08-17T05:00:00Z"));
+
+        AssistantResolution result = resolver.resolve("MENU-001", Optional.of(pending));
+
+        assertThat(result.type()).isEqualTo(AssistantResolution.Type.MENU_PUBLISH_REQUEST);
+        assertThat(result.intent()).isEqualTo("menu.publish");
+        assertThat(result.menuId()).isEqualTo("MENU-001");
+    }
+
+    @Test
     void resolves_a_trace_code_as_the_answer_to_a_pending_clarification() {
         AssistantClarification pending = new AssistantClarification(
                 "CONV-001",
@@ -98,5 +144,29 @@ class RuleBasedAssistantIntentResolverTest {
 
         assertThat(result.type()).isEqualTo(AssistantResolution.Type.UNSUPPORTED);
         assertThat(result.message()).contains("食品溯源");
+    }
+
+    @Test
+    void resolves_confirmation_and_cancellation_for_a_pending_menu_publish() {
+        AssistantPendingAction pending = new AssistantPendingAction(
+                        "CONV-001",
+                        "menu.publish",
+                        "RUN-001",
+                        0,
+                        "MENU-001",
+                        3,
+                        "a".repeat(64),
+                        Instant.parse("2026-08-17T05:00:00Z"),
+                        Instant.parse("2026-08-17T05:00:00Z"));
+
+        AssistantResolution confirm = resolver.resolve(
+                "确认发布", Optional.empty(), Optional.of(pending));
+        AssistantResolution cancel = resolver.resolve(
+                "取消", Optional.empty(), Optional.of(pending));
+
+        assertThat(confirm.type()).isEqualTo(AssistantResolution.Type.CONFIRM_PENDING_ACTION);
+        assertThat(confirm.intent()).isEqualTo("menu.publish");
+        assertThat(cancel.type()).isEqualTo(AssistantResolution.Type.CANCEL_PENDING_ACTION);
+        assertThat(cancel.intent()).isEqualTo("menu.publish");
     }
 }

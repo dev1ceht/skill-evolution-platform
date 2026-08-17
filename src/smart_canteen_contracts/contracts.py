@@ -543,30 +543,84 @@ def _body_schema(operation: dict[str, Any]) -> dict[str, Any]:
     )
 
 
+def _expand_schema_refs(
+    value: Any,
+    components: dict[str, Any],
+    seen: set[str] | None = None,
+) -> Any:
+    active_seen = set() if seen is None else seen
+    if isinstance(value, list):
+        return [_expand_schema_refs(item, components, active_seen) for item in value]
+    if not isinstance(value, dict):
+        return value
+    reference = value.get("$ref")
+    if isinstance(reference, str) and reference.startswith("#/components/schemas/"):
+        name = reference.rsplit("/", 1)[-1]
+        if name in active_seen or name not in components:
+            return {"$ref": reference}
+        resolved = _expand_schema_refs(components[name], components, active_seen | {name})
+        siblings = {
+            key: _expand_schema_refs(item, components, active_seen)
+            for key, item in value.items()
+            if key != "$ref"
+        }
+        return {"$ref": reference, "resolved": resolved, **siblings}
+    return {
+        key: _expand_schema_refs(item, components, active_seen)
+        for key, item in value.items()
+    }
+
+
 def _schema_breaks(
     before: dict[str, Any],
     after: dict[str, Any],
     before_schemas: dict[str, Any],
     after_schemas: dict[str, Any],
 ) -> bool:
-    def resolve(schema: dict[str, Any], components: dict[str, Any]) -> dict[str, Any]:
-        reference = schema.get("$ref")
-        return components.get(str(reference).rsplit("/", 1)[-1], {}) if reference else schema
+    old = _expand_schema_refs(before, before_schemas)
+    new = _expand_schema_refs(after, after_schemas)
 
-    old = resolve(before, before_schemas)
-    new = resolve(after, after_schemas)
-    if old.get("type") != new.get("type"):
-        return True
-    old_enum, new_enum = set(old.get("enum", [])), set(new.get("enum", []))
-    if old_enum and new_enum and not old_enum.issubset(new_enum):
-        return True
-    old_properties = set(old.get("properties", {}))
-    new_properties = set(new.get("properties", {}))
-    if old_properties - new_properties:
-        return True
-    if set(new.get("required", [])) - set(old.get("required", [])):
-        return True
-    return False
+    def breaks(old_schema: Any, new_schema: Any) -> bool:
+        if not isinstance(old_schema, dict) or not isinstance(new_schema, dict):
+            return old_schema != new_schema
+        if old_schema.get("$ref") != new_schema.get("$ref"):
+            return True
+        old_resolved = old_schema.get("resolved")
+        new_resolved = new_schema.get("resolved")
+        if ("resolved" in old_schema) != ("resolved" in new_schema):
+            return True
+        if old_resolved is not None and breaks(old_resolved, new_resolved):
+            return True
+        if old_schema.get("type") != new_schema.get("type"):
+            return True
+        old_enum, new_enum = set(old_schema.get("enum", [])), set(new_schema.get("enum", []))
+        if old_enum and new_enum and not old_enum.issubset(new_enum):
+            return True
+        old_properties = old_schema.get("properties", {})
+        new_properties = new_schema.get("properties", {})
+        if set(old_properties) - set(new_properties):
+            return True
+        if set(new_schema.get("required", [])) - set(old_schema.get("required", [])):
+            return True
+        for name in set(old_properties) & set(new_properties):
+            if breaks(old_properties[name], new_properties[name]):
+                return True
+        old_items, new_items = old_schema.get("items"), new_schema.get("items")
+        if old_items is not None and new_items is not None and breaks(old_items, new_items):
+            return True
+        return False
+
+    return breaks(old, new)
+
+
+def _schema_changed(
+    before: dict[str, Any],
+    after: dict[str, Any],
+    before_schemas: dict[str, Any],
+    after_schemas: dict[str, Any],
+) -> bool:
+    """Detect direct and nested changes behind local component-schema references."""
+    return _expand_schema_refs(before, before_schemas) != _expand_schema_refs(after, after_schemas)
 
 
 def _operation_semantics(operation: dict[str, Any]) -> dict[str, Any]:
@@ -590,30 +644,53 @@ def diff_contracts(before: dict[str, Any], after: dict[str, Any]) -> dict[str, A
         reasons = []
         for parameter_key in sorted(set(old_parameters) - set(new_parameters)):
             reasons.append(f"removed-parameter:{parameter_key[0]}:{parameter_key[1]}")
+        schema_changed = False
         for parameter_key, parameter in new_parameters.items():
             previous = old_parameters.get(parameter_key)
             if previous is None and parameter.get("required"):
                 reasons.append(f"added-required-parameter:{parameter_key[0]}:{parameter_key[1]}")
-            elif previous and not previous.get("required") and parameter.get("required"):
-                reasons.append(f"parameter-became-required:{parameter_key[0]}:{parameter_key[1]}")
-            elif previous and _schema_breaks(
-                previous.get("schema", {}),
-                parameter.get("schema", {}),
-                before.get("schemas", {}),
-                after.get("schemas", {}),
-            ):
-                reasons.append(f"parameter-schema-narrowed:{parameter_key[0]}:{parameter_key[1]}")
+            elif previous:
+                if not previous.get("required") and parameter.get("required"):
+                    reasons.append(f"parameter-became-required:{parameter_key[0]}:{parameter_key[1]}")
+                parameter_schema_changed = _schema_changed(
+                    previous.get("schema", {}),
+                    parameter.get("schema", {}),
+                    before.get("schemas", {}),
+                    after.get("schemas", {}),
+                )
+                schema_changed = schema_changed or parameter_schema_changed
+                if parameter_schema_changed and _schema_breaks(
+                    previous.get("schema", {}),
+                    parameter.get("schema", {}),
+                    before.get("schemas", {}),
+                    after.get("schemas", {}),
+                ):
+                    reasons.append(f"parameter-schema-narrowed:{parameter_key[0]}:{parameter_key[1]}")
         old_body, new_body = _body_schema(old_operation), _body_schema(new_operation)
-        if old_body != new_body and _schema_breaks(
+        request_schema_changed = _schema_changed(
+            old_body,
+            new_body,
+            before.get("schemas", {}),
+            after.get("schemas", {}),
+        )
+        schema_changed = schema_changed or request_schema_changed
+        if request_schema_changed and _schema_breaks(
             old_body, new_body, before.get("schemas", {}), after.get("schemas", {})
         ):
             reasons.append("request-schema-became-incompatible")
         old_response, new_response = _success_schema(old_operation), _success_schema(new_operation)
-        if old_response != new_response and _schema_breaks(
+        response_schema_changed = _schema_changed(
+            old_response,
+            new_response,
+            before.get("schemas", {}),
+            after.get("schemas", {}),
+        )
+        schema_changed = schema_changed or response_schema_changed
+        if response_schema_changed and _schema_breaks(
             old_response, new_response, before.get("schemas", {}), after.get("schemas", {})
         ):
             reasons.append("response-schema-became-incompatible")
-        if _operation_semantics(old_operation) != _operation_semantics(new_operation):
+        if _operation_semantics(old_operation) != _operation_semantics(new_operation) or schema_changed:
             changed.append({"method": method, "path": path, "breakingReasons": reasons})
         breaking.extend(
             {"type": reason, "method": method, "path": path} for reason in reasons

@@ -1,6 +1,7 @@
 package com.example.smartcanteen.assistant.application;
 
 import com.example.smartcanteen.assistant.domain.AssistantClarification;
+import com.example.smartcanteen.assistant.domain.AssistantPendingAction;
 import com.example.smartcanteen.assistant.domain.AssistantResolution;
 import com.example.smartcanteen.assistant.port.AssistantModelResolver;
 import java.util.Locale;
@@ -43,10 +44,21 @@ public class AssistantIntentResolverRouter implements AssistantIntentResolver {
     @Override
     public AssistantResolution resolve(
             String message, Optional<AssistantClarification> pendingClarification) {
+        return resolve(message, pendingClarification, Optional.empty());
+    }
+
+    @Override
+    public AssistantResolution resolve(
+            String message,
+            Optional<AssistantClarification> pendingClarification,
+            Optional<AssistantPendingAction> pendingAction) {
         Optional<AssistantClarification> pending = pendingClarification == null
                 ? Optional.empty()
                 : pendingClarification;
-        AssistantResolution deterministic = rules.resolve(message, pending);
+        Optional<AssistantPendingAction> action = pendingAction == null
+                ? Optional.empty()
+                : pendingAction;
+        AssistantResolution deterministic = rules.resolve(message, pending, action);
         if (!modelEnabled
                 || deterministic.type() != AssistantResolution.Type.UNSUPPORTED
                 || RuleBasedAssistantIntentResolver.isExplicitNewUnsupportedRequest(message)) {
@@ -73,6 +85,7 @@ public class AssistantIntentResolverRouter implements AssistantIntentResolver {
             case MENU_QUERY -> resolution.intent().equals("menu.query")
                     && (hasPrefix(resolution.menuId(), "MENU-")
                     || hasPrefix(resolution.menuId(), "MENU_"));
+            case MENU_PUBLISH_REQUEST, CONFIRM_PENDING_ACTION, CANCEL_PENDING_ACTION -> false;
             case CLARIFICATION -> resolution.intent() == null
                     || resolution.intent().equals("traceability.query")
                     || resolution.intent().equals("menu.query");

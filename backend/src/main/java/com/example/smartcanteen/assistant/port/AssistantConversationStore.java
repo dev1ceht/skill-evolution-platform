@@ -2,6 +2,7 @@ package com.example.smartcanteen.assistant.port;
 
 import com.example.smartcanteen.assistant.domain.AssistantConversation;
 import com.example.smartcanteen.assistant.domain.AssistantClarification;
+import com.example.smartcanteen.assistant.domain.AssistantPendingAction;
 import com.example.smartcanteen.agent.domain.ExecutionContext;
 import java.time.Instant;
 import java.util.List;
@@ -29,6 +30,12 @@ public interface AssistantConversationStore {
     void saveClarification(AssistantClarification clarification);
 
     void clearClarification(String conversationId);
+
+    Optional<AssistantPendingAction> findPendingAction(String conversationId);
+
+    void savePendingAction(AssistantPendingAction action);
+
+    void clearPendingAction(String conversationId);
 
     long nextSequence(String conversationId);
 

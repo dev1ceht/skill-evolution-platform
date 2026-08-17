@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/** HTTP Adapter for the first natural-language, read-only assistant slice. */
+/** HTTP Adapter for the guarded natural-language assistant slice. */
 @RestController
 @RequestMapping("/api/v1/assistant")
 public class AssistantController {
@@ -58,8 +58,8 @@ public class AssistantController {
                 ? UUID.randomUUID().toString()
                 : requestId;
         CanteenScope scope = new CanteenScope(schoolId, canteenId);
-        // The assistant is read-only with respect to business data, but this POST persists a
-        // conversation turn; use write scope checks so disabled canteens cannot create records.
+        // The assistant persists conversation turns and may create a confirmation-gated
+        // menu publish Run; use write scope checks so disabled canteens cannot create records.
         ExecutionContext context = policy.establishContext(
                 principal,
                 resolvedRequestId,

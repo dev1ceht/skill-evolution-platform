@@ -9,11 +9,14 @@ import com.example.smartcanteen.agent.domain.SkillDefinition;
 import com.example.smartcanteen.agent.domain.StartRunCommand;
 import com.example.smartcanteen.agent.port.SkillRegistry;
 import com.example.smartcanteen.application.BusinessAuthorizationPolicy;
+import com.example.smartcanteen.application.DailyMenuService;
 import com.example.smartcanteen.assistant.domain.AssistantConversation;
 import com.example.smartcanteen.assistant.domain.AssistantConversationHistory;
 import com.example.smartcanteen.assistant.domain.AssistantClarification;
+import com.example.smartcanteen.assistant.domain.AssistantPendingAction;
 import com.example.smartcanteen.assistant.domain.AssistantResolution;
 import com.example.smartcanteen.assistant.domain.AssistantTurn;
+import com.example.smartcanteen.domain.DailyMenu;
 import com.example.smartcanteen.assistant.port.AssistantConversationStore;
 import com.example.smartcanteen.security.AuthPrincipal;
 import com.example.smartcanteen.security.ForbiddenException;
@@ -49,6 +52,7 @@ public class AssistantConversationService {
     private final AgentExecutionService execution;
     private final SkillRegistry skills;
     private final BusinessAuthorizationPolicy policy;
+    private final DailyMenuService menus;
     private final ObjectMapper objectMapper;
     private final Clock clock;
 
@@ -60,8 +64,18 @@ public class AssistantConversationService {
             AgentExecutionService execution,
             SkillRegistry skills,
             BusinessAuthorizationPolicy policy,
+            DailyMenuService menus,
             ObjectMapper objectMapper) {
-        this(resolver, conversations, runtime, execution, skills, policy, objectMapper, Clock.systemUTC());
+        this(
+                resolver,
+                conversations,
+                runtime,
+                execution,
+                skills,
+                policy,
+                menus,
+                objectMapper,
+                Clock.systemUTC());
     }
 
     public AssistantConversationService(
@@ -71,6 +85,7 @@ public class AssistantConversationService {
             AgentExecutionService execution,
             SkillRegistry skills,
             BusinessAuthorizationPolicy policy,
+            DailyMenuService menus,
             ObjectMapper objectMapper,
             Clock clock) {
         this.resolver = Objects.requireNonNull(resolver, "resolver");
@@ -79,6 +94,7 @@ public class AssistantConversationService {
         this.execution = Objects.requireNonNull(execution, "execution");
         this.skills = Objects.requireNonNull(skills, "skills");
         this.policy = Objects.requireNonNull(policy, "policy");
+        this.menus = Objects.requireNonNull(menus, "menus");
         this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper");
         this.clock = Objects.requireNonNull(clock, "clock");
     }
@@ -113,42 +129,82 @@ public class AssistantConversationService {
         conversations.lockConversation(conversation.conversationId());
         Optional<AssistantClarification> pendingClarification = conversations.findClarification(
                 conversation.conversationId());
+        PendingActionState pendingActionState = reconcilePendingAction(
+                conversation,
+                conversations.findPendingAction(conversation.conversationId()));
+        Optional<AssistantPendingAction> pendingAction = pendingActionState.activeAction();
+        Optional<AssistantPendingAction> resolutionPendingAction = pendingActionState.wasReconciled()
+                ? pendingActionState.staleAction()
+                : pendingAction;
         AssistantResolution resolution = resolver.resolve(
-                normalizedMessage, pendingClarification);
-        AssistantTurn response = switch (resolution.type()) {
-            case CLARIFICATION -> newTurn(
+                normalizedMessage, pendingClarification, resolutionPendingAction);
+        AssistantTurn response;
+        if (pendingActionState.wasReconciled()
+                && isPendingActionDecision(resolution)) {
+            response = pendingActionReconciled(
                     conversation,
-                    conversations.nextSequence(conversation.conversationId()),
-                    "CLARIFICATION",
-                    resolution.message(),
-                    resolution.intent(),
-                    null,
-                    null,
-                    null,
-                    resolution.missingFields());
-            case UNSUPPORTED -> newTurn(
+                    pendingActionState.staleAction().orElseThrow(),
+                    pendingActionState.currentRun());
+        } else if (pendingAction.isPresent() && requiresPendingActionGuard(resolution)) {
+            response = pendingActionReminder(
                     conversation,
-                    conversations.nextSequence(conversation.conversationId()),
-                    "UNSUPPORTED",
-                    resolution.message(),
-                    null,
-                    null,
-                    null,
-                    null,
-                    List.of());
-            case TRACEABILITY_QUERY -> executeTraceability(
-                    conversation,
-                    resolution,
-                    normalizedKey,
-                    context,
-                    principal);
-            case MENU_QUERY -> executeMenu(
-                    conversation,
-                    resolution,
-                    normalizedKey,
-                    context,
-                    principal);
-        };
+                    pendingAction.get());
+        } else {
+            response = switch (resolution.type()) {
+                case CLARIFICATION -> newTurn(
+                        conversation,
+                        conversations.nextSequence(conversation.conversationId()),
+                        "CLARIFICATION",
+                        resolution.message(),
+                        resolution.intent(),
+                        null,
+                        null,
+                        null,
+                        resolution.missingFields());
+                case UNSUPPORTED -> newTurn(
+                        conversation,
+                        conversations.nextSequence(conversation.conversationId()),
+                        "UNSUPPORTED",
+                        resolution.message(),
+                        null,
+                        null,
+                        null,
+                        null,
+                        List.of());
+                case TRACEABILITY_QUERY -> executeTraceability(
+                        conversation,
+                        resolution,
+                        normalizedKey,
+                        context,
+                        principal);
+                case MENU_QUERY -> executeMenu(
+                        conversation,
+                        resolution,
+                        normalizedKey,
+                        context,
+                        principal);
+                case MENU_PUBLISH_REQUEST -> previewMenuPublish(
+                        conversation,
+                        resolution,
+                        normalizedKey,
+                        context,
+                        principal);
+                case CONFIRM_PENDING_ACTION -> confirmPendingAction(
+                        conversation,
+                        resolution,
+                        pendingAction.orElseThrow(() -> new IllegalStateException(
+                                "No pending action is available for confirmation")),
+                        normalizedKey,
+                        context);
+                case CANCEL_PENDING_ACTION -> cancelPendingAction(
+                        conversation,
+                        resolution,
+                        pendingAction.orElseThrow(() -> new IllegalStateException(
+                                "No pending action is available for cancellation")),
+                        normalizedKey,
+                        context);
+            };
+        }
 
         AssistantConversationStore.StoredTurn stored = new AssistantConversationStore.StoredTurn(
                 response.turnId(),
@@ -176,23 +232,33 @@ public class AssistantConversationService {
             }
             return parseTurn(concurrent.responseJson());
         }
-        updateClarificationState(
+        updateConversationState(
                 conversation,
                 normalizedMessage,
                 resolution,
-                pendingClarification);
+                pendingClarification,
+                pendingAction,
+                response);
         return response;
     }
 
-    private void updateClarificationState(
+    private void updateConversationState(
             AssistantConversation conversation,
             String normalizedMessage,
             AssistantResolution resolution,
-            Optional<AssistantClarification> previous) {
+            Optional<AssistantClarification> previousClarification,
+            Optional<AssistantPendingAction> previousAction,
+            AssistantTurn response) {
+        if (previousAction.isPresent() && requiresPendingActionGuard(resolution)) {
+            conversations.clearClarification(conversation.conversationId());
+            conversations.updateStatus(
+                    conversation.conversationId(), "WAITING_CONFIRMATION", clock.instant());
+            return;
+        }
         if (resolution.type() == AssistantResolution.Type.CLARIFICATION
                 && resolution.intent() != null
                 && !resolution.missingFields().isEmpty()) {
-            Optional<AssistantClarification> sameIntent = previous.filter(
+            Optional<AssistantClarification> sameIntent = previousClarification.filter(
                     item -> item.intent().equals(resolution.intent()));
             String originalMessage = sameIntent
                     .map(AssistantClarification::originalMessage)
@@ -207,10 +273,38 @@ public class AssistantConversationService {
                     now));
             conversations.updateStatus(
                     conversation.conversationId(), "WAITING_CLARIFICATION", now);
+            conversations.clearPendingAction(conversation.conversationId());
+            return;
+        }
+        if (resolution.type() == AssistantResolution.Type.MENU_PUBLISH_REQUEST) {
+            AgentRun run = runtime.find(response.runId()).orElseThrow(() ->
+                    new IllegalStateException("Preview Agent Run was not persisted"));
+            JsonNode input = parseNullable(run.inputJson());
+            long menuVersion = input == null ? -1 : input.path("menuVersion").asLong(-1);
+            if (menuVersion < 0) {
+                throw new IllegalStateException("Preview Agent Run is missing menuVersion");
+            }
+            Instant now = clock.instant();
+            Optional<AssistantPendingAction> sameAction = previousAction.filter(
+                    item -> item.intent().equals(resolution.intent()));
+            conversations.clearClarification(conversation.conversationId());
+            conversations.savePendingAction(new AssistantPendingAction(
+                    conversation.conversationId(),
+                    resolution.intent(),
+                    run.runId(),
+                    run.version(),
+                    resolution.menuId(),
+                    menuVersion,
+                    run.planHash(),
+                    sameAction.map(AssistantPendingAction::createdAt).orElse(now),
+                    now));
+            conversations.updateStatus(
+                    conversation.conversationId(), "WAITING_CONFIRMATION", now);
             return;
         }
         Instant now = clock.instant();
         conversations.clearClarification(conversation.conversationId());
+        conversations.clearPendingAction(conversation.conversationId());
         conversations.updateStatus(conversation.conversationId(), "ACTIVE", now);
     }
 
@@ -246,6 +340,233 @@ public class AssistantConversationService {
                 conversation.createdAt(),
                 conversation.updatedAt(),
                 entries);
+    }
+
+    private AssistantTurn previewMenuPublish(
+            AssistantConversation conversation,
+            AssistantResolution resolution,
+            String idempotencyKey,
+            ExecutionContext context,
+            AuthPrincipal principal) {
+        DailyMenu menu = menus.get(context.scope(), resolution.menuId());
+        SkillDefinition skill = skills.findByIntent(resolution.intent())
+                .filter(SkillDefinition::isAvailable)
+                .orElseThrow(() -> new IllegalStateException(
+                        "No active Skill is registered for intent: " + resolution.intent()));
+        policy.requireSkillAccess(principal, skill);
+        policy.requireIntentAccess(context, resolution.intent());
+
+        String inputJson = writeJson(Map.of(
+                "menuId", menu.id(),
+                "menuVersion", menu.version()));
+        String runIdempotencyKey = "assistant-run-"
+                + digest(conversation.conversationId() + ":" + idempotencyKey).substring(0, 48);
+        AgentRun run = runtime.start(
+                new StartRunCommand(
+                        context.requestId(),
+                        resolution.intent(),
+                        inputJson,
+                        runIdempotencyKey),
+                context);
+        if (run.status() != RunStatus.WAITING_CONFIRMATION) {
+            throw new IllegalStateException(
+                    "Menu publish preview must wait for explicit confirmation");
+        }
+        return newTurn(
+                conversation,
+                conversations.nextSequence(conversation.conversationId()),
+                "CONFIRMATION_REQUIRED",
+                "已生成菜单发布计划：" + menu.id() + "，版本 " + menu.version()
+                        + "，当前状态「" + menu.status() + "」。回复“确认发布”执行，回复“取消”放弃。",
+                resolution.intent(),
+                run.runId(),
+                run.status().name(),
+                parseNullable(run.planJson()),
+                List.of());
+    }
+
+    private AssistantTurn confirmPendingAction(
+            AssistantConversation conversation,
+            AssistantResolution resolution,
+            AssistantPendingAction pending,
+            String idempotencyKey,
+            ExecutionContext context) {
+        requirePendingActionMatches(resolution, pending);
+        AgentRun current = runtime.find(pending.runId()).orElseThrow(() ->
+                new IllegalStateException("Pending menu publish Run no longer exists"));
+        if (current.version() != pending.runVersion()
+                || !current.planHash().equals(pending.planHash())) {
+            throw new IllegalStateException("Pending menu publish plan is stale");
+        }
+        AgentRun confirmed = runtime.decide(
+                pending.runId(),
+                pending.runVersion(),
+                "RUN_CONFIRM",
+                null,
+                decisionIdempotencyKey(conversation.conversationId(), idempotencyKey),
+                context);
+        AgentRun completed = confirmed.status() == RunStatus.PLANNED
+                ? execution.execute(confirmed, context)
+                : confirmed;
+        return newTurn(
+                conversation,
+                conversations.nextSequence(conversation.conversationId()),
+                "RESULT",
+                menuPublishMessage(completed, pending.menuId()),
+                resolution.intent(),
+                completed.runId(),
+                completed.status().name(),
+                parseNullable(completed.resultJson()),
+                List.of());
+    }
+
+    private AssistantTurn cancelPendingAction(
+            AssistantConversation conversation,
+            AssistantResolution resolution,
+            AssistantPendingAction pending,
+            String idempotencyKey,
+            ExecutionContext context) {
+        requirePendingActionMatches(resolution, pending);
+        AgentRun current = runtime.find(pending.runId()).orElseThrow(() ->
+                new IllegalStateException("Pending menu publish Run no longer exists"));
+        if (current.version() != pending.runVersion()
+                || !current.planHash().equals(pending.planHash())) {
+            throw new IllegalStateException("Pending menu publish plan is stale");
+        }
+        AgentRun cancelled = runtime.decide(
+                pending.runId(),
+                pending.runVersion(),
+                "RUN_CANCEL",
+                null,
+                decisionIdempotencyKey(conversation.conversationId(), idempotencyKey),
+                context);
+        return newTurn(
+                conversation,
+                conversations.nextSequence(conversation.conversationId()),
+                "RESULT",
+                "已取消菜单发布计划：" + pending.menuId() + "。",
+                resolution.intent(),
+                cancelled.runId(),
+                cancelled.status().name(),
+                null,
+                List.of());
+    }
+
+    private AssistantTurn pendingActionReminder(
+            AssistantConversation conversation,
+            AssistantPendingAction pending) {
+        AgentRun run = runtime.find(pending.runId()).orElseThrow(() ->
+                new IllegalStateException("Pending menu publish Run no longer exists"));
+        return newTurn(
+                conversation,
+                conversations.nextSequence(conversation.conversationId()),
+                "CONFIRMATION_REQUIRED",
+                "当前仍有待确认的菜单发布计划：" + pending.menuId() + "，版本 "
+                        + pending.menuVersion() + "。请回复“确认发布”执行，或回复“取消”放弃。",
+                pending.intent(),
+                run.runId(),
+                run.status().name(),
+                parseNullable(run.planJson()),
+                List.of());
+    }
+
+    private AssistantTurn pendingActionReconciled(
+            AssistantConversation conversation,
+            AssistantPendingAction pending,
+            Optional<AgentRun> currentRun) {
+        String status = currentRun.map(run -> run.status().name()).orElse("UNKNOWN");
+        String message = currentRun.isPresent()
+                ? "待确认的菜单发布计划已由其他入口处理，当前 Agent Run 状态为「"
+                        + status + "」，助手待处理状态已同步清理。"
+                : "待确认的菜单发布 Run " + pending.runId()
+                        + " 已不存在，助手待处理状态已同步清理。";
+        return newTurn(
+                conversation,
+                conversations.nextSequence(conversation.conversationId()),
+                "RESULT",
+                message,
+                pending.intent(),
+                pending.runId(),
+                status,
+                currentRun.map(run -> parseNullable(run.resultJson())).orElse(null),
+                List.of());
+    }
+
+    private PendingActionState reconcilePendingAction(
+            AssistantConversation conversation,
+            Optional<AssistantPendingAction> pendingAction) {
+        if (pendingAction.isEmpty()) {
+            return new PendingActionState(Optional.empty(), Optional.empty(), Optional.empty());
+        }
+        AssistantPendingAction pending = pendingAction.get();
+        Optional<AgentRun> current = runtime.find(pending.runId());
+        boolean valid = current.isPresent()
+                && current.get().status() == RunStatus.WAITING_CONFIRMATION
+                && current.get().version() == pending.runVersion()
+                && current.get().planHash().equals(pending.planHash());
+        if (valid) {
+            return new PendingActionState(Optional.of(pending), Optional.empty(), current);
+        }
+        conversations.clearPendingAction(conversation.conversationId());
+        conversations.clearClarification(conversation.conversationId());
+        return new PendingActionState(Optional.empty(), Optional.of(pending), current);
+    }
+
+    private static boolean requiresPendingActionGuard(AssistantResolution resolution) {
+        return switch (resolution.type()) {
+            case CONFIRM_PENDING_ACTION, CANCEL_PENDING_ACTION -> false;
+            default -> true;
+        };
+    }
+
+    private static boolean isPendingActionDecision(AssistantResolution resolution) {
+        return resolution.type() == AssistantResolution.Type.CONFIRM_PENDING_ACTION
+                || resolution.type() == AssistantResolution.Type.CANCEL_PENDING_ACTION;
+    }
+
+    private static void requirePendingActionMatches(
+            AssistantResolution resolution, AssistantPendingAction pending) {
+        if (!pending.intent().equals(resolution.intent())) {
+            throw new IllegalStateException("Pending action intent does not match confirmation");
+        }
+    }
+
+    private static String decisionIdempotencyKey(String conversationId, String messageKey) {
+        return "assistant-decision-" + digest(conversationId + ":" + messageKey).substring(0, 48);
+    }
+
+    private record PendingActionState(
+            Optional<AssistantPendingAction> activeAction,
+            Optional<AssistantPendingAction> staleAction,
+            Optional<AgentRun> currentRun) {
+
+        private PendingActionState {
+            activeAction = activeAction == null ? Optional.empty() : activeAction;
+            staleAction = staleAction == null ? Optional.empty() : staleAction;
+            currentRun = currentRun == null ? Optional.empty() : currentRun;
+        }
+
+        private boolean wasReconciled() {
+            return staleAction.isPresent();
+        }
+    }
+
+    private static String menuPublishMessage(AgentRun run, String menuId) {
+        if (run.status() == RunStatus.SUCCEEDED) {
+            return "已完成菜单发布：" + menuId + "。";
+        }
+        if (run.status() == RunStatus.RECONCILIATION_REQUIRED) {
+            return "菜单发布结果未知，需要人工对账：" + menuId + "。";
+        }
+        return "菜单发布未完成，请查看运行状态后重试或人工处理：" + menuId + "。";
+    }
+
+    private String writeJson(Object value) {
+        try {
+            return objectMapper.writeValueAsString(value);
+        } catch (JsonProcessingException exception) {
+            throw new IllegalStateException("Unable to serialize assistant action input", exception);
+        }
     }
 
     private AssistantTurn executeTraceability(

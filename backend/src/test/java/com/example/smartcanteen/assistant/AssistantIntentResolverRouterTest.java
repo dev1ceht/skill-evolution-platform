@@ -72,4 +72,33 @@ class AssistantIntentResolverRouterTest {
         assertThat(result.type()).isEqualTo(AssistantResolution.Type.UNSUPPORTED);
         verify(model, never()).resolve("帮我安排明天的采购", Optional.empty());
     }
+
+    @Test
+    void rejects_model_output_that_requests_a_write_action() {
+        RuleBasedAssistantIntentResolver rules = new RuleBasedAssistantIntentResolver();
+        AssistantModelResolver model = mock(AssistantModelResolver.class);
+        when(model.resolve("帮我处理这个事项", Optional.empty()))
+                .thenReturn(Optional.of(AssistantResolution.menuPublish("MENU-001")));
+        AssistantIntentResolverRouter router = new AssistantIntentResolverRouter(
+                rules, model, true);
+
+        AssistantResolution result = router.resolve("帮我处理这个事项");
+
+        assertThat(result.type()).isEqualTo(AssistantResolution.Type.UNSUPPORTED);
+    }
+
+    @Test
+    void rejects_model_clarification_that_would_lead_to_a_write_action() {
+        RuleBasedAssistantIntentResolver rules = new RuleBasedAssistantIntentResolver();
+        AssistantModelResolver model = mock(AssistantModelResolver.class);
+        when(model.resolve("帮我处理这个事项", Optional.empty()))
+                .thenReturn(Optional.of(AssistantResolution.clarificationFor(
+                        "menu.publish", "请提供菜单 ID", "menuId")));
+        AssistantIntentResolverRouter router = new AssistantIntentResolverRouter(
+                rules, model, true);
+
+        AssistantResolution result = router.resolve("帮我处理这个事项");
+
+        assertThat(result.type()).isEqualTo(AssistantResolution.Type.UNSUPPORTED);
+    }
 }

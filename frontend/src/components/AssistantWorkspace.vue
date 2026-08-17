@@ -66,7 +66,8 @@ function resultSummary(turn: AssistantTurn): string {
     supplier && `供应商 ${supplier}`,
     menuDate && `日期 ${menuDate}`,
     mealTime && `餐次 ${mealTime}`,
-    menuStatus && turn.intent === 'menu.query' && `状态 ${menuStatus}`,
+    menuStatus && (turn.intent === 'menu.query' || turn.intent === 'menu.publish')
+      && `状态 ${menuStatus}`,
     menuItems,
   ]
     .filter(Boolean)
@@ -137,16 +138,16 @@ async function send(): Promise<void> {
   <section class="assistant" data-testid="assistant-workspace">
     <div class="heading">
       <div>
-        <p class="eyebrow">ASSISTANT PILOT · READ ONLY</p>
+        <p class="eyebrow">ASSISTANT PILOT · GUARDED ACTIONS</p>
         <h2>智能业务助手</h2>
-        <p class="description">支持食品溯源和日菜单只读查询。助手会识别意图、补齐必要信息，并关联可审计的 Agent Run。</p>
+        <p class="description">支持食品溯源、日菜单查询和菜单发布预览。发布必须经过 Agent Run 确认、领域审批和版本校验。</p>
       </div>
       <span class="scope">{{ scope.schoolId }} · {{ scope.canteenId }}</span>
     </div>
 
     <div class="messages" aria-live="polite">
       <p v-if="!messages.length" class="empty" data-testid="assistant-empty">
-        试试：查询 TRACE-001 的食品溯源，或查询 MENU-001 的菜单
+        试试：查询 TRACE-001 的食品溯源、查询 MENU-001 的菜单，或发布 MENU-001
       </p>
       <article
         v-for="item in messages"
@@ -175,7 +176,7 @@ async function send(): Promise<void> {
           v-model="message"
           rows="2"
           maxlength="2000"
-          placeholder="例如：查询 TRACE-001 的食品溯源"
+          placeholder="例如：查询 TRACE-001 的食品溯源，或发布 MENU-001"
           :disabled="loading"
         />
         <button type="submit" :disabled="loading">

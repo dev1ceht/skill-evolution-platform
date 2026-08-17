@@ -55,7 +55,7 @@ paths:
               $ref: '#/components/schemas/AssistantMessageRequest'
       responses:
         '200':
-          description: 助手澄清、未支持提示或只读业务结果
+          description: 助手澄清、未支持提示、只读业务结果，或带 Agent Run 计划的菜单发布确认/取消结果
           content:
             application/json:
               schema:
@@ -2734,6 +2734,7 @@ components:
         menuId: { type: string, minLength: 1, maxLength: 64 }
     AssistantTurn:
       type: object
+      description: 助手响应；菜单发布写入必须先返回确认计划，之后仅由明确确认或取消推进 Agent Run。
       required: [conversationId, turnId, sequence, kind, message, missingFields, createdAt]
       properties:
         conversationId: { type: string }
@@ -2741,7 +2742,7 @@ components:
         sequence: { type: integer, format: int64, minimum: 1 }
         kind:
           type: string
-          enum: [CLARIFICATION, UNSUPPORTED, RESULT]
+          enum: [CLARIFICATION, UNSUPPORTED, RESULT, CONFIRMATION_REQUIRED]
         message: { type: string }
         intent: { type: string, nullable: true }
         runId: { type: string, nullable: true }

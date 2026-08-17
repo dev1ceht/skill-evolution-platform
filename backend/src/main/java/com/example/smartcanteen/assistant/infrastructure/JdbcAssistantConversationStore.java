@@ -3,6 +3,7 @@ package com.example.smartcanteen.assistant.infrastructure;
 import com.example.smartcanteen.agent.domain.ExecutionContext;
 import com.example.smartcanteen.assistant.domain.AssistantClarification;
 import com.example.smartcanteen.assistant.domain.AssistantConversation;
+import com.example.smartcanteen.assistant.domain.AssistantPendingAction;
 import com.example.smartcanteen.assistant.port.AssistantConversationStore;
 import com.example.smartcanteen.domain.CanteenScope;
 import com.example.smartcanteen.security.ForbiddenException;
@@ -224,6 +225,72 @@ public class JdbcAssistantConversationStore implements AssistantConversationStor
                 conversationId);
     }
 
+    @Override
+    public Optional<AssistantPendingAction> findPendingAction(String conversationId) {
+        return jdbc.query(
+                        "SELECT conversation_id, intent, run_id, run_version, menu_id, "
+                                + "menu_version, plan_hash, created_at, updated_at "
+                                + "FROM assistant_pending_actions WHERE conversation_id = ?",
+                        this::mapPendingAction,
+                        conversationId)
+                .stream()
+                .findFirst();
+    }
+
+    @Override
+    public void savePendingAction(AssistantPendingAction action) {
+        int updated = jdbc.update(
+                "UPDATE assistant_pending_actions SET intent = ?, run_id = ?, run_version = ?, "
+                        + "menu_id = ?, menu_version = ?, plan_hash = ?, updated_at = ? "
+                        + "WHERE conversation_id = ?",
+                action.intent(),
+                action.runId(),
+                action.runVersion(),
+                action.menuId(),
+                action.menuVersion(),
+                action.planHash(),
+                Timestamp.from(action.updatedAt()),
+                action.conversationId());
+        if (updated > 0) {
+            return;
+        }
+        try {
+            jdbc.update(
+                    "INSERT INTO assistant_pending_actions (conversation_id, intent, run_id, "
+                            + "run_version, menu_id, menu_version, plan_hash, created_at, updated_at) "
+                            + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    action.conversationId(),
+                    action.intent(),
+                    action.runId(),
+                    action.runVersion(),
+                    action.menuId(),
+                    action.menuVersion(),
+                    action.planHash(),
+                    Timestamp.from(action.createdAt()),
+                    Timestamp.from(action.updatedAt()));
+        } catch (DuplicateKeyException duplicate) {
+            jdbc.update(
+                    "UPDATE assistant_pending_actions SET intent = ?, run_id = ?, run_version = ?, "
+                            + "menu_id = ?, menu_version = ?, plan_hash = ?, updated_at = ? "
+                            + "WHERE conversation_id = ?",
+                    action.intent(),
+                    action.runId(),
+                    action.runVersion(),
+                    action.menuId(),
+                    action.menuVersion(),
+                    action.planHash(),
+                    Timestamp.from(action.updatedAt()),
+                    action.conversationId());
+        }
+    }
+
+    @Override
+    public void clearPendingAction(String conversationId) {
+        jdbc.update(
+                "DELETE FROM assistant_pending_actions WHERE conversation_id = ?",
+                conversationId);
+    }
+
     private AssistantConversation mapConversation(ResultSet result, int row) throws SQLException {
         return new AssistantConversation(
                 result.getString("conversation_id"),
@@ -258,6 +325,20 @@ public class JdbcAssistantConversationStore implements AssistantConversationStor
                 result.getString("intent"),
                 result.getString("original_message"),
                 Arrays.stream(result.getString("missing_fields").split(",", -1)).toList(),
+                result.getTimestamp("created_at").toInstant(),
+                result.getTimestamp("updated_at").toInstant());
+    }
+
+    private AssistantPendingAction mapPendingAction(ResultSet result, int row)
+            throws SQLException {
+        return new AssistantPendingAction(
+                result.getString("conversation_id"),
+                result.getString("intent"),
+                result.getString("run_id"),
+                result.getLong("run_version"),
+                result.getString("menu_id"),
+                result.getLong("menu_version"),
+                result.getString("plan_hash"),
                 result.getTimestamp("created_at").toInstant(),
                 result.getTimestamp("updated_at").toInstant());
     }

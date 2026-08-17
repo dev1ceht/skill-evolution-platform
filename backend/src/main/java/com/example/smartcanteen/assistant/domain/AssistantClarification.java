@@ -16,7 +16,9 @@ public record AssistantClarification(
     public AssistantClarification {
         requireText("conversationId", conversationId, 64);
         requireText("intent", intent, 128);
-        if (!intent.equals("traceability.query") && !intent.equals("menu.query")) {
+        if (!intent.equals("traceability.query")
+                && !intent.equals("menu.query")
+                && !intent.equals("menu.publish")) {
             throw new IllegalArgumentException("Unsupported clarification intent: " + intent);
         }
         requireText("originalMessage", originalMessage, 2000);

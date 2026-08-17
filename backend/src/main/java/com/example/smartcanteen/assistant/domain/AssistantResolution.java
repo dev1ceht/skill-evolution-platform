@@ -15,6 +15,9 @@ public record AssistantResolution(
     public enum Type {
         TRACEABILITY_QUERY,
         MENU_QUERY,
+        MENU_PUBLISH_REQUEST,
+        CONFIRM_PENDING_ACTION,
+        CANCEL_PENDING_ACTION,
         CLARIFICATION,
         UNSUPPORTED
     }
@@ -44,12 +47,33 @@ public record AssistantResolution(
             if (traceCode != null) {
                 throw new IllegalArgumentException("Menu resolution cannot contain traceCode");
             }
+        } else if (type == Type.MENU_PUBLISH_REQUEST) {
+            if (!"menu.publish".equals(intent)) {
+                throw new IllegalArgumentException(
+                        "Menu publish resolution must select menu.publish");
+            }
+            if (menuId == null || menuId.isBlank()) {
+                throw new IllegalArgumentException("Menu publish resolution requires menuId");
+            }
+            if (traceCode != null) {
+                throw new IllegalArgumentException("Menu publish resolution cannot contain traceCode");
+            }
+        } else if (type == Type.CONFIRM_PENDING_ACTION || type == Type.CANCEL_PENDING_ACTION) {
+            if (!"menu.publish".equals(intent)) {
+                throw new IllegalArgumentException(
+                        "Pending action resolution must select menu.publish");
+            }
+            if (traceCode != null || menuId != null) {
+                throw new IllegalArgumentException(
+                        "Pending action resolution cannot contain a resource identifier");
+            }
         } else if (traceCode != null || menuId != null) {
             throw new IllegalArgumentException(
                     "Only business resolutions may contain a resource identifier");
         } else if (intent != null
                 && !intent.equals("traceability.query")
-                && !intent.equals("menu.query")) {
+                && !intent.equals("menu.query")
+                && !intent.equals("menu.publish")) {
             throw new IllegalArgumentException("Unsupported clarification intent: " + intent);
         }
     }
@@ -72,6 +96,36 @@ public record AssistantResolution(
                 menuId,
                 List.of(),
                 "已识别为日菜单查询。");
+    }
+
+    public static AssistantResolution menuPublish(String menuId) {
+        return new AssistantResolution(
+                Type.MENU_PUBLISH_REQUEST,
+                "menu.publish",
+                null,
+                menuId,
+                List.of(),
+                "已识别为菜单发布请求。");
+    }
+
+    public static AssistantResolution confirmPendingAction(String intent) {
+        return new AssistantResolution(
+                Type.CONFIRM_PENDING_ACTION,
+                intent,
+                null,
+                null,
+                List.of(),
+                "已确认执行待处理操作。");
+    }
+
+    public static AssistantResolution cancelPendingAction(String intent) {
+        return new AssistantResolution(
+                Type.CANCEL_PENDING_ACTION,
+                intent,
+                null,
+                null,
+                List.of(),
+                "已取消待处理操作。");
     }
 
     public static AssistantResolution clarification(String message, String... missingFields) {

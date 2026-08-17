@@ -14,6 +14,7 @@ import com.example.smartcanteen.agent.application.AgentRuntime;
 import com.example.smartcanteen.agent.domain.ExecutionContext;
 import com.example.smartcanteen.agent.port.SkillRegistry;
 import com.example.smartcanteen.application.BusinessAuthorizationPolicy;
+import com.example.smartcanteen.application.DailyMenuService;
 import com.example.smartcanteen.assistant.application.AssistantConversationService;
 import com.example.smartcanteen.assistant.application.RuleBasedAssistantIntentResolver;
 import com.example.smartcanteen.assistant.domain.AssistantConversation;
@@ -63,6 +64,7 @@ class AssistantConversationServiceTest {
                 execution,
                 skills,
                 policy,
+                mock(DailyMenuService.class),
                 new ObjectMapper().findAndRegisterModules(),
                 Clock.fixed(NOW, ZoneOffset.UTC));
 
@@ -106,6 +108,7 @@ class AssistantConversationServiceTest {
                 execution,
                 skills,
                 policy,
+                mock(DailyMenuService.class),
                 new ObjectMapper().findAndRegisterModules(),
                 Clock.fixed(NOW, ZoneOffset.UTC));
 

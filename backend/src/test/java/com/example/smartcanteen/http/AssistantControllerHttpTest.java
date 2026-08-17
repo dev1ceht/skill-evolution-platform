@@ -41,6 +41,7 @@ class AssistantControllerHttpTest {
 
     @BeforeEach
     void seedTraceabilityRecord() {
+        jdbc.update("DELETE FROM assistant_pending_actions");
         jdbc.update("DELETE FROM assistant_clarifications");
         jdbc.update("DELETE FROM assistant_turns");
         jdbc.update("DELETE FROM assistant_conversations");
@@ -52,6 +53,8 @@ class AssistantControllerHttpTest {
         jdbc.update("DELETE FROM inventory_batches WHERE school_id = ?", SCHOOL_ID);
         jdbc.update("DELETE FROM ingredients WHERE school_id = ?", SCHOOL_ID);
         jdbc.update("DELETE FROM suppliers WHERE school_id = ?", SCHOOL_ID);
+        jdbc.update("DELETE FROM daily_menu_items WHERE school_id = ?", SCHOOL_ID);
+        jdbc.update("DELETE FROM daily_menus WHERE school_id = ?", SCHOOL_ID);
         jdbc.update(
                 "INSERT INTO ingredients (school_id, canteen_id, ingredient_id, name, category, "
                         + "base_unit) VALUES (?, ?, ?, ?, ?, ?)",
@@ -219,6 +222,128 @@ class AssistantControllerHttpTest {
                 .andExpect(jsonPath("$.data.result.id").value("MENU-ASSIST-001"))
                 .andExpect(jsonPath("$.data.result.status").value("PUBLISHED"))
                 .andExpect(jsonPath("$.data.result.items[0].dishId").value("DISH-ASSIST-001"));
+    }
+
+    @Test
+    void previews_and_confirms_a_menu_publish_without_bypassing_domain_approval() throws Exception {
+        jdbc.update(
+                "INSERT INTO daily_menus (school_id, canteen_id, menu_id, menu_date, meal_time, "
+                        + "status, version, submitted_by, decision_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                SCHOOL_ID, CANTEEN_ID, "MENU-ASSIST-PUBLISH", "2026-08-18", "LUNCH",
+                "APPROVED", 3, "USER-SUBMITTER", "USER-APPROVER");
+        jdbc.update(
+                "INSERT INTO daily_menu_items (school_id, canteen_id, menu_id, dish_id, "
+                        + "estimated_quantity, sort_order) VALUES (?, ?, ?, ?, ?, ?)",
+                SCHOOL_ID, CANTEEN_ID, "MENU-ASSIST-PUBLISH", "DISH-ASSIST-001", 120, 1);
+
+        mvc.perform(message("publish-preview", "请发布 MENU-ASSIST-PUBLISH", "CONV-ASSIST-PUBLISH"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.kind").value("CONFIRMATION_REQUIRED"))
+                .andExpect(jsonPath("$.data.intent").value("menu.publish"))
+                .andExpect(jsonPath("$.data.runStatus").value("WAITING_CONFIRMATION"))
+                .andExpect(jsonPath("$.data.result.businessParameters.menuId")
+                        .value("MENU-ASSIST-PUBLISH"));
+        assertEquals(
+                "WAITING_CONFIRMATION",
+                jdbc.queryForObject(
+                        "SELECT status FROM assistant_conversations WHERE conversation_id = ?",
+                        String.class,
+                        "CONV-ASSIST-PUBLISH"));
+        assertEquals(
+                "APPROVED",
+                jdbc.queryForObject(
+                        "SELECT status FROM daily_menus WHERE school_id = ? AND canteen_id = ? "
+                        + "AND menu_id = ?",
+                        String.class,
+                        SCHOOL_ID, CANTEEN_ID, "MENU-ASSIST-PUBLISH"));
+
+        mvc.perform(message("publish-unrelated", "查询 TRACE-ASSIST-001", "CONV-ASSIST-PUBLISH"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.kind").value("CONFIRMATION_REQUIRED"))
+                .andExpect(jsonPath("$.data.intent").value("menu.publish"))
+                .andExpect(jsonPath("$.data.runStatus").value("WAITING_CONFIRMATION"));
+
+        mvc.perform(message("publish-replan", "请发布 MENU-OTHER", "CONV-ASSIST-PUBLISH"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.kind").value("CONFIRMATION_REQUIRED"))
+                .andExpect(jsonPath("$.data.intent").value("menu.publish"))
+                .andExpect(jsonPath("$.data.runStatus").value("WAITING_CONFIRMATION"));
+        assertEquals(
+                1,
+                jdbc.queryForObject(
+                        "SELECT COUNT(*) FROM assistant_pending_actions WHERE conversation_id = ?",
+                        Integer.class,
+                        "CONV-ASSIST-PUBLISH"));
+        assertEquals(
+                1,
+                jdbc.queryForObject(
+                        "SELECT COUNT(*) FROM agent_runs WHERE intent = 'menu.publish'",
+                        Integer.class));
+
+        mvc.perform(message("publish-confirm", "确认发布", "CONV-ASSIST-PUBLISH"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.kind").value("RESULT"))
+                .andExpect(jsonPath("$.data.intent").value("menu.publish"))
+                .andExpect(jsonPath("$.data.runStatus").value("SUCCEEDED"))
+                .andExpect(jsonPath("$.data.result.status").value("PUBLISHED"));
+        assertEquals(
+                "ACTIVE",
+                jdbc.queryForObject(
+                        "SELECT status FROM assistant_conversations WHERE conversation_id = ?",
+                        String.class,
+                        "CONV-ASSIST-PUBLISH"));
+    }
+
+    @Test
+    void reconciles_a_pending_action_after_the_agent_run_is_cancelled_elsewhere() throws Exception {
+        jdbc.update(
+                "INSERT INTO daily_menus (school_id, canteen_id, menu_id, menu_date, meal_time, "
+                        + "status, version, submitted_by, decision_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                SCHOOL_ID, CANTEEN_ID, "MENU-ASSIST-EXTERNAL-CANCEL", "2026-08-19", "LUNCH",
+                "APPROVED", 1, "USER-SUBMITTER", "USER-APPROVER");
+        String preview = mvc.perform(message(
+                        "external-cancel-preview",
+                        "请发布 MENU-ASSIST-EXTERNAL-CANCEL",
+                        "CONV-ASSIST-EXTERNAL-CANCEL"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.kind").value("CONFIRMATION_REQUIRED"))
+                .andReturn().getResponse().getContentAsString();
+        String runId = com.jayway.jsonpath.JsonPath.read(preview, "$.data.runId");
+        long runVersion = jdbc.queryForObject(
+                "SELECT version FROM agent_runs WHERE run_id = ?", Long.class, runId);
+
+        mvc.perform(post("/api/v1/agent/runs/{runId}/cancel", runId)
+                        .queryParam("schoolId", SCHOOL_ID)
+                        .queryParam("canteenId", CANTEEN_ID)
+                        .header("Idempotency-Key", "external-cancel-decision")
+                        .header("X-Request-Id", "external-cancel-request")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"version\":" + runVersion + "}")
+                        .requestAttr(AuthPrincipal.class.getName(), PRINCIPAL))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("CANCELLED"));
+
+        mvc.perform(message(
+                        "external-cancel-confirm",
+                        "确认发布",
+                        "CONV-ASSIST-EXTERNAL-CANCEL"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.kind").value("RESULT"))
+                .andExpect(jsonPath("$.data.runStatus").value("CANCELLED"))
+                .andExpect(jsonPath("$.data.message").value(
+                        org.hamcrest.Matchers.containsString("其他入口")));
+        assertEquals(
+                0,
+                jdbc.queryForObject(
+                        "SELECT COUNT(*) FROM assistant_pending_actions WHERE conversation_id = ?",
+                        Integer.class,
+                        "CONV-ASSIST-EXTERNAL-CANCEL"));
+        assertEquals(
+                "ACTIVE",
+                jdbc.queryForObject(
+                        "SELECT status FROM assistant_conversations WHERE conversation_id = ?",
+                        String.class,
+                        "CONV-ASSIST-EXTERNAL-CANCEL"));
     }
 
     @Test
