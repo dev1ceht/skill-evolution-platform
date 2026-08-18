@@ -27,6 +27,9 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 class AgentRunWorkerTest {
@@ -42,6 +45,11 @@ class AgentRunWorkerTest {
             "SCHOOL-001", "CANTEEN-001");
     private final ExecutionContext context = ExecutionContext.fromTrustedPrincipal(
             "request-001", principal, scope, Set.of(Role.CANTEEN_STAFF), Set.of());
+
+    @AfterEach
+    void shutdownWorkerHeartbeatExecutor() {
+        worker.shutdown();
+    }
 
     @Test
     void claims_loads_executes_and_releases_in_one_worker_lifecycle() {
@@ -88,6 +96,33 @@ class AgentRunWorkerTest {
         assertThat(runs.released).isSameAs(claim);
     }
 
+    @Test
+    void renews_the_claim_while_tool_execution_is_still_running() throws Exception {
+        AgentRun planned = plannedRun();
+        AgentRunClaim claim = claim();
+        AgentRunStoreFake heartbeatRuns = new AgentRunStoreFake();
+        heartbeatRuns.claim = Optional.of(claim);
+        heartbeatRuns.run = Optional.of(planned);
+        AgentRunWorker heartbeatWorker = new AgentRunWorker(
+                heartbeatRuns,
+                execution,
+                Duration.ofMillis(120),
+                Duration.ofMillis(20));
+        try {
+            when(execution.validateExecutable(planned, context)).thenReturn(planned);
+            when(execution.executeClaimed(planned, context, claim)).thenAnswer(invocation -> {
+                assertThat(heartbeatRuns.renewalObserved.await(1, TimeUnit.SECONDS)).isTrue();
+                return planned;
+            });
+
+            assertThat(heartbeatWorker.claimAndExecute("RUN-001", "worker-001", context))
+                    .isSameAs(planned);
+            assertThat(heartbeatRuns.renewals).isGreaterThan(0);
+        } finally {
+            heartbeatWorker.shutdown();
+        }
+    }
+
     private AgentRun plannedRun() {
         return new AgentRun(
                 "RUN-001", "agent-001", "f".repeat(64), "USER-001", "operator", scope,
@@ -106,6 +141,8 @@ class AgentRunWorkerTest {
         private Optional<AgentRun> run = Optional.empty();
         private String claimRequestedWith;
         private AgentRunClaim released;
+        private int renewals;
+        private final CountDownLatch renewalObserved = new CountDownLatch(1);
 
         @Override
         public boolean supportsExecutionClaims() {
@@ -117,6 +154,13 @@ class AgentRunWorkerTest {
                 String runId, String ownerId, Duration leaseDuration) {
             claimRequestedWith = ownerId;
             return claim;
+        }
+
+        @Override
+        public boolean renewExecutionClaim(AgentRunClaim claim, Duration leaseDuration) {
+            renewals++;
+            renewalObserved.countDown();
+            return true;
         }
 
         @Override

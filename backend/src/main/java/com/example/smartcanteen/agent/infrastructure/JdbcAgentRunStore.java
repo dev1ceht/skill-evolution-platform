@@ -14,9 +14,11 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -286,12 +288,103 @@ public class JdbcAgentRunStore implements AgentRunStore {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<AgentRun> findPlanned(int limit) {
+        int safeLimit = Math.max(1, Math.min(limit, 100));
+        return jdbc.query(
+                "SELECT * FROM agent_runs WHERE status = 'PLANNED' "
+                        + "ORDER BY updated_at, run_id LIMIT ?",
+                this::map,
+                safeLimit);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AgentRun> findPlanned(int limit, Set<CanteenScope> scopes) {
+        int safeLimit = Math.max(1, Math.min(limit, 100));
+        List<Object> parameters = new ArrayList<>();
+        String scopeFilter = scopeFilter("", scopes, parameters);
+        if (scopeFilter == null) {
+            return List.of();
+        }
+        String sql = "SELECT * FROM agent_runs WHERE status = 'PLANNED' "
+                + "AND (" + scopeFilter + ") "
+                + "ORDER BY updated_at, run_id LIMIT ?";
+        parameters.add(safeLimit);
+        return jdbc.query(sql, this::map, parameters.toArray());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<AgentRun> findStaleExecuting(Instant cutoff) {
         return jdbc.query(
-                "SELECT * FROM agent_runs WHERE status = 'EXECUTING' AND updated_at < ? "
-                        + "ORDER BY updated_at, run_id",
+                "SELECT r.* FROM agent_runs r "
+                        + "LEFT JOIN agent_run_claims c ON c.run_id = r.run_id "
+                        + "WHERE r.status = 'EXECUTING' AND r.updated_at < ? "
+                        + "AND (c.run_id IS NULL OR c.expires_at <= CURRENT_TIMESTAMP) "
+                        + "ORDER BY r.updated_at, r.run_id",
                 this::map,
                 Timestamp.from(cutoff));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AgentRun> findStaleExecuting(Instant cutoff, int limit) {
+        int safeLimit = Math.max(1, Math.min(limit, 100));
+        return jdbc.query(
+                "SELECT r.* FROM agent_runs r "
+                        + "LEFT JOIN agent_run_claims c ON c.run_id = r.run_id "
+                        + "WHERE r.status = 'EXECUTING' AND r.updated_at < ? "
+                        + "AND (c.run_id IS NULL OR c.expires_at <= CURRENT_TIMESTAMP) "
+                        + "ORDER BY r.updated_at, r.run_id LIMIT ?",
+                this::map,
+                Timestamp.from(cutoff),
+                safeLimit);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AgentRun> findStaleExecuting(
+            Instant cutoff, int limit, Set<CanteenScope> scopes) {
+        int safeLimit = Math.max(1, Math.min(limit, 100));
+        List<Object> parameters = new ArrayList<>();
+        String scopeFilter = scopeFilter("r", scopes, parameters);
+        if (scopeFilter == null) {
+            return List.of();
+        }
+        String sql = "SELECT r.* FROM agent_runs r "
+                + "LEFT JOIN agent_run_claims c ON c.run_id = r.run_id "
+                + "WHERE r.status = 'EXECUTING' AND r.updated_at < ? "
+                + "AND (c.run_id IS NULL OR c.expires_at <= CURRENT_TIMESTAMP) "
+                + "AND (" + scopeFilter + ") "
+                + "ORDER BY r.updated_at, r.run_id LIMIT ?";
+        parameters.add(0, Timestamp.from(cutoff));
+        parameters.add(safeLimit);
+        return jdbc.query(sql, this::map, parameters.toArray());
+    }
+
+    @Override
+    @Transactional
+    public boolean confirmStaleExecution(String runId, long expectedVersion) {
+        Optional<RunState> run = jdbc.query(
+                        "SELECT status, version FROM agent_runs WHERE run_id = ? FOR UPDATE",
+                        (result, row) -> new RunState(
+                                result.getString("status"), result.getLong("version")),
+                        runId)
+                .stream()
+                .findFirst();
+        if (run.isEmpty()
+                || run.get().version() != expectedVersion
+                || !"EXECUTING".equals(run.get().status())) {
+            return false;
+        }
+        Optional<Instant> expiresAt = jdbc.query(
+                        "SELECT expires_at FROM agent_run_claims WHERE run_id = ? FOR UPDATE",
+                        (result, row) -> result.getTimestamp("expires_at").toInstant(),
+                        runId)
+                .stream()
+                .findFirst();
+        return expiresAt.isEmpty() || !expiresAt.get().isAfter(databaseNow());
     }
 
     @Override
@@ -481,6 +574,24 @@ public class JdbcAgentRunStore implements AgentRunStore {
                 result.getString("claim_token"),
                 result.getTimestamp("claimed_at").toInstant(),
                 result.getTimestamp("expires_at").toInstant());
+    }
+
+    private static String scopeFilter(
+            String alias, Set<CanteenScope> scopes, List<Object> parameters) {
+        if (scopes == null || scopes.isEmpty()) {
+            return null;
+        }
+        String prefix = alias == null || alias.isBlank() ? "" : alias + ".";
+        return scopes.stream()
+                .map(scope -> {
+                    parameters.add(scope.schoolId());
+                    parameters.add(scope.canteenId());
+                    return prefix + "school_id = ? AND " + prefix + "canteen_id = ?";
+                })
+                .collect(java.util.stream.Collectors.joining(" OR "));
+    }
+
+    private record RunState(String status, long version) {
     }
 
     private void requireClaim(AgentRunClaim claim) {

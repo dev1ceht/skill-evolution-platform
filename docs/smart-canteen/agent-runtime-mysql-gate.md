@@ -26,9 +26,10 @@
 - 同一幂等键携带不同输入时拒绝；
 - 两个 MySQL worker 并发 claim 同一个 `PLANNED` Run 时只有一个获得租约；
 - 租约过期后可由新 worker 接管，旧 worker 的 token 不能续租；
+- `EXECUTING` Run 的 stale 扫描排除仍有有效 claim 的 Run，并在 claim 过期后返回待对账 Run；
 - 关闭并重新启动 Spring 上下文后，Run、Step/Event 证据仍可读取；
 - V20 claim 表迁移在真实 MySQL 8 上完成，且测试数据库不会污染默认业务库。
 
 验证证据写入 `outputs/verification/smart-canteen-mysql-workflow-latest.json`，其中记录 MySQL 镜像、Flyway 版本、测试类和清单。
 
-2026-08-18 已在 MySQL 8.4.11 隔离数据库上重新通过该门禁，数据库完成 schema migration V20（Flyway 11.20.3）后自动删除测试库；交付后仍需在 CI 中持续执行以防止回归。
+2026-08-18 已在 MySQL 8.4.11 隔离数据库上重新通过该门禁，数据库完成 schema migration V20（Flyway 11.20.3）后自动删除测试库；本次还覆盖 active claim 排除、过期 claim stale 扫描和恢复前 active/expired/version 复核栅栏，交付后仍需在 CI 中持续执行以防止回归。

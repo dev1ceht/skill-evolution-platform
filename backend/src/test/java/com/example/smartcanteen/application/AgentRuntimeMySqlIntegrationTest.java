@@ -178,6 +178,44 @@ class AgentRuntimeMySqlIntegrationTest {
             assertThat(runs.renewExecutionClaim(
                     replacement, Duration.ofSeconds(30))).isTrue();
             assertThat(runs.releaseExecutionClaim(replacement)).isTrue();
+
+            StartRunCommand staleCommand = new StartRunCommand(
+                    "agent-mysql-request-stale-claim",
+                    command.intent(),
+                    "{\"traceCode\":\"TRACE-MYSQL-AGENT-STALE-CLAIM\"}",
+                    "agent-mysql-stale-claim");
+            AgentRun stalePlanned = runtime.start(
+                    staleCommand, context(staleCommand.requestId()));
+            AgentRunClaim staleClaim = runs.claimExecution(
+                            stalePlanned.runId(),
+                            "mysql-claim-stale-scan",
+                            Duration.ofSeconds(30))
+                    .orElseThrow();
+            AgentRun staleExecuting = stalePlanned.withStatus(
+                    com.example.smartcanteen.agent.domain.RunStatus.EXECUTING,
+                    "step-1",
+                    Instant.now().minusSeconds(300));
+            runs.updateClaimed(stalePlanned, staleExecuting, staleClaim);
+            assertThat(runs.findStaleExecuting(Instant.now().minusSeconds(60), 10))
+                    .extracting(AgentRun::runId)
+                    .doesNotContain(stalePlanned.runId());
+            assertThat(runs.confirmStaleExecution(
+                    stalePlanned.runId(), staleExecuting.version())).isFalse();
+
+            Instant expiredClaimedAt = Instant.now().minusSeconds(60);
+            jdbc.update(
+                    "UPDATE agent_run_claims SET claimed_at = ?, expires_at = ? WHERE run_id = ?",
+                    Timestamp.from(expiredClaimedAt),
+                    Timestamp.from(expiredClaimedAt.plusSeconds(1)),
+                    stalePlanned.runId());
+            assertThat(runs.findStaleExecuting(Instant.now().minusSeconds(60), 10))
+                    .extracting(AgentRun::runId)
+                    .contains(stalePlanned.runId());
+            assertThat(runs.confirmStaleExecution(
+                    stalePlanned.runId(), staleExecuting.version())).isTrue();
+            assertThat(runs.confirmStaleExecution(
+                    stalePlanned.runId(), staleExecuting.version() + 1)).isFalse();
+            assertThat(runs.releaseExecutionClaim(staleClaim)).isTrue();
         }
 
         try (ConfigurableApplicationContext second = start()) {

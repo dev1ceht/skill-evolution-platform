@@ -1,6 +1,6 @@
 {
   "phase": "agent-runtime-phases-4-6",
-  "captured_at": "2026-08-18T12:17:54+08:00",
+  "captured_at": "2026-08-18T14:02:45+08:00",
   "scope": "canonical daily-menu writes, runtime reliability hardening, and API/frontend pilot entry",
   "contract": {
     "operations": 116,
@@ -13,12 +13,12 @@
     {
       "command": "mvn --batch-mode test",
       "result": "passed",
-      "evidence": "158 tests, 0 failures, 0 errors; 2 environment-gated MySQL tests skipped in the default H2 run; both classes pass in the real MySQL gate"
+      "evidence": "171 tests, 0 failures, 0 errors; 2 environment-gated MySQL tests skipped in the default H2 run; both classes pass in the real MySQL gate"
     },
     {
       "command": "infra/verify-mysql-workflow.ps1",
       "result": "passed",
-      "evidence": "MySQL 8.4.11 isolated database passed SmartCanteenMySqlIntegrationTest and AgentRuntimeMySqlIntegrationTest; databaseRemoved=true"
+      "evidence": "MySQL 8.4.11 isolated database passed SmartCanteenMySqlIntegrationTest and AgentRuntimeMySqlIntegrationTest, including active-claim stale-scan exclusion and recovery re-check fencing; databaseRemoved=true"
     },
     {
       "command": "mvn --batch-mode -Dtest=AgentExecutionServiceTest,AgentControllerHttpTest,OperationalCoreHttpTest,ProcurementPlanClosedLoopHttpTest test",
@@ -29,6 +29,21 @@
       "command": "mvn --batch-mode -Dtest=AgentExecutionServiceTest,AgentRunWorkerTest test",
       "result": "passed",
       "evidence": "9 targeted tests passed; claimed execution uses fenced Run/Step/Event writes, AgentRunClaimLostException does not fall back to un-fenced writes, worker release runs on success and failure, and infrastructure release/audit writes have explicit transaction boundaries"
+    },
+    {
+      "command": "mvn --batch-mode -Dtest=AgentRunRecoveryServiceTest,AgentRunSchedulerTest,AgentRunWorkerTest,AgentRuntimePersistenceTest test",
+      "result": "passed",
+      "evidence": "15 targeted tests passed; heartbeat renews a live claim, stale recovery requires durable claims and explicit recovery evidence, the default-off scheduler rebuilds actor/scope context and continues after claim contention, and H2 verifies active-claim exclusion plus expired-claim recovery"
+    },
+    {
+      "command": "mvn --batch-mode -Dtest=AgentSchedulerRolloutPolicyTest,AgentRunRecoveryServiceTest,AgentRunSchedulerTest,AgentRuntimeTest test",
+      "result": "passed",
+      "evidence": "15 targeted tests passed; scheduler enablement requires an explicit canteen allowlist, recovery requires SYSTEM_ADMIN plus AGENT_RUN_RECOVER, and deterministic run/version recovery keys are recorded in events"
+    },
+    {
+      "command": "mvn --batch-mode -Dtest=AgentSchedulerRolloutPolicyTest,AgentRunRecoveryServiceTest,AgentRunSchedulerTest,AgentRuntimeTest,AgentRuntimePersistenceTest test",
+      "result": "passed",
+      "evidence": "22 targeted tests passed; recovery re-checks the locked Run/Claim fence before writing, and H2 verifies active claims are rejected while expired claims and exact versions are accepted; scoped polling filters before LIMIT"
     },
     {
       "command": "npm test -- --run",
@@ -56,7 +71,10 @@
     "separate RUN_CONFIRM/REJECT/CANCEL decisions from menu domain approval and submitter/approver/publisher separation",
     "menu.validate-for-submit, menu.submit, menu.record-decision and menu.publish Tool Catalog entries",
     "durable Run decisions/events, Step checkpoint, audit linkage, request-hash-bound replay, bounded read retry and deadline classification",
-    "claim-aware AgentRunWorker seam with transaction-suspended claim -> execute -> release lifecycle",
+    "claim-aware AgentRunWorker seam with transaction-suspended claim -> heartbeat -> execute -> release lifecycle",
+    "claim-aware stale-run scan/recovery and default-off single-instance PLANNED Run scheduler",
+    "scheduler rollout allowlist and fail-closed owner configuration",
+    "internal recovery authority and deterministic idempotency evidence",
     "resume/reconciliation API, replay-safe Agent decisions and versioned events contract",
     "frontend menu Agent confirmation workspace, domain-state lookup and generated API client updates",
     "scope-limited Agent Runtime metrics query and frontend dashboard"
@@ -64,7 +82,7 @@
   "known_limits": [
     "Real MySQL migration/concurrency and claim-lease foundation acceptance passed in the isolated gate; legacy menus compatibility migration is not yet closed.",
     "The 2026-08-18 isolated MySQL rerun passed the final database-clock/transaction-fencing hardening; CI should continue running the gate before production release.",
-    "Execution uses optimistic version authority and explicit resume/reconciliation; the claim-lease storage/fencing foundation and manual claim-aware worker seam are present, but a complete worker scheduler, heartbeat and automatic stale-run recovery are not yet enabled.",
+    "Execution uses optimistic version authority and explicit resume/reconciliation; claim lease, heartbeat, stale-run recovery and the default-off allowlisted scheduler seam are present, but production multi-instance gray rollout and kill-switch evidence are not complete.",
     "In-process deadline enforcement classifies completed late calls; JDBC query timeout and cancellation are still adapter-specific.",
     "Sensitive result reference storage, retention/cleanup jobs, complete worker claim scheduling, long-term metrics retention/alerts and production kill switch remain follow-up gates.",
     "Procurement, inventory and alert write Skills remain behind their domain-model and pilot gates."

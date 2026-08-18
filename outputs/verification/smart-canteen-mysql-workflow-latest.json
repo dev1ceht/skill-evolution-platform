@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "recordedAt": "2026-08-18T04:15:44.0083663Z",
+  "recordedAt": "2026-08-18T05:22:46.9159679Z",
   "result": "passed",
-  "database": "smart_canteen_it_c375bd52ced6",
+  "database": "smart_canteen_it_13ed84b6e627",
   "databaseRemoved": true,
   "mysqlImage": "smart-canteen/mysql:8.4.11",
   "flywayVersion": "11.20.3",
@@ -23,6 +23,8 @@
     "outer transaction rollback leaves no Agent Run or audit orphan",
     "same-key different-payload Agent request is rejected",
     "concurrent Agent workers obtain one execution claim",
-    "expired Agent claim can be replaced and the old token is fenced"
+    "expired Agent claim can be replaced and the old token is fenced",
+    "stale Agent Run scan excludes active claims and finds expired claims",
+    "stale Agent recovery re-check fences active claims and versions"
   ]
 }

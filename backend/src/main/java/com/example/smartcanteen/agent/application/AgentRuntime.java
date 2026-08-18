@@ -14,6 +14,8 @@ import com.example.smartcanteen.application.port.AuditStore;
 import com.example.smartcanteen.domain.AuditLog;
 import com.example.smartcanteen.agent.domain.SkillDefinition;
 import com.example.smartcanteen.domain.CanteenScope;
+import com.example.smartcanteen.security.ForbiddenException;
+import com.example.smartcanteen.security.Role;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -45,6 +47,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 public class AgentRuntime {
 
     private static final Logger log = LoggerFactory.getLogger(AgentRuntime.class);
+    public static final String AGENT_RUN_RECOVERY_PERMISSION = "AGENT_RUN_RECOVER";
 
     private final SkillRegistry skills;
     private final AgentRunStore runs;
@@ -322,6 +325,42 @@ public class AgentRuntime {
     @Transactional
     public AgentRun markReconciliationRequired(
             String runId, long expectedVersion, ExecutionContext context) {
+        return markReconciliationRequiredInternal(
+                runId,
+                expectedVersion,
+                context,
+                "agent-manual-recovery-" + runId + "-v" + expectedVersion);
+    }
+
+    /**
+     * Marks an interrupted Run from the internal stale-claim recovery path.
+     *
+     * <p>The deterministic idempotency key is retained in the event/audit evidence, while the
+     * expected version fences duplicate recovery attempts at the state transition boundary.
+     */
+    @Transactional
+    public AgentRun markReconciliationRequiredFromRecovery(
+            String runId,
+            long expectedVersion,
+            ExecutionContext context,
+            String idempotencyKey) {
+        requireRecoveryAuthority(context);
+        if (!runs.supportsExecutionClaims()
+                || !runs.confirmStaleExecution(runId, expectedVersion)) {
+            throw new IllegalStateException(
+                    "Agent Run claim is no longer stale or durable claim fencing is unavailable: "
+                            + runId);
+        }
+        return markReconciliationRequiredInternal(
+                runId, expectedVersion, context, idempotencyKey);
+    }
+
+    private AgentRun markReconciliationRequiredInternal(
+            String runId,
+            long expectedVersion,
+            ExecutionContext context,
+            String idempotencyKey) {
+        requireIdempotencyKey(idempotencyKey);
         AgentRun current = runs.findById(runId).orElseThrow(() ->
                 new AgentRunNotFoundException(runId));
         requireOwner(current, context);
@@ -352,9 +391,26 @@ public class AgentRuntime {
                 current.status().name(),
                 updated.status().name(),
                 context.actorUserId(),
-                updated.errorMessage());
-        appendAudit(updated, context, "AGENT_RUN_RECOVERY", "SUCCESS", updated.errorCode());
+                recoveryEvidence(updated.errorMessage(), idempotencyKey));
+        appendAudit(
+                updated,
+                context,
+                "AGENT_RUN_RECOVERY",
+                "SUCCESS",
+                recoveryEvidence(updated.errorCode(), idempotencyKey));
         return updated;
+    }
+
+    private static void requireRecoveryAuthority(ExecutionContext context) {
+        if (context == null
+                || !context.hasRole(Role.SYSTEM_ADMIN)
+                || !context.hasPermission(AGENT_RUN_RECOVERY_PERMISSION)) {
+            throw new ForbiddenException("Agent Run recovery permission is required");
+        }
+    }
+
+    private static String recoveryEvidence(String detail, String idempotencyKey) {
+        return detail + " (idempotencyKey=" + idempotencyKey + ")";
     }
 
     private static void requireOwner(AgentRun run, ExecutionContext context) {

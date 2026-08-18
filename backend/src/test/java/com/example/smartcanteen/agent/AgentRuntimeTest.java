@@ -6,6 +6,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.eq;
 
 import com.example.smartcanteen.agent.application.AgentRuntime;
 import com.example.smartcanteen.agent.domain.AgentRun;
@@ -166,6 +168,38 @@ class AgentRuntimeTest {
         assertThat(runtime.start(new StartRunCommand(
                 "request-001", "traceability.query", "{ \"traceCode\" : \"TRACE-001\" }", "agent-race"), context))
                 .isSameAs(first);
+    }
+
+    @Test
+    void internal_recovery_requires_authority_and_leaves_an_idempotency_marker() {
+        AgentRun executing = new AgentRun(
+                "RUN-RECOVERY-001", "agent-recovery-001", "f".repeat(64), "USER-001", "operator",
+                context.scope(), "traceability.query", traceability.id(), traceability.version(),
+                traceability.manifestDigest(), "p".repeat(64), "{}", "{}", RunStatus.EXECUTING,
+                "step-1", null, null, null, 2, NOW.minusSeconds(300), NOW.minusSeconds(180));
+        when(runs.findById(executing.runId())).thenReturn(Optional.of(executing));
+        when(runs.supportsExecutionClaims()).thenReturn(true);
+        when(runs.confirmStaleExecution(executing.runId(), executing.version())).thenReturn(true);
+        ExecutionContext recoveryContext = ExecutionContext.fromTrustedPrincipal(
+                "agent-recovery-request", principal, context.scope(), Set.of(Role.SYSTEM_ADMIN),
+                Set.of(AgentRuntime.AGENT_RUN_RECOVERY_PERMISSION));
+
+        AgentRun recovered = runtime.markReconciliationRequiredFromRecovery(
+                executing.runId(), executing.version(), recoveryContext,
+                "agent-recovery-RUN-RECOVERY-001-v2");
+
+        assertThat(recovered.status()).isEqualTo(RunStatus.RECONCILIATION_REQUIRED);
+        verify(runs).appendEvent(
+                eq(executing.runId()),
+                eq("RUN_RECONCILIATION_REQUIRED"),
+                eq("EXECUTING"),
+                eq("RECONCILIATION_REQUIRED"),
+                eq("USER-001"),
+                contains("agent-recovery-RUN-RECOVERY-001-v2"));
+        assertThatThrownBy(() -> runtime.markReconciliationRequiredFromRecovery(
+                executing.runId(), executing.version(), context,
+                "agent-recovery-RUN-RECOVERY-001-v2"))
+                .isInstanceOf(com.example.smartcanteen.security.ForbiddenException.class);
     }
 
     private static final class ListOf {

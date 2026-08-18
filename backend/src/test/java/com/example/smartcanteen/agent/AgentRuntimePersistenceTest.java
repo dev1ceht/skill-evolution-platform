@@ -246,7 +246,72 @@ class AgentRuntimePersistenceTest {
                 .contains("CLAIMED_WRITE");
     }
 
+    @Test
+    void stale_scan_waits_for_the_execution_claim_to_expire() {
+        AgentRun created = runtime.start(
+                new StartRunCommand(
+                        "request-claim-stale-001",
+                        "traceability.query",
+                        "{\"traceCode\":\"TRACE-CLAIM-STALE-001\"}",
+                        "runtime-claim-stale-001"),
+                persistenceContext("request-claim-stale-001"));
+        AgentRunClaim claim = runs.claimExecution(
+                        created.runId(), "worker-stale", Duration.ofSeconds(30))
+                .orElseThrow();
+        Instant staleAt = Instant.now().minusSeconds(300);
+        AgentRun executing = created.withStatus(
+                com.example.smartcanteen.agent.domain.RunStatus.EXECUTING,
+                "step-1",
+                staleAt);
+        runs.updateClaimed(created, executing, claim);
+
+        assertThat(runs.findStaleExecuting(Instant.now().minusSeconds(60), 10))
+                .extracting(AgentRun::runId)
+                .doesNotContain(created.runId());
+        assertThat(runs.confirmStaleExecution(created.runId(), executing.version())).isFalse();
+
+        Instant expiredClaimedAt = Instant.now().minusSeconds(60);
+        jdbc.update(
+                "UPDATE agent_run_claims SET claimed_at = ?, expires_at = ? WHERE run_id = ?",
+                Timestamp.from(expiredClaimedAt),
+                Timestamp.from(expiredClaimedAt.plusSeconds(1)),
+                created.runId());
+
+        assertThat(runs.findStaleExecuting(Instant.now().minusSeconds(60), 10))
+                .extracting(AgentRun::runId)
+                .contains(created.runId());
+        assertThat(runs.confirmStaleExecution(created.runId(), executing.version())).isTrue();
+    }
+
+    @Test
+    void rollout_scope_filter_is_applied_before_the_poll_limit() {
+        AgentRun nonPilot = runtime.start(
+                new StartRunCommand(
+                        "request-scope-non-pilot",
+                        "traceability.query",
+                        "{\"traceCode\":\"TRACE-SCOPE-NON-PILOT\"}",
+                        "runtime-scope-non-pilot"),
+                persistenceContext(
+                        "request-scope-non-pilot", "SCHOOL-OTHER", "CANTEEN-OTHER"));
+        AgentRun pilot = runtime.start(
+                new StartRunCommand(
+                        "request-scope-pilot",
+                        "traceability.query",
+                        "{\"traceCode\":\"TRACE-SCOPE-PILOT\"}",
+                        "runtime-scope-pilot"),
+                persistenceContext("request-scope-pilot"));
+
+        assertThat(runs.findPlanned(1, Set.of(pilot.scope())))
+                .extracting(AgentRun::runId)
+                .containsExactly(pilot.runId());
+    }
+
     private ExecutionContext persistenceContext(String requestId) {
+        return persistenceContext(requestId, "SCHOOL-001", "CANTEEN-001");
+    }
+
+    private ExecutionContext persistenceContext(
+            String requestId, String schoolId, String canteenId) {
         return ExecutionContext.fromTrustedPrincipal(
                 requestId,
                 new AuthPrincipal(
@@ -254,9 +319,9 @@ class AgentRuntimePersistenceTest {
                         "runtime-user",
                         "Runtime User",
                         Role.CANTEEN_STAFF,
-                        "SCHOOL-001",
-                        "CANTEEN-001"),
-                new CanteenScope("SCHOOL-001", "CANTEEN-001"),
+                        schoolId,
+                        canteenId),
+                new CanteenScope(schoolId, canteenId),
                 Set.of(Role.CANTEEN_STAFF),
                 Set.of("TRACEABILITY_READ"));
     }

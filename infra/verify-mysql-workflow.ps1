@@ -129,6 +129,8 @@ try {
             "same-key different-payload Agent request is rejected"
             "concurrent Agent workers obtain one execution claim"
             "expired Agent claim can be replaced and the old token is fenced"
+            "stale Agent Run scan excludes active claims and finds expired claims"
+            "stale Agent recovery re-check fences active claims and versions"
         )
     } | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $EvidencePath -Encoding utf8
     Write-Output "MySQL workflow evidence: $EvidencePath"

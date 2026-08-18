@@ -27,6 +27,18 @@ management:
 agent:
   runtime:
     execution-lease: ${SMART_CANTEEN_AGENT_EXECUTION_LEASE:PT30S}
+    execution-heartbeat: ${SMART_CANTEEN_AGENT_EXECUTION_HEARTBEAT:PT10S}
+    scheduler:
+      # Keep asynchronous execution opt-in until a deployment has a unique owner ID and
+      # production gray/kill-switch evidence.
+      enabled: ${SMART_CANTEEN_AGENT_SCHEDULER_ENABLED:false}
+      # No shared default: enabling the scheduler without a deployment-specific owner fails closed.
+      owner-id: ${SMART_CANTEEN_AGENT_SCHEDULER_OWNER_ID:}
+      allowed-scopes: ${SMART_CANTEEN_AGENT_SCHEDULER_ALLOWED_SCOPES:}
+      poll-interval-ms: ${SMART_CANTEEN_AGENT_SCHEDULER_POLL_INTERVAL_MS:5000}
+      recovery-interval-ms: ${SMART_CANTEEN_AGENT_SCHEDULER_RECOVERY_INTERVAL_MS:10000}
+      stale-after: ${SMART_CANTEEN_AGENT_SCHEDULER_STALE_AFTER:PT2M}
+      batch-size: ${SMART_CANTEEN_AGENT_SCHEDULER_BATCH_SIZE:10}
 
 smart-canteen:
   assistant:

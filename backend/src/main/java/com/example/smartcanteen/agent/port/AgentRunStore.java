@@ -10,6 +10,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 public interface AgentRunStore {
 
@@ -45,8 +46,48 @@ public interface AgentRunStore {
 
     List<AgentRunEvent> listEvents(String runId);
 
+    /** Returns the oldest planned Runs eligible for a claim-aware worker poll. */
+    default List<AgentRun> findPlanned(int limit) {
+        return List.of();
+    }
+
+    /** Returns the oldest planned Runs restricted to the supplied rollout scopes. */
+    default List<AgentRun> findPlanned(int limit, Set<CanteenScope> scopes) {
+        if (scopes == null || scopes.isEmpty()) {
+            return List.of();
+        }
+        return findPlanned(limit).stream()
+                .filter(run -> scopes.contains(run.scope()))
+                .toList();
+    }
+
     default List<AgentRun> findStaleExecuting(Instant cutoff) {
         return List.of();
+    }
+
+    /** Returns executing Runs whose persistence heartbeat is stale and whose claim has expired. */
+    default List<AgentRun> findStaleExecuting(Instant cutoff, int limit) {
+        return findStaleExecuting(cutoff).stream().limit(Math.max(1, limit)).toList();
+    }
+
+    /** Returns stale executing Runs restricted to the supplied rollout scopes. */
+    default List<AgentRun> findStaleExecuting(
+            Instant cutoff, int limit, Set<CanteenScope> scopes) {
+        if (scopes == null || scopes.isEmpty()) {
+            return List.of();
+        }
+        return findStaleExecuting(cutoff).stream()
+                .filter(run -> scopes.contains(run.scope()))
+                .limit(Math.max(1, limit))
+                .toList();
+    }
+
+    /**
+     * Re-checks a stale Run while holding the Run and claim rows for the caller's transaction.
+     * Implementations must return false when the expected version changed or a claim is active.
+     */
+    default boolean confirmStaleExecution(String runId, long expectedVersion) {
+        throw claimsUnsupported();
     }
 
     /** Returns true when this store provides durable, fenced execution claims. */
