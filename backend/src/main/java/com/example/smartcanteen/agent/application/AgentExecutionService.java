@@ -1,6 +1,8 @@
 package com.example.smartcanteen.agent.application;
 
 import com.example.smartcanteen.agent.domain.AgentRun;
+import com.example.smartcanteen.agent.domain.AgentRunClaim;
+import com.example.smartcanteen.agent.domain.AgentRunClaimLostException;
 import com.example.smartcanteen.agent.domain.AgentStep;
 import com.example.smartcanteen.agent.domain.ExecutionContext;
 import com.example.smartcanteen.agent.domain.RunStatus;
@@ -21,7 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/** Coordinates a claimed Run and one or more registered tools. */
+/** Coordinates a synchronous or fencing-claimed Run and one or more registered tools. */
 @Service
 public class AgentExecutionService {
 
@@ -87,38 +89,63 @@ public class AgentExecutionService {
 
     @Transactional
     public AgentRun execute(AgentRun requested, ExecutionContext context) {
-        AgentRun current = runs.findById(requested.runId()).orElseThrow(() ->
-                new IllegalArgumentException("Agent Run not found: " + requested.runId()));
-        requireOwner(current, context);
+        return executeInternal(requested, context, null);
+    }
+
+    /**
+     * Executes a Run after a worker acquired its durable fencing claim. This method deliberately
+     * has no surrounding transaction: every state checkpoint must go through the claim-aware
+     * store methods so a stale worker cannot commit after its lease expires.
+     */
+    public AgentRun executeClaimed(
+            AgentRun requested, ExecutionContext context, AgentRunClaim claim) {
+        Objects.requireNonNull(requested, "requested");
+        Objects.requireNonNull(context, "context");
+        Objects.requireNonNull(claim, "claim");
+        if (!runs.supportsExecutionClaims()) {
+            throw new IllegalStateException(
+                    "Agent Run execution claims are required for worker execution");
+        }
+        if (!requested.runId().equals(claim.runId())) {
+            throw new IllegalArgumentException(
+                    "Agent execution claim does not belong to Run: " + requested.runId());
+        }
+        return executeInternal(requested, context, claim);
+    }
+
+    /**
+     * Performs the read-only authorization and Skill snapshot checks required before a worker
+     * writes its infrastructure claim. The claimed execution path repeats the checks after claim
+     * acquisition to close the time-of-check/time-of-use window.
+     */
+    public AgentRun validateExecutable(AgentRun requested, ExecutionContext context) {
+        Objects.requireNonNull(requested, "requested");
+        Objects.requireNonNull(context, "context");
+        return prepare(requested, context).run();
+    }
+
+    private AgentRun executeInternal(
+            AgentRun requested, ExecutionContext context, AgentRunClaim claim) {
+        ExecutionPreparation preparation = prepare(requested, context);
+        AgentRun current = preparation.run();
         if (isTerminal(current.status())) {
             return current;
         }
-        if (current.status() != RunStatus.PLANNED) {
-            throw new IllegalStateException(
-                    "Agent Run cannot execute from status " + current.status());
-        }
-        SkillDefinition skill = skills.find(current.skillId(), current.skillVersion())
-                .filter(SkillDefinition::isAvailable)
-                .orElseThrow(() -> new IllegalStateException(
-                        "Skill snapshot is no longer executable: "
-                                + current.skillId() + "@" + current.skillVersion()));
-        if (!current.manifestDigest().equals(skill.manifestDigest())) {
-            throw new IllegalStateException("Skill manifest changed after Run creation");
-        }
-        policy.requireCurrentExecution(current, context, skill);
+        SkillDefinition skill = preparation.skill();
         String toolName = skill.runtime().toolForIntent(current.intent());
         ToolExecutor tool = resolveTool(toolName);
 
         Instant startedAt = clock.instant();
         AgentRun executing = current.withStatus(RunStatus.EXECUTING, "step-1", startedAt);
-        runs.update(current, executing);
-        runs.appendEvent(
+        updateRun(current, executing, claim);
+        appendEvent(
                 current.runId(),
                 "RUN_EXECUTING",
                 current.status().name(),
                 executing.status().name(),
                 context.actorUserId(),
-                null);
+                null,
+                claim);
 
         AgentStep executingStep = new AgentStep(
                 current.runId(),
@@ -134,7 +161,7 @@ public class AgentExecutionService {
                 null,
                 startedAt,
                 null);
-        runs.updateStep(executingStep);
+        updateStep(executingStep, claim);
 
         AgentStep activeStep = executingStep;
         try {
@@ -148,7 +175,7 @@ public class AgentExecutionService {
                             activeStep.toolName(), activeStep.idempotencyKey(), activeStep.inputDigest(),
                             "EXECUTING", attempt, null, null, null,
                             activeStep.startedAt(), null);
-                    runs.updateStep(activeStep);
+                    updateStep(activeStep, claim);
                 }
                 try {
                     result = tool.execute(toolName, context, current.inputJson());
@@ -177,18 +204,19 @@ public class AgentExecutionService {
                         deadlineStatus == RunStatus.TIMED_OUT ? "TIMED_OUT" : "RECONCILIATION_REQUIRED",
                         activeStep.attemptCount(), null, code, detail,
                         activeStep.startedAt(), finishedAt);
-                runs.updateStep(timedOutStep);
+                updateStep(timedOutStep, claim);
                 AgentRun timedOut = executing.withFailure(code, detail, deadlineStatus, finishedAt);
-                runs.update(executing, timedOut);
-                runs.appendEvent(
+                updateRun(executing, timedOut, claim);
+                appendEvent(
                         current.runId(),
                         deadlineStatus == RunStatus.TIMED_OUT
                                 ? "RUN_TIMED_OUT" : "RUN_RECONCILIATION_REQUIRED",
                         executing.status().name(),
                         timedOut.status().name(),
                         context.actorUserId(),
-                        detail);
-                appendAudit(current, context, "AGENT_RUN_DEADLINE", "FAILURE", code);
+                        detail,
+                        claim);
+                appendAudit(current, context, "AGENT_RUN_DEADLINE", "FAILURE", code, claim);
                 return timedOut;
             }
             AgentStep succeededStep = new AgentStep(
@@ -196,18 +224,21 @@ public class AgentExecutionService {
                     activeStep.toolName(), activeStep.idempotencyKey(), activeStep.inputDigest(),
                     "SUCCEEDED", activeStep.attemptCount(), result.resultJson(), null, null,
                     activeStep.startedAt(), finishedAt);
-            runs.updateStep(succeededStep);
+            updateStep(succeededStep, claim);
             AgentRun succeeded = executing.withSuccess(result.resultJson(), finishedAt);
-            runs.update(executing, succeeded);
-            runs.appendEvent(
+            updateRun(executing, succeeded, claim);
+            appendEvent(
                     current.runId(),
                     "RUN_SUCCEEDED",
                     executing.status().name(),
                     succeeded.status().name(),
                     context.actorUserId(),
-                    result.resultJson());
-            appendAudit(current, context, "AGENT_RUN_EXECUTE", "SUCCESS", null);
+                    result.resultJson(),
+                    claim);
+            appendAudit(current, context, "AGENT_RUN_EXECUTE", "SUCCESS", null, claim);
             return succeeded;
+        } catch (AgentRunClaimLostException exception) {
+            throw exception;
         } catch (RuntimeException exception) {
             Instant failedAt = clock.instant();
             AgentStep failedStep = new AgentStep(
@@ -215,19 +246,76 @@ public class AgentExecutionService {
                     activeStep.toolName(), activeStep.idempotencyKey(), activeStep.inputDigest(),
                     "FAILED", activeStep.attemptCount(), null, "TOOL_FAILED",
                     safeMessage(exception), activeStep.startedAt(), failedAt);
-            runs.updateStep(failedStep);
+            updateStep(failedStep, claim);
             AgentRun failed = executing.withFailure(
                     "TOOL_FAILED", safeMessage(exception), RunStatus.FAILED, failedAt);
-            runs.update(executing, failed);
-            runs.appendEvent(
+            updateRun(executing, failed, claim);
+            appendEvent(
                     current.runId(),
                     "RUN_FAILED",
                     executing.status().name(),
                     failed.status().name(),
                     context.actorUserId(),
-                    safeMessage(exception));
-            appendAudit(current, context, "AGENT_RUN_EXECUTE", "FAILURE", safeMessage(exception));
+                    safeMessage(exception),
+                    claim);
+            appendAudit(
+                    current, context, "AGENT_RUN_EXECUTE", "FAILURE", safeMessage(exception), claim);
             return failed;
+        }
+    }
+
+    private ExecutionPreparation prepare(AgentRun requested, ExecutionContext context) {
+        AgentRun current = runs.findById(requested.runId()).orElseThrow(() ->
+                new IllegalArgumentException("Agent Run not found: " + requested.runId()));
+        requireOwner(current, context);
+        if (isTerminal(current.status())) {
+            return new ExecutionPreparation(current, null);
+        }
+        if (current.status() != RunStatus.PLANNED) {
+            throw new IllegalStateException(
+                    "Agent Run cannot execute from status " + current.status());
+        }
+        SkillDefinition skill = skills.find(current.skillId(), current.skillVersion())
+                .filter(SkillDefinition::isAvailable)
+                .orElseThrow(() -> new IllegalStateException(
+                        "Skill snapshot is no longer executable: "
+                                + current.skillId() + "@" + current.skillVersion()));
+        if (!current.manifestDigest().equals(skill.manifestDigest())) {
+            throw new IllegalStateException("Skill manifest changed after Run creation");
+        }
+        policy.requireCurrentExecution(current, context, skill);
+        return new ExecutionPreparation(current, skill);
+    }
+
+    private void updateRun(AgentRun expected, AgentRun updated, AgentRunClaim claim) {
+        if (claim == null) {
+            runs.update(expected, updated);
+        } else {
+            runs.updateClaimed(expected, updated, claim);
+        }
+    }
+
+    private void updateStep(AgentStep step, AgentRunClaim claim) {
+        if (claim == null) {
+            runs.updateStep(step);
+        } else {
+            runs.updateStepClaimed(step, claim);
+        }
+    }
+
+    private void appendEvent(
+            String runId,
+            String eventType,
+            String fromStatus,
+            String toStatus,
+            String actorUserId,
+            String payloadJson,
+            AgentRunClaim claim) {
+        if (claim == null) {
+            runs.appendEvent(runId, eventType, fromStatus, toStatus, actorUserId, payloadJson);
+        } else {
+            runs.appendEventClaimed(
+                    runId, eventType, fromStatus, toStatus, actorUserId, payloadJson, claim);
         }
     }
 
@@ -269,7 +357,12 @@ public class AgentExecutionService {
     }
 
     private void appendAudit(
-            AgentRun run, ExecutionContext context, String action, String outcome, String detail) {
+            AgentRun run,
+            ExecutionContext context,
+            String action,
+            String outcome,
+            String detail,
+            AgentRunClaim claim) {
         if (audits == null) {
             return;
         }
@@ -288,13 +381,17 @@ public class AgentExecutionService {
                     clock.instant()));
         } catch (RuntimeException exception) {
             log.warn("Agent audit write failed runId={} action={}", run.runId(), action);
-            runs.appendEvent(
+            appendEvent(
                     run.runId(),
                     "AUDIT_WRITE_FAILED",
                     run.status().name(),
                     run.status().name(),
                     context.actorUserId(),
-                    "Audit evidence unavailable for " + action);
+                    "Audit evidence unavailable for " + action,
+                    claim);
         }
+    }
+
+    private record ExecutionPreparation(AgentRun run, SkillDefinition skill) {
     }
 }

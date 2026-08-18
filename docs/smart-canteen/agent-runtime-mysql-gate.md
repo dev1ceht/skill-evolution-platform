@@ -31,6 +31,4 @@
 
 验证证据写入 `outputs/verification/smart-canteen-mysql-workflow-latest.json`，其中记录 MySQL 镜像、Flyway 版本、测试类和清单。
 
-本轮已在 MySQL 8.4.11 隔离数据库上通过该门禁，数据库完成 schema migration V20（Flyway 11.20.3）后自动删除测试库；后续仍需在 CI 中持续执行以防止回归。
-
-本机本轮最终硬化后的重跑因 Docker Desktop 未启动而未执行；交付前应在 Docker/CI 环境重新确认数据库时钟、事务 fencing 和 MySQL 并发路径。
+2026-08-18 已在 MySQL 8.4.11 隔离数据库上重新通过该门禁，数据库完成 schema migration V20（Flyway 11.20.3）后自动删除测试库；交付后仍需在 CI 中持续执行以防止回归。

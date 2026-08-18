@@ -104,7 +104,9 @@ class AgentMetricsControllerHttpTest {
                         .queryParam("schoolId", SCHOOL_ID)
                         .queryParam("canteenId", CANTEEN_ID)
                         .queryParam("from", "2026-08-17T00:00:00Z")
-                        .queryParam("to", "2026-08-18T00:00:00Z")
+                        // Include the filter-generated denial audit even when the test runs
+                        // after the originally captured 2026-08-18 boundary.
+                        .queryParam("to", Instant.now().plusSeconds(86_400).toString())
                         .requestAttr(AuthPrincipal.class.getName(), PRINCIPAL))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(0))

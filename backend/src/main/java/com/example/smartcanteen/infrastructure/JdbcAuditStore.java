@@ -7,6 +7,7 @@ import java.time.Instant;
 import java.util.List;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 @Repository
 public class JdbcAuditStore implements AuditStore {
@@ -18,6 +19,10 @@ public class JdbcAuditStore implements AuditStore {
     }
 
     @Override
+    // Keep audit evidence atomic with the caller's Run transaction when one exists. The
+    // application deliberately catches audit failures and records an event fallback, so the
+    // interceptor must not mark that surrounding business transaction rollback-only.
+    @Transactional(noRollbackFor = RuntimeException.class)
     public void append(AuditLog auditLog) {
         jdbc.update(
                 "INSERT INTO audit_logs "

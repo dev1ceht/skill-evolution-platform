@@ -24,6 +24,10 @@ management:
         enabled: true
       show-details: when_authorized
 
+agent:
+  runtime:
+    execution-lease: ${SMART_CANTEEN_AGENT_EXECUTION_LEASE:PT30S}
+
 smart-canteen:
   assistant:
     enabled: ${SMART_CANTEEN_ASSISTANT_ENABLED:false}

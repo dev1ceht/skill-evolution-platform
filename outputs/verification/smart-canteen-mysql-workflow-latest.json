@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "recordedAt": "2026-08-17T14:11:18.6717880Z",
+  "recordedAt": "2026-08-18T04:15:44.0083663Z",
   "result": "passed",
-  "database": "smart_canteen_it_0826b6340714",
+  "database": "smart_canteen_it_c375bd52ced6",
   "databaseRemoved": true,
   "mysqlImage": "smart-canteen/mysql:8.4.11",
   "flywayVersion": "11.20.3",

@@ -1,6 +1,6 @@
 {
   "phase": "agent-runtime-phases-4-6",
-  "captured_at": "2026-08-17T22:51:15+08:00",
+  "captured_at": "2026-08-18T12:17:54+08:00",
   "scope": "canonical daily-menu writes, runtime reliability hardening, and API/frontend pilot entry",
   "contract": {
     "operations": 116,
@@ -13,7 +13,7 @@
     {
       "command": "mvn --batch-mode test",
       "result": "passed",
-      "evidence": "153 tests, 0 failures, 0 errors; 2 environment-gated MySQL tests skipped in the default H2 run; both classes pass in the real MySQL gate"
+      "evidence": "158 tests, 0 failures, 0 errors; 2 environment-gated MySQL tests skipped in the default H2 run; both classes pass in the real MySQL gate"
     },
     {
       "command": "infra/verify-mysql-workflow.ps1",
@@ -24,6 +24,11 @@
       "command": "mvn --batch-mode -Dtest=AgentExecutionServiceTest,AgentControllerHttpTest,OperationalCoreHttpTest,ProcurementPlanClosedLoopHttpTest test",
       "result": "passed",
       "evidence": "phase 4-6 menu/Agent integration and retry/deadline tests passed"
+    },
+    {
+      "command": "mvn --batch-mode -Dtest=AgentExecutionServiceTest,AgentRunWorkerTest test",
+      "result": "passed",
+      "evidence": "9 targeted tests passed; claimed execution uses fenced Run/Step/Event writes, AgentRunClaimLostException does not fall back to un-fenced writes, worker release runs on success and failure, and infrastructure release/audit writes have explicit transaction boundaries"
     },
     {
       "command": "npm test -- --run",
@@ -38,12 +43,12 @@
     {
       "command": "python -m pytest -q -p no:cacheprovider --basetemp=tmp/pytest-phase46",
       "result": "passed",
-      "evidence": "Python contract and repository tests passed"
+      "evidence": "17 Python contract and repository tests passed"
     },
     {
       "command": "python skills/smart-canteen-sop/scripts/validate_sop_manifest.py --run sop-runs/menu-to-traceability.yaml",
       "result": "passed",
-      "evidence": "7 SOPs and 1 composition validated"
+      "evidence": "8 SOPs and 1 composition validated"
     }
   ],
   "delivered": [
@@ -51,14 +56,15 @@
     "separate RUN_CONFIRM/REJECT/CANCEL decisions from menu domain approval and submitter/approver/publisher separation",
     "menu.validate-for-submit, menu.submit, menu.record-decision and menu.publish Tool Catalog entries",
     "durable Run decisions/events, Step checkpoint, audit linkage, request-hash-bound replay, bounded read retry and deadline classification",
+    "claim-aware AgentRunWorker seam with transaction-suspended claim -> execute -> release lifecycle",
     "resume/reconciliation API, replay-safe Agent decisions and versioned events contract",
     "frontend menu Agent confirmation workspace, domain-state lookup and generated API client updates",
     "scope-limited Agent Runtime metrics query and frontend dashboard"
   ],
   "known_limits": [
     "Real MySQL migration/concurrency and claim-lease foundation acceptance passed in the isolated gate; legacy menus compatibility migration is not yet closed.",
-    "The recorded MySQL pass predates the final database-clock/transaction-fencing hardening; Docker/CI rerun is required before production release.",
-    "Execution uses optimistic version authority and explicit resume/reconciliation; the claim-lease storage/fencing foundation is present, but a complete worker scheduler and automatic stale-run recovery are not yet enabled.",
+    "The 2026-08-18 isolated MySQL rerun passed the final database-clock/transaction-fencing hardening; CI should continue running the gate before production release.",
+    "Execution uses optimistic version authority and explicit resume/reconciliation; the claim-lease storage/fencing foundation and manual claim-aware worker seam are present, but a complete worker scheduler, heartbeat and automatic stale-run recovery are not yet enabled.",
     "In-process deadline enforcement classifies completed late calls; JDBC query timeout and cancellation are still adapter-specific.",
     "Sensitive result reference storage, retention/cleanup jobs, complete worker claim scheduling, long-term metrics retention/alerts and production kill switch remain follow-up gates.",
     "Procurement, inventory and alert write Skills remain behind their domain-model and pilot gates."

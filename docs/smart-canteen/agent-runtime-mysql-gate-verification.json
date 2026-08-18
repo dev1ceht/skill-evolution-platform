@@ -22,6 +22,7 @@
   "provisioning": "isolated random database is created and dropped by the verifier",
   "lastLocalAttempt": {
     "result": "passed",
+    "recordedAt": "2026-08-18T04:15:44Z",
     "mysqlImage": "smart-canteen/mysql:8.4.11",
     "flywayVersion": "11.20.3",
     "databaseRemoved": true,
@@ -29,7 +30,7 @@
   },
   "knownLimits": [
     "SMART_CANTEEN_MYSQL_IT=true and Docker/CI credentials are required for a pass result",
-    "the recorded pass predates the final database-clock/transaction-fencing hardening; rerun the gate in Docker/CI before production release",
+    "the 2026-08-18 rerun covers the final database-clock/transaction-fencing hardening; CI should continue running the gate before production release",
     "complete worker claim scheduling and long-term metrics retention/alerts remain separate release gates"
   ]
 }

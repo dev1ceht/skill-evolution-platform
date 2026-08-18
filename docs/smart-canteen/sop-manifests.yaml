@@ -41,6 +41,9 @@ sops:
         - "backend/src/main/java/com/example/smartcanteen/assistant/port/AssistantModelResolver.java"
         - "backend/src/main/java/com/example/smartcanteen/application/BusinessAuthorizationPolicy.java"
         - "backend/src/main/java/com/example/smartcanteen/agent/application/AgentRuntime.java"
+        - "backend/src/main/java/com/example/smartcanteen/agent/application/AgentExecutionService.java"
+        - "backend/src/main/java/com/example/smartcanteen/agent/application/AgentRunWorker.java"
+        - "backend/src/main/java/com/example/smartcanteen/agent/application/AgentRunClaimUnavailableException.java"
         - "backend/src/main/java/com/example/smartcanteen/agent/domain/AgentRunClaim.java"
         - "backend/src/main/java/com/example/smartcanteen/agent/domain/AgentRunClaimLostException.java"
         - "backend/src/main/java/com/example/smartcanteen/agent/port/AgentRunStore.java"
@@ -75,6 +78,8 @@ sops:
         - "backend/src/test/java/com/example/smartcanteen/agent/AgentMetricsServiceTest.java"
         - "backend/src/test/java/com/example/smartcanteen/http/AgentMetricsControllerHttpTest.java"
         - "backend/src/test/java/com/example/smartcanteen/agent/AgentRuntimePersistenceTest.java"
+        - "backend/src/test/java/com/example/smartcanteen/agent/AgentExecutionServiceTest.java"
+        - "backend/src/test/java/com/example/smartcanteen/agent/AgentRunWorkerTest.java"
         - "backend/src/test/java/com/example/smartcanteen/application/AgentRuntimeMySqlIntegrationTest.java"
       verification:
         - "docs/smart-canteen/assistant-phase2-verification.json"
@@ -132,6 +137,10 @@ sops:
     implementation:
       modules:
         - "backend/src/main/java/com/example/smartcanteen/application/DailyMenuService.java"
+        - "backend/src/main/java/com/example/smartcanteen/agent/application/AgentRuntime.java"
+        - "backend/src/main/java/com/example/smartcanteen/agent/application/AgentExecutionService.java"
+        - "backend/src/main/java/com/example/smartcanteen/agent/application/AgentRunWorker.java"
+        - "backend/src/main/java/com/example/smartcanteen/agent/application/AgentRunClaimUnavailableException.java"
         - "backend/src/main/java/com/example/smartcanteen/agent/infrastructure/MenuToolExecutor.java"
       apis: ["contracts/smart-canteen.openapi.yaml"]
       migrations:
@@ -139,6 +148,8 @@ sops:
         - "backend/src/main/resources/db/migration/V15__add_menu_permissions.sql"
       tests:
         - "backend/src/test/java/com/example/smartcanteen/application/DailyMenuApprovalModuleTest.java"
+        - "backend/src/test/java/com/example/smartcanteen/agent/AgentExecutionServiceTest.java"
+        - "backend/src/test/java/com/example/smartcanteen/agent/AgentRunWorkerTest.java"
       verification: ["docs/smart-canteen/agent-runtime-phase4-6-verification.json"]
     adapters:
       - name: "JdbcOperationalStore"
@@ -185,6 +196,8 @@ sops:
         - "backend/src/main/java/com/example/smartcanteen/application/DailyMenuService.java"
         - "backend/src/main/java/com/example/smartcanteen/agent/application/AgentRuntime.java"
         - "backend/src/main/java/com/example/smartcanteen/agent/application/AgentExecutionService.java"
+        - "backend/src/main/java/com/example/smartcanteen/agent/application/AgentRunWorker.java"
+        - "backend/src/main/java/com/example/smartcanteen/agent/application/AgentRunClaimUnavailableException.java"
         - "backend/src/main/java/com/example/smartcanteen/agent/domain/AgentRunClaim.java"
         - "backend/src/main/java/com/example/smartcanteen/agent/domain/AgentRunClaimLostException.java"
         - "backend/src/main/java/com/example/smartcanteen/agent/port/AgentRunStore.java"
@@ -231,6 +244,8 @@ sops:
         - "backend/src/test/java/com/example/smartcanteen/agent/AgentMetricsServiceTest.java"
         - "backend/src/test/java/com/example/smartcanteen/http/AgentMetricsControllerHttpTest.java"
         - "backend/src/test/java/com/example/smartcanteen/agent/AgentRuntimePersistenceTest.java"
+        - "backend/src/test/java/com/example/smartcanteen/agent/AgentExecutionServiceTest.java"
+        - "backend/src/test/java/com/example/smartcanteen/agent/AgentRunWorkerTest.java"
         - "backend/src/test/java/com/example/smartcanteen/application/AgentRuntimeMySqlIntegrationTest.java"
       verification:
         - "docs/smart-canteen/agent-runtime-phase4-6-verification.json"
@@ -437,6 +452,9 @@ sops:
       modules:
         - "backend/src/main/java/com/example/smartcanteen/application/DashboardService.java"
         - "backend/src/main/java/com/example/smartcanteen/agent/application/AgentRuntime.java"
+        - "backend/src/main/java/com/example/smartcanteen/agent/application/AgentExecutionService.java"
+        - "backend/src/main/java/com/example/smartcanteen/agent/application/AgentRunWorker.java"
+        - "backend/src/main/java/com/example/smartcanteen/agent/application/AgentRunClaimUnavailableException.java"
         - "backend/src/main/java/com/example/smartcanteen/agent/domain/AgentRunClaim.java"
         - "backend/src/main/java/com/example/smartcanteen/agent/domain/AgentRunClaimLostException.java"
         - "backend/src/main/java/com/example/smartcanteen/agent/port/AgentRunStore.java"
@@ -482,6 +500,8 @@ sops:
         - "backend/src/test/java/com/example/smartcanteen/agent/AgentMetricsServiceTest.java"
         - "backend/src/test/java/com/example/smartcanteen/http/AgentMetricsControllerHttpTest.java"
         - "backend/src/test/java/com/example/smartcanteen/agent/AgentRuntimePersistenceTest.java"
+        - "backend/src/test/java/com/example/smartcanteen/agent/AgentExecutionServiceTest.java"
+        - "backend/src/test/java/com/example/smartcanteen/agent/AgentRunWorkerTest.java"
         - "backend/src/test/java/com/example/smartcanteen/application/AgentRuntimeMySqlIntegrationTest.java"
       verification:
         - "docs/smart-canteen/phase5-verification.json"

@@ -376,6 +376,7 @@ public class JdbcAgentRunStore implements AgentRunStore {
     }
 
     @Override
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public boolean releaseExecutionClaim(AgentRunClaim claim) {
         return jdbc.update(
                 "DELETE FROM agent_run_claims WHERE run_id = ? AND owner_id = ? AND claim_token = ?",

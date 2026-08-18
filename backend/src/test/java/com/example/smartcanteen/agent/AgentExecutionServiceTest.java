@@ -1,15 +1,20 @@
 package com.example.smartcanteen.agent;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.times;
 
 import com.example.smartcanteen.agent.application.AgentExecutionService;
 import com.example.smartcanteen.agent.domain.AgentRun;
+import com.example.smartcanteen.agent.domain.AgentRunClaim;
+import com.example.smartcanteen.agent.domain.AgentRunClaimLostException;
 import com.example.smartcanteen.agent.domain.ExecutionContext;
 import com.example.smartcanteen.agent.domain.RunStatus;
 import com.example.smartcanteen.agent.domain.SkillDefinition;
@@ -125,12 +130,60 @@ class AgentExecutionServiceTest {
                 result.errorMessage());
     }
 
+    @Test
+    void executes_a_claimed_run_using_only_fenced_state_writes() {
+        AgentRun planned = plannedRun();
+        AgentRunClaim claim = claim();
+        when(runs.supportsExecutionClaims()).thenReturn(true);
+        when(runs.findById(planned.runId())).thenReturn(Optional.of(planned));
+        when(skills.find(planned.skillId(), planned.skillVersion())).thenReturn(Optional.of(skill));
+        when(tools.execute("traceability.query", context, planned.inputJson()))
+                .thenReturn(new ToolExecutor.ToolResult("{\"traceCode\":\"TRACE-CLAIMED\"}"));
+
+        AgentRun result = execution.executeClaimed(planned, context, claim);
+
+        assertThat(result.status()).isEqualTo(RunStatus.SUCCEEDED);
+        assertThat(result.resultJson()).contains("TRACE-CLAIMED");
+        verify(runs).updateClaimed(eq(planned), any(AgentRun.class), eq(claim));
+        verify(runs, times(2)).updateStepClaimed(any(), eq(claim));
+        verify(runs).appendEventClaimed(
+                planned.runId(), "RUN_SUCCEEDED", "EXECUTING", "SUCCEEDED", "USER-001",
+                result.resultJson(), claim);
+        verify(runs, never())
+                .update(any(AgentRun.class), any(AgentRun.class));
+        verify(runs, never())
+                .appendEvent(any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void propagates_claim_loss_without_falling_back_to_unfenced_writes() {
+        AgentRun planned = plannedRun();
+        AgentRunClaim claim = claim();
+        when(runs.supportsExecutionClaims()).thenReturn(true);
+        when(runs.findById(planned.runId())).thenReturn(Optional.of(planned));
+        when(skills.find(planned.skillId(), planned.skillVersion())).thenReturn(Optional.of(skill));
+        doThrow(new AgentRunClaimLostException(planned.runId()))
+                .when(runs).updateClaimed(any(AgentRun.class), any(AgentRun.class), eq(claim));
+
+        assertThatThrownBy(() -> execution.executeClaimed(planned, context, claim))
+                .isInstanceOf(AgentRunClaimLostException.class)
+                .hasMessageContaining(planned.runId());
+        verify(runs, never()).update(any(AgentRun.class), any(AgentRun.class));
+        verify(runs, never()).updateStep(any());
+        verify(runs, never()).appendEvent(any(), any(), any(), any(), any(), any());
+    }
+
     private AgentRun plannedRun() {
         return new AgentRun(
                 "RUN-001", "agent-001", "f".repeat(64), "USER-001", "operator", scope,
                 "traceability.query", skill.id(), skill.version(), skill.manifestDigest(),
                 "p".repeat(64), "{}", "{\"traceCode\":\"TRACE-001\"}", RunStatus.PLANNED,
                 null, null, null, null, 0, NOW, NOW);
+    }
+
+    private AgentRunClaim claim() {
+        return new AgentRunClaim(
+                "RUN-001", "worker-001", "CLAIM-001", NOW, NOW.plusSeconds(30));
     }
 
     private static final class SequenceClock extends Clock {
