@@ -37,6 +37,7 @@ sops:
         - "backend/src/main/java/com/example/smartcanteen/assistant/domain/AssistantResolution.java"
         - "backend/src/main/java/com/example/smartcanteen/assistant/infrastructure/JdbcAssistantConversationStore.java"
         - "backend/src/main/java/com/example/smartcanteen/assistant/infrastructure/PortOnlyAssistantModelResolver.java"
+        - "backend/src/main/java/com/example/smartcanteen/assistant/infrastructure/DeepSeekAssistantModelResolver.java"
         - "backend/src/main/java/com/example/smartcanteen/assistant/port/AssistantConversationStore.java"
         - "backend/src/main/java/com/example/smartcanteen/assistant/port/AssistantModelResolver.java"
         - "backend/src/main/java/com/example/smartcanteen/application/BusinessAuthorizationPolicy.java"
@@ -78,6 +79,7 @@ sops:
         - "backend/src/test/java/com/example/smartcanteen/http/AssistantControllerHttpTest.java"
         - "backend/src/test/java/com/example/smartcanteen/assistant/AssistantRolloutPolicyTest.java"
         - "backend/src/test/java/com/example/smartcanteen/http/AssistantControllerRolloutHttpTest.java"
+        - "backend/src/test/java/com/example/smartcanteen/assistant/DeepSeekAssistantModelResolverTest.java"
         - "backend/src/test/java/com/example/smartcanteen/agent/AgentMetricsServiceTest.java"
         - "backend/src/test/java/com/example/smartcanteen/http/AgentMetricsControllerHttpTest.java"
         - "backend/src/test/java/com/example/smartcanteen/agent/AgentRuntimePersistenceTest.java"
@@ -97,7 +99,7 @@ sops:
       - name: "JdbcOperationalStore"
         status: "implemented"
       - name: "AssistantModelResolver"
-        status: "port-only"
+        status: "environment-gated"
     runtime:
       intents: ["menu.query"]
       input_schema: "#/components/schemas/MenuQueryIntent"
@@ -560,6 +562,7 @@ sops:
         - "backend/src/main/java/com/example/smartcanteen/assistant/application/RuleBasedAssistantIntentResolver.java"
         - "backend/src/main/java/com/example/smartcanteen/assistant/infrastructure/JdbcAssistantConversationStore.java"
         - "backend/src/main/java/com/example/smartcanteen/assistant/infrastructure/PortOnlyAssistantModelResolver.java"
+        - "backend/src/main/java/com/example/smartcanteen/assistant/infrastructure/DeepSeekAssistantModelResolver.java"
         - "backend/src/main/java/com/example/smartcanteen/assistant/port/AssistantConversationStore.java"
         - "backend/src/main/java/com/example/smartcanteen/assistant/port/AssistantModelResolver.java"
         - "backend/src/main/java/com/example/smartcanteen/http/AssistantController.java"
@@ -589,6 +592,7 @@ sops:
         - "backend/src/test/java/com/example/smartcanteen/http/AssistantControllerDisabledHttpTest.java"
         - "backend/src/test/java/com/example/smartcanteen/assistant/AssistantRolloutPolicyTest.java"
         - "backend/src/test/java/com/example/smartcanteen/http/AssistantControllerRolloutHttpTest.java"
+        - "backend/src/test/java/com/example/smartcanteen/assistant/DeepSeekAssistantModelResolverTest.java"
         - "backend/src/test/java/com/example/smartcanteen/agent/AgentMetricsServiceTest.java"
         - "backend/src/test/java/com/example/smartcanteen/http/AgentMetricsControllerHttpTest.java"
         - "backend/src/test/java/com/example/smartcanteen/agent/AgentRuntimePersistenceTest.java"
@@ -609,7 +613,7 @@ sops:
       - name: "JdbcOperationalStore"
         status: "implemented"
       - name: "AssistantModelResolver"
-        status: "port-only"
+        status: "environment-gated"
     runtime:
       intents: ["traceability.query"]
       input_schema: "#/components/schemas/TraceabilityIntent"

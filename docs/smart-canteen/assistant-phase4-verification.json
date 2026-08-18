@@ -22,6 +22,12 @@
     "default_enabled": false,
     "safety": "model resolutions are limited to registered read-only intents; menu.publish and pending-action decisions remain deterministic"
   },
+  "current_model_adapter": {
+    "implementation": "backend/src/main/java/com/example/smartcanteen/assistant/infrastructure/DeepSeekAssistantModelResolver.java",
+    "default_enabled": false,
+    "configuration": "SMART_CANTEEN_ASSISTANT_MODEL_* environment variables",
+    "note": "This verification file is a phase-4 historical snapshot; see assistant-model-deepseek.md for the current adapter."
+  },
   "commands": {
     "targeted_backend": "33 assistant/resolver/clarification/write HTTP tests passed; Flyway V19 applied in H2",
     "backend_full_regression": "137 backend tests passed; 1 environment-gated MySQL test skipped",
@@ -31,7 +37,7 @@
     "sop_manifest": "Validated 8 SOPs and 1 composition; contract IR normalized at 118 operations"
   },
   "known_limits": [
-    "真实模型供应商仍是 port-only，未声称已接通外部 LLM",
+    "本阶段验证时真实模型供应商仍是 port-only；后续已增加默认关闭的 DeepSeek 适配器，仍需部署凭据、网络策略和 smoke test",
     "当前只开放 menu.publish 的预览、确认和取消；提交、领域审批及其他业务写入仍由原有页面/Agent API处理",
     "真实 MySQL 并发、运行恢复、长期留存和生产灰度仍由上线门禁控制"
   ]

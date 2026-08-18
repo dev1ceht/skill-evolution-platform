@@ -52,6 +52,14 @@ smart-canteen:
     allowed-scopes: ${SMART_CANTEEN_ASSISTANT_SCOPES:}
     model:
       enabled: ${SMART_CANTEEN_ASSISTANT_MODEL_ENABLED:false}
+      name: ${SMART_CANTEEN_ASSISTANT_MODEL_NAME:deepseek-v4-flash}
+      base-url: ${SMART_CANTEEN_ASSISTANT_MODEL_BASE_URL:https://api.deepseek.com}
+      max-request-chars: ${SMART_CANTEEN_ASSISTANT_MODEL_MAX_REQUEST_CHARS:2000}
+      timeout-ms: ${SMART_CANTEEN_ASSISTANT_MODEL_TIMEOUT_MS:10000}
+      max-response-bytes: ${SMART_CANTEEN_ASSISTANT_MODEL_MAX_RESPONSE_BYTES:65536}
+      allowed-hosts: ${SMART_CANTEEN_ASSISTANT_MODEL_ALLOWED_HOSTS:api.deepseek.com}
+      # Never commit a real key; inject it from a deployment secret or environment variable.
+      api-key: ${SMART_CANTEEN_ASSISTANT_MODEL_API_KEY:}
   security:
     enabled: ${SMART_CANTEEN_AUTH_ENABLED:true}
     # Local development default; use a secret manager in production.

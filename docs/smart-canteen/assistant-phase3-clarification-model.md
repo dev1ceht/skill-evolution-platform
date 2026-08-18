@@ -1,5 +1,8 @@
 # 智能业务助手：第三阶段模型适配与澄清编排
 
+> 本文档记录第三阶段交付时的历史快照。当前模型适配器见
+> [assistant-model-deepseek.md](./assistant-model-deepseek.md)，默认关闭并仍需部署凭据、网络策略和 smoke test。
+
 ## 交付范围
 
 本阶段在只读菜单/溯源助手上增加可恢复的会话澄清状态机，并建立模型解析适配器边界：
@@ -7,7 +10,7 @@
 - 不完整的溯源或菜单请求会进入持久化 `WAITING_CLARIFICATION` 会话状态；
 - 用户在同一会话补充 `TRACE-...` 或 `MENU-...` 标识后，系统合并上下文并继续原有只读 Runtime 链路；
 - 无效补充会继续澄清，不会调用工具；成功结果或明确不支持请求会清除待澄清状态；
-- `AssistantModelResolver` 是可替换端口，模型输出必须经过意图和资源 ID 白名单校验；默认 `SMART_CANTEEN_ASSISTANT_MODEL_ENABLED=false`，当前实现为 port-only，不伪装外部模型已接通。
+- `AssistantModelResolver` 是可替换端口，模型输出必须经过意图和资源 ID 白名单校验；默认 `SMART_CANTEEN_ASSISTANT_MODEL_ENABLED=false`，本阶段快照实现为 port-only，不伪装外部模型已接通。
 
 ## 使用方式
 
@@ -34,6 +37,6 @@ ACTIVE（无待澄清）
 
 ## 当前限制
 
-- 当前 port-only 模型适配器始终返回空结果，因此生产行为仍由可审计规则解析器决定；
+- 本阶段快照中的 port-only 模型适配器始终返回空结果；当前 DeepSeek 适配器仍默认关闭，生产行为只有在显式部署配置并通过灰度门禁后才会调用模型；
 - 澄清仅覆盖溯源 ID 和菜单 ID，不覆盖日期、餐次、采购、库存或写操作；
 - 仍没有“预览—确认—执行”的业务写闭环；该闭环必须在后续菜单/采购领域门禁完成后开放。

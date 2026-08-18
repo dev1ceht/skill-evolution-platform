@@ -18,6 +18,7 @@
 > 2026-08-18 调度恢复执行记录：新增 worker heartbeat 自动续租、排除有效 claim 的 stale-run 扫描与带确定性幂等证据的 `RECONCILIATION_REQUIRED` 恢复，以及默认关闭且要求食堂白名单的单实例 `PLANNED` Run 轮询器；恢复器和调度器均要求 durable claim capability，异步入口仍需显式开关、唯一 owner-id 和生产灰度证据，未开放采购/库存/预警写入。
 > 2026-08-18 MySQL 复验记录：重新执行 `infra/verify-mysql-workflow.ps1`，MySQL 8.4.11 / Flyway 11.20.3 在随机隔离库通过 V20 迁移、Agent 并发领取、过期接管、旧 token fencing 以及 active/expired/version recovery re-check，数据库已删除。
 > 2026-08-18 写入 Skill 执行记录：新增 V21～V24 业务写权限/预警处置幂等、采购订单载荷哈希、采购/库存/预警 runtime manifest、`OperationsToolExecutor` 和 fail-closed 的 `agent.write` 开关/范围/意图白名单；自然语言入口支持显式参数澄清、可规划但默认不可执行的 `WAITING_CONFIRMATION` 计划、确认/取消与 Step 派生幂等键。采购订单必须从已确认计划转换并拒绝同键异载荷，手工入库写入批次/库存/溯源同一事务，预警处置要求精确食堂范围和持久化幂等；默认配置不开放任何写入。
+> 2026-08-18 模型适配执行记录：新增 feature-flagged `DeepSeekAssistantModelResolver`，使用 OpenAI-compatible Chat Completions 接口；默认模型名为 `deepseek-v4-flash`，Key 仅从部署环境变量读取。模型只能补充只读意图或澄清，写入/审批仍由规则解析和后端门禁负责。
 
 ## 1. 目标与范围
 
