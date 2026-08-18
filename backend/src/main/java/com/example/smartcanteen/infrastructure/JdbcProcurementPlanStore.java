@@ -303,12 +303,13 @@ public class JdbcProcurementPlanStore implements ProcurementPlanStore {
     @Override
     public Optional<PlanOrder> findOrderByPlan(CanteenScope scope, String planId) {
         return jdbc.query(
-                        "SELECT plan_id, order_id, idempotency_key FROM procurement_plan_orders "
+                        "SELECT plan_id, order_id, idempotency_key, payload_hash FROM procurement_plan_orders "
                                 + "WHERE school_id = ? AND canteen_id = ? AND plan_id = ?",
                         (result, row) -> new PlanOrder(
                                 result.getString("plan_id"),
                                 result.getString("order_id"),
-                                result.getString("idempotency_key")),
+                                result.getString("idempotency_key"),
+                                result.getString("payload_hash")),
                         scope.schoolId(), scope.canteenId(), planId)
                 .stream()
                 .findFirst();
@@ -318,12 +319,13 @@ public class JdbcProcurementPlanStore implements ProcurementPlanStore {
     public Optional<PlanOrder> findOrderByIdempotencyKey(
             CanteenScope scope, String idempotencyKey) {
         return jdbc.query(
-                        "SELECT plan_id, order_id, idempotency_key FROM procurement_plan_orders "
+                        "SELECT plan_id, order_id, idempotency_key, payload_hash FROM procurement_plan_orders "
                                 + "WHERE school_id = ? AND canteen_id = ? AND idempotency_key = ?",
                         (result, row) -> new PlanOrder(
                                 result.getString("plan_id"),
                                 result.getString("order_id"),
-                                result.getString("idempotency_key")),
+                                result.getString("idempotency_key"),
+                                result.getString("payload_hash")),
                         scope.schoolId(), scope.canteenId(), idempotencyKey)
                 .stream()
                 .findFirst();
@@ -336,11 +338,22 @@ public class JdbcProcurementPlanStore implements ProcurementPlanStore {
             long expectedVersion,
             String orderId,
             String idempotencyKey) {
+        return linkOrder(scope, planId, expectedVersion, orderId, idempotencyKey, null);
+    }
+
+    @Override
+    public ProcurementPlan linkOrder(
+            CanteenScope scope,
+            String planId,
+            long expectedVersion,
+            String orderId,
+            String idempotencyKey,
+            String payloadHash) {
         try {
             jdbc.update(
-                    "INSERT INTO procurement_plan_orders (school_id, canteen_id, plan_id, order_id, idempotency_key) "
-                            + "VALUES (?, ?, ?, ?, ?)",
-                    scope.schoolId(), scope.canteenId(), planId, orderId, idempotencyKey);
+                    "INSERT INTO procurement_plan_orders (school_id, canteen_id, plan_id, order_id, "
+                            + "idempotency_key, payload_hash) VALUES (?, ?, ?, ?, ?, ?)",
+                    scope.schoolId(), scope.canteenId(), planId, orderId, idempotencyKey, payloadHash);
         } catch (DuplicateKeyException exception) {
             PlanOrder existing = findOrderByPlan(scope, planId).orElse(null);
             if (existing != null && existing.orderId().equals(orderId)
@@ -359,6 +372,16 @@ public class JdbcProcurementPlanStore implements ProcurementPlanStore {
                     "Only an unchanged CONFIRMED procurement plan can be converted: " + planId);
         }
         return find(scope, planId).orElseThrow();
+    }
+
+    @Override
+    public void recordOrderPayloadHash(
+            CanteenScope scope, String planId, String idempotencyKey, String payloadHash) {
+        jdbc.update(
+                "UPDATE procurement_plan_orders SET payload_hash = ? WHERE school_id = ? "
+                        + "AND canteen_id = ? AND plan_id = ? AND idempotency_key = ? "
+                        + "AND payload_hash IS NULL",
+                payloadHash, scope.schoolId(), scope.canteenId(), planId, idempotencyKey);
     }
 
     private ProcurementPlan readPlan(

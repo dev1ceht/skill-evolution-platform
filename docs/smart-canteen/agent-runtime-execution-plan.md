@@ -3,7 +3,7 @@
 > 版本：v1.1  
 > 计划基线：2026-08-16  
 > 项目范围：智慧食堂业务运行时  
-> 当前状态：阶段 0～6 的首条运行时切片已落地，并新增了不占用外层事务的 claim-aware worker 执行入口、heartbeat 续租、带事务复核栅栏的 claim-aware stale-run 恢复和在 SQL LIMIT 前应用食堂白名单的默认关闭单实例轮询器；Agent Runtime 的真实 MySQL 并发/重启及 claim lease 基础验收已通过现有环境门禁。生产灰度、多实例证据、敏感结果引用化和生产级自然语言入口仍保持上线门禁。
+> 当前状态：阶段 0～6 的首条运行时切片已落地，并新增了不占用外层事务的 claim-aware worker 执行入口、heartbeat 续租、带事务复核栅栏的 claim-aware stale-run 恢复和在 SQL LIMIT 前应用食堂白名单的默认关闭单实例轮询器；本轮已完成采购/库存/预警写 Skill 的运行时契约、统一工具适配和自然语言确认编排，但写入灰度仍默认关闭，生产灰度、多实例证据和敏感结果引用化仍是上线门禁。
 > v1.1 修订说明：根据当前仓库代码、数据库迁移、契约和前端实现复核，调整依赖顺序、MVP 边界和验收门禁
 
 > 2026-08-17 执行记录：新增一个受全局开关保护的规则型自然语言只读助手试点，用于验证会话持久化、澄清和 Agent Run 关联；它不改变阶段 3 的结构化意图门禁，也不代表自然语言入口已完成生产灰度。
@@ -17,6 +17,7 @@
 > 2026-08-18 Worker seam 执行记录：新增 `AgentRunWorker.claimAndExecute` 与 `AgentExecutionService.executeClaimed`；claim、工具调用、fenced Run/Step/Event 检查点和释放已拆成可独立提交的边界，worker 入口仍需由后续调度器/心跳驱动，未改变同步 HTTP/助手入口，也未开放采购/库存/预警写入。
 > 2026-08-18 调度恢复执行记录：新增 worker heartbeat 自动续租、排除有效 claim 的 stale-run 扫描与带确定性幂等证据的 `RECONCILIATION_REQUIRED` 恢复，以及默认关闭且要求食堂白名单的单实例 `PLANNED` Run 轮询器；恢复器和调度器均要求 durable claim capability，异步入口仍需显式开关、唯一 owner-id 和生产灰度证据，未开放采购/库存/预警写入。
 > 2026-08-18 MySQL 复验记录：重新执行 `infra/verify-mysql-workflow.ps1`，MySQL 8.4.11 / Flyway 11.20.3 在随机隔离库通过 V20 迁移、Agent 并发领取、过期接管、旧 token fencing 以及 active/expired/version recovery re-check，数据库已删除。
+> 2026-08-18 写入 Skill 执行记录：新增 V21～V24 业务写权限/预警处置幂等、采购订单载荷哈希、采购/库存/预警 runtime manifest、`OperationsToolExecutor` 和 fail-closed 的 `agent.write` 开关/范围/意图白名单；自然语言入口支持显式参数澄清、可规划但默认不可执行的 `WAITING_CONFIRMATION` 计划、确认/取消与 Step 派生幂等键。采购订单必须从已确认计划转换并拒绝同键异载荷，手工入库写入批次/库存/溯源同一事务，预警处置要求精确食堂范围和持久化幂等；默认配置不开放任何写入。
 
 ## 1. 目标与范围
 
@@ -68,8 +69,9 @@
 | 阶段 4 | 已完成（首条切片） | `daily_menus` 统一审批状态、提交前校验/菜单 Tool Catalog、运行确认与领域审批分离、版本和职责分离测试 | 旧 `menus` 兼容接口的历史回填/双写收口仍是上线门禁；采购/库存/预警写 Skill 仍按各自领域门禁推进 |
 | 阶段 5 | 已完成（可靠性 + worker 调度 seam） | Run Decision/Event 持久化、审计关联、读重试、截止时间分类、恢复转对账、Step 检查点、claim lease 存储与 fencing 基础、`AgentRunWorker` claim→执行→释放入口、heartbeat 续租、claim-aware stale-run 恢复、恢复幂等证据和调度食堂白名单 | 跨系统 outbox、敏感结果引用化、保留作业和生产多实例灰度验收 |
 | 阶段 6 | 已完成（试点入口与指标看板） | Agent 决策/取消/恢复/事件 API、版本并发控制、OpenAPI/客户端、菜单确认前端、范围受控运行指标查询与看板、真实 MySQL 并发/迁移/重启及 claim 基础门禁 | 长期监控告警和生产灰度验收 |
+| 阶段 7 | 已完成（写 Skill 接入，默认关闭） | 采购计划/订单/收货、库存入库/出库、预警处置的 runtime 契约、业务工具适配、V21～V24 权限/幂等/载荷证据、自然语言显式参数解析与确认状态机、前端写入提示 | 单食堂单意图灰度、业务审批/对账指标、真实外部 Gateway 合同与多实例生产证据 |
 
-阶段 0～3 当前只证明“结构化只读意图可以安全落到真实业务 Service 并留下 Run/Step/Event”；不能据此宣称菜单、采购、库存或预警已由 Agent 自动闭环。
+阶段 0～3 当前只证明“结构化只读意图可以安全落到真实业务 Service 并留下 Run/Step/Event”；阶段 7 已证明写 Skill 可以被规划、确认并通过统一工具适配器落到现有业务 Service，同时执行路径复核领域审批角色、状态机、范围和幂等证据；在 `agent.write` 灰度开关、范围白名单和生产对账指标具备前，不能宣称采购、库存或预警已在生产由 Agent 自动闭环。
 
 ### 2.1 计划合理性结论
 

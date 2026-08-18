@@ -109,4 +109,21 @@ class BusinessAuthorizationPolicyTest {
         policy.requireIntentAccess(approver, "menu.record-decision");
         policy.requireIntentAccess(approver, "menu.publish");
     }
+
+    @Test
+    void domain_approval_reloads_current_roles_before_high_risk_execution() {
+        AuthService authentication = mock(AuthService.class);
+        BusinessAuthorizationPolicy currentPolicy = new BusinessAuthorizationPolicy(
+                true, authorization, organization, authentication);
+        ExecutionContext staleApprover = ExecutionContext.fromTrustedPrincipal(
+                "request-stock-out", operator, scope,
+                Set.of(Role.SCHOOL_ADMIN), Set.of("INVENTORY_STOCK_OUT"));
+        when(authentication.principalForUser(operator.userId())).thenReturn(operator);
+        when(authorization.rolesFor(operator)).thenReturn(Set.of(Role.CANTEEN_STAFF));
+
+        assertThatThrownBy(() -> currentPolicy.requireDomainApproval(
+                staleApprover, "inventory.stock-out"))
+                .isInstanceOf(ForbiddenException.class)
+                .hasMessageContaining("domain approver");
+    }
 }

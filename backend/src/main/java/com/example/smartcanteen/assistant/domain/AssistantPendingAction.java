@@ -2,6 +2,7 @@ package com.example.smartcanteen.assistant.domain;
 
 import java.time.Instant;
 import java.util.Objects;
+import java.util.Set;
 
 /** Durable preview awaiting an explicit Agent Run confirmation. */
 public record AssistantPendingAction(
@@ -9,21 +10,28 @@ public record AssistantPendingAction(
         String intent,
         String runId,
         long runVersion,
-        String menuId,
-        long menuVersion,
+        String resourceId,
+        long resourceVersion,
         String planHash,
         Instant createdAt,
         Instant updatedAt) {
 
     public AssistantPendingAction {
         requireText("conversationId", conversationId, 64);
-        if (!"menu.publish".equals(intent)) {
+        if (!"menu.publish".equals(intent)
+                && !Set.of(
+                        "procurement.plan.generate",
+                        "procurement.order.create",
+                        "procurement.order.receive",
+                        "inventory.receive",
+                        "inventory.stock-out",
+                        "alert.dispose").contains(intent)) {
             throw new IllegalArgumentException("Unsupported pending action intent: " + intent);
         }
         requireText("runId", runId, 64);
-        requireText("menuId", menuId, 64);
+        requireText("resourceId", resourceId, 128);
         requireText("planHash", planHash, 64);
-        if (runVersion < 0 || menuVersion < 0) {
+        if (runVersion < 0 || resourceVersion < 0) {
             throw new IllegalArgumentException("Action versions cannot be negative");
         }
         Objects.requireNonNull(createdAt, "createdAt");
@@ -31,6 +39,15 @@ public record AssistantPendingAction(
         if (createdAt.isAfter(updatedAt)) {
             throw new IllegalArgumentException("createdAt cannot be after updatedAt");
         }
+    }
+
+    /** Compatibility aliases retained while the persistence column names migrate from menu-only. */
+    public String menuId() {
+        return resourceId;
+    }
+
+    public long menuVersion() {
+        return resourceVersion;
     }
 
     private static void requireText(String name, String value, int maxLength) {

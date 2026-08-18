@@ -1,6 +1,7 @@
 package com.example.smartcanteen.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.example.smartcanteen.SmartCanteenApplication;
 import com.example.smartcanteen.application.port.AlertCenter;
@@ -48,7 +49,8 @@ class AlertCenterPersistenceRestartTest {
                     Instant.parse("2026-08-12T02:20:00Z"),
                     "operator-restart",
                     "verified",
-                    null));
+                    null),
+                    "alert-disposal-step-001");
         }
 
         try (ConfigurableApplicationContext second = start(databaseUrl)) {
@@ -66,6 +68,26 @@ class AlertCenterPersistenceRestartTest {
                     20));
             assertThat(page.total()).isEqualTo(1);
             assertThat(page.records().get(0).processUser()).isEqualTo("operator-restart");
+            assertThat(alerts.dispose(
+                    page.records().get(0).warnId(),
+                    new com.example.smartcanteen.domain.AlertDisposal(
+                            1,
+                            Instant.parse("2026-08-12T02:20:00Z"),
+                            "operator-restart",
+                            "verified",
+                            null),
+                    "alert-disposal-step-001").status()).isEqualTo(AlertStatus.PROCESSED);
+            assertThatThrownBy(() -> alerts.dispose(
+                    page.records().get(0).warnId(),
+                    new com.example.smartcanteen.domain.AlertDisposal(
+                            1,
+                            Instant.parse("2026-08-12T02:20:00Z"),
+                            "operator-restart",
+                            "changed",
+                            null),
+                    "alert-disposal-step-001"))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("Idempotency-Key");
         }
     }
 

@@ -11,6 +11,9 @@ import com.example.smartcanteen.domain.AlertStatus;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -109,6 +112,46 @@ public class JdbcAlertStore implements AlertStore {
     }
 
     @Override
+    public AlertRecord dispose(String warnId, AlertDisposal disposal, String idempotencyKey) {
+        AlertRecord existing = findByWarnId(warnId)
+                .orElseThrow(() -> new IllegalArgumentException("Alert not found: " + warnId));
+        String payloadHash = disposalHash(disposal);
+        Optional<StoredDisposal> previous = findDisposalByWarnId(existing.warnId());
+        if (previous.isPresent()) {
+            if (!previous.get().idempotencyKey().equals(idempotencyKey)
+                    || !previous.get().payloadHash().equals(payloadHash)) {
+                throw new IllegalArgumentException(
+                        "Idempotency-Key was already used for a different alert disposal");
+            }
+            return existing;
+        }
+        try {
+            jdbc.update(
+                    "INSERT INTO alert_disposal_idempotency "
+                            + "(school_id, canteen_id, warn_id, idempotency_key, payload_hash) "
+                            + "VALUES (?, ?, ?, ?, ?)",
+                    existing.schoolId(),
+                    existing.canteenId(),
+                    existing.warnId(),
+                    idempotencyKey,
+                    payloadHash);
+        } catch (DuplicateKeyException duplicate) {
+            StoredDisposal raced = findDisposalByWarnId(existing.warnId()).orElse(null);
+            if (raced != null
+                    && raced.idempotencyKey().equals(idempotencyKey)
+                    && raced.payloadHash().equals(payloadHash)) {
+                return findByWarnId(warnId).orElse(existing);
+            }
+            throw new IllegalArgumentException(
+                    "Idempotency-Key was already used for a different alert disposal", duplicate);
+        }
+        // Record the idempotency evidence before applying the state transition. If the alert was
+        // already disposed through a legacy path with the same payload, the evidence is still
+        // created and future Agent retries cannot bypass the durable guard.
+        return dispose(warnId, disposal);
+    }
+
+    @Override
     public AlertCenter.AlertPage query(AlertQuery query) {
         StringBuilder where = new StringBuilder(" WHERE 1 = 1 ");
         List<Object> parameters = new ArrayList<>();
@@ -170,6 +213,40 @@ public class JdbcAlertStore implements AlertStore {
                         warnId)
                 .stream()
                 .findFirst();
+    }
+
+    private Optional<StoredDisposal> findDisposalByWarnId(String warnId) {
+        return jdbc.query(
+                        "SELECT idempotency_key, payload_hash FROM alert_disposal_idempotency "
+                                + "WHERE warn_id = ?",
+                        (result, row) -> new StoredDisposal(
+                                result.getString("idempotency_key"),
+                                result.getString("payload_hash")),
+                        warnId)
+                .stream()
+                .findFirst();
+    }
+
+    private static String disposalHash(AlertDisposal disposal) {
+        String payload = disposal.processStatus() + "\n"
+                + String.valueOf(disposal.processTime()) + "\n"
+                + String.valueOf(disposal.processUser()) + "\n"
+                + String.valueOf(disposal.processContent()) + "\n"
+                + String.valueOf(disposal.processFile());
+        try {
+            byte[] bytes = MessageDigest.getInstance("SHA-256")
+                    .digest(payload.getBytes(StandardCharsets.UTF_8));
+            StringBuilder result = new StringBuilder(bytes.length * 2);
+            for (byte value : bytes) {
+                result.append(String.format("%02x", value));
+            }
+            return result.toString();
+        } catch (NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("SHA-256 is unavailable", exception);
+        }
+    }
+
+    private record StoredDisposal(String idempotencyKey, String payloadHash) {
     }
 
     private AlertRecord mapRecord(ResultSet result, int row) throws SQLException {

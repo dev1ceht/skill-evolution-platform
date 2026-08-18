@@ -15,10 +15,14 @@ import com.example.smartcanteen.domain.ProcurementPlanItem;
 import com.example.smartcanteen.domain.ProcurementPlanStatus;
 import com.example.smartcanteen.domain.PurchaseOrder;
 import com.example.smartcanteen.domain.PurchaseOrderItem;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -199,13 +203,40 @@ public class ProcurementPlanService {
             List<OrderLine> requestedItems) {
         requireIdentifier("Idempotency-Key", idempotencyKey, 128);
         ProcurementPlan plan = find(scope, planId);
+        if (requestedItems == null || requestedItems.isEmpty()) {
+            throw new IllegalArgumentException("Purchase order items are required");
+        }
+        String normalizedSupplierId = requireIdentifier("supplierId", supplierId, 64);
+        String normalizedOrderType = normalizeOrderType(orderType);
+        String normalizedRemark = normalizeRemark(remark);
+        List<PurchaseOrderItem> orderItems = toOrderItems(scope, plan, requestedItems);
+        String payloadHash = orderPayloadHash(
+                normalizedSupplierId,
+                normalizedOrderType,
+                expectedDeliveryAt,
+                normalizedRemark,
+                orderItems);
         ProcurementPlanStore.PlanOrder linked = plans.findOrderByPlan(scope, planId).orElse(null);
         if (linked != null) {
             if (!linked.idempotencyKey().equals(idempotencyKey)) {
                 throw new IllegalStateException("Procurement plan has already been converted to an order");
             }
-            return operationalStore.findPurchaseOrder(scope, linked.orderId())
+            PurchaseOrder existing = operationalStore.findPurchaseOrder(scope, linked.orderId())
                     .orElseThrow(() -> new IllegalStateException("Linked purchase order was not found"));
+            if ((linked.payloadHash() != null && !linked.payloadHash().equals(payloadHash))
+                    || !payloadHash.equals(orderPayloadHash(
+                            existing.supplierId(),
+                            existing.orderType(),
+                            existing.expectedDeliveryAt(),
+                            existing.remark(),
+                            existing.items()))) {
+                throw new IllegalArgumentException(
+                        "Idempotency-Key was already used for a different procurement order");
+            }
+            if (linked.payloadHash() == null) {
+                plans.recordOrderPayloadHash(scope, planId, idempotencyKey, payloadHash);
+            }
+            return existing;
         }
         ProcurementPlanStore.PlanOrder sameKey = plans.findOrderByIdempotencyKey(scope, idempotencyKey)
                 .orElse(null);
@@ -216,9 +247,23 @@ public class ProcurementPlanService {
         if (plan.status() != ProcurementPlanStatus.CONFIRMED) {
             throw new IllegalStateException("Only a CONFIRMED procurement plan can create an order");
         }
-        if (requestedItems == null || requestedItems.isEmpty()) {
-            throw new IllegalArgumentException("Purchase order items are required");
-        }
+        PurchaseOrder order = orders.createOrder(
+                scope,
+                null,
+                null,
+                normalizedSupplierId,
+                normalizedOrderType,
+                expectedDeliveryAt,
+                normalizedRemark,
+                idempotencyKey,
+                orderItems);
+        plans.linkOrder(
+                scope, planId, plan.version(), order.id(), idempotencyKey, payloadHash);
+        return order;
+    }
+
+    private List<PurchaseOrderItem> toOrderItems(
+            CanteenScope scope, ProcurementPlan plan, List<OrderLine> requestedItems) {
         Map<String, ProcurementPlanItem> planned = new HashMap<>();
         plan.items().forEach(item -> planned.put(item.ingredientId(), item));
         Set<String> seen = new HashSet<>();
@@ -248,18 +293,56 @@ public class ProcurementPlanService {
                     requested.ingredientId(), requested.quantity(), requested.unit(),
                     requested.unitPrice(), null));
         }
-        PurchaseOrder order = orders.createOrder(
-                scope,
-                null,
-                null,
-                supplierId,
-                orderType,
-                expectedDeliveryAt,
-                remark,
-                idempotencyKey,
-                orderItems);
-        plans.linkOrder(scope, planId, plan.version(), order.id(), idempotencyKey);
-        return order;
+        return orderItems;
+    }
+
+    private static String normalizeOrderType(String value) {
+        String normalized = requireIdentifier("orderType", value, 16).toUpperCase(java.util.Locale.ROOT);
+        if (!List.of("ONLINE", "OFFLINE").contains(normalized)) {
+            throw new IllegalArgumentException("Unsupported orderType: " + value);
+        }
+        return normalized;
+    }
+
+    private static String normalizeRemark(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    private static String orderPayloadHash(
+            String supplierId,
+            String orderType,
+            Instant expectedDeliveryAt,
+            String remark,
+            List<PurchaseOrderItem> items) {
+        StringBuilder canonical = new StringBuilder();
+        appendToken(canonical, supplierId);
+        appendToken(canonical, orderType);
+        appendToken(canonical, expectedDeliveryAt == null ? null : expectedDeliveryAt.toString());
+        appendToken(canonical, remark);
+        items.stream()
+                .sorted(Comparator.comparing(PurchaseOrderItem::ingredientId))
+                .forEach(item -> {
+                    appendToken(canonical, item.ingredientId());
+                    appendToken(canonical, item.quantity().stripTrailingZeros().toPlainString());
+                    appendToken(canonical, item.unit());
+                    appendToken(canonical, item.unitPrice().stripTrailingZeros().toPlainString());
+                });
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256")
+                    .digest(canonical.toString().getBytes(StandardCharsets.UTF_8));
+            StringBuilder result = new StringBuilder(digest.length * 2);
+            for (byte value : digest) {
+                result.append(String.format("%02x", value));
+            }
+            return result.toString();
+        } catch (NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("SHA-256 is unavailable", exception);
+        }
+    }
+
+    private static void appendToken(StringBuilder target, String value) {
+        String normalized = value == null ? "<null>" : value;
+        target.append(normalized.length()).append(':').append(normalized).append('|');
     }
 
     public record PlanAdjustment(String ingredientId, BigDecimal quantity, String unit) {
@@ -318,12 +401,13 @@ public class ProcurementPlanService {
         }
     }
 
-    private static void requireIdentifier(String label, String value, int maxLength) {
+    private static String requireIdentifier(String label, String value, int maxLength) {
         if (value == null || value.isBlank()) {
             throw new IllegalArgumentException(label + " is required");
         }
         if (value.length() > maxLength) {
             throw new IllegalArgumentException(label + " exceeds " + maxLength + " characters");
         }
+        return value.trim();
     }
 }

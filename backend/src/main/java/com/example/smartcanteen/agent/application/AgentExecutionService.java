@@ -11,6 +11,7 @@ import com.example.smartcanteen.agent.port.AgentRunStore;
 import com.example.smartcanteen.agent.port.SkillRegistry;
 import com.example.smartcanteen.agent.port.ToolExecutor;
 import com.example.smartcanteen.application.BusinessAuthorizationPolicy;
+import com.example.smartcanteen.application.AgentWriteRolloutPolicy;
 import com.example.smartcanteen.application.port.AuditStore;
 import com.example.smartcanteen.domain.AuditLog;
 import java.time.Clock;
@@ -35,6 +36,7 @@ public class AgentExecutionService {
     private final BusinessAuthorizationPolicy policy;
     private final Clock clock;
     private final AuditStore audits;
+    private final AgentWriteRolloutPolicy writeRollout;
 
     @Autowired
     public AgentExecutionService(
@@ -42,8 +44,9 @@ public class AgentExecutionService {
             SkillRegistry skills,
             List<ToolExecutor> tools,
             BusinessAuthorizationPolicy policy,
-            AuditStore audits) {
-        this(runs, skills, tools, policy, Clock.systemUTC(), audits);
+            AuditStore audits,
+            AgentWriteRolloutPolicy writeRollout) {
+        this(runs, skills, tools, policy, Clock.systemUTC(), audits, writeRollout);
     }
 
     public AgentExecutionService(
@@ -51,7 +54,8 @@ public class AgentExecutionService {
             SkillRegistry skills,
             List<ToolExecutor> tools,
             BusinessAuthorizationPolicy policy) {
-        this(runs, skills, tools, policy, Clock.systemUTC(), null);
+        this(runs, skills, tools, policy, Clock.systemUTC(), null,
+                AgentWriteRolloutPolicy.disabled());
     }
 
     public AgentExecutionService(
@@ -60,7 +64,7 @@ public class AgentExecutionService {
             List<ToolExecutor> tools,
             BusinessAuthorizationPolicy policy,
             Clock clock) {
-        this(runs, skills, tools, policy, clock, null);
+        this(runs, skills, tools, policy, clock, null, AgentWriteRolloutPolicy.disabled());
     }
 
     public AgentExecutionService(
@@ -70,12 +74,24 @@ public class AgentExecutionService {
             BusinessAuthorizationPolicy policy,
             Clock clock,
             AuditStore audits) {
+        this(runs, skills, tools, policy, clock, audits, AgentWriteRolloutPolicy.disabled());
+    }
+
+    public AgentExecutionService(
+            AgentRunStore runs,
+            SkillRegistry skills,
+            List<ToolExecutor> tools,
+            BusinessAuthorizationPolicy policy,
+            Clock clock,
+            AuditStore audits,
+            AgentWriteRolloutPolicy writeRollout) {
         this.runs = Objects.requireNonNull(runs, "runs");
         this.skills = Objects.requireNonNull(skills, "skills");
         this.tools = Objects.requireNonNull(tools, "tools");
         this.policy = Objects.requireNonNull(policy, "policy");
         this.clock = Objects.requireNonNull(clock, "clock");
         this.audits = audits;
+        this.writeRollout = Objects.requireNonNull(writeRollout, "writeRollout");
     }
 
     public AgentExecutionService(
@@ -178,7 +194,14 @@ public class AgentExecutionService {
                     updateStep(activeStep, claim);
                 }
                 try {
-                    result = tool.execute(toolName, context, current.inputJson());
+                    String toolInput = "write".equals(skill.runtime().sideEffect())
+                            ? withStepBusinessIdempotency(
+                                    current.inputJson(),
+                                    activeStep.idempotencyKey(),
+                                    current.intent(),
+                                    current.createdAt())
+                            : current.inputJson();
+                    result = tool.execute(toolName, context, toolInput);
                     lastFailure = null;
                     break;
                 } catch (RuntimeException exception) {
@@ -283,8 +306,32 @@ public class AgentExecutionService {
         if (!current.manifestDigest().equals(skill.manifestDigest())) {
             throw new IllegalStateException("Skill manifest changed after Run creation");
         }
+        if ("write".equals(skill.runtime().sideEffect())
+                && !current.intent().startsWith("menu.")) {
+            writeRollout.requireEnabled(context.scope(), current.intent());
+        }
         policy.requireCurrentExecution(current, context, skill);
+        policy.requireDomainApproval(context, current.intent());
         return new ExecutionPreparation(current, skill);
+    }
+
+    private static String withStepBusinessIdempotency(
+            String inputJson, String stepKey, String intent, Instant plannedAt) {
+        try {
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            com.fasterxml.jackson.databind.JsonNode parsed = mapper.readTree(inputJson);
+            if (parsed == null || !parsed.isObject()) {
+                throw new IllegalArgumentException("Agent write input must be a JSON object");
+            }
+            com.fasterxml.jackson.databind.node.ObjectNode object = (com.fasterxml.jackson.databind.node.ObjectNode) parsed;
+            object.put("businessIdempotencyKey", stepKey);
+            if ("alert.dispose".equals(intent) && !object.hasNonNull("processTime")) {
+                object.put("processTime", plannedAt.toString());
+            }
+            return mapper.writeValueAsString(object);
+        } catch (java.io.IOException exception) {
+            throw new IllegalArgumentException("Agent write input cannot be prepared", exception);
+        }
     }
 
     private void updateRun(AgentRun expected, AgentRun updated, AgentRunClaim claim) {

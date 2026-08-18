@@ -74,6 +74,56 @@ function resultSummary(turn: AssistantTurn): string {
     .join(' · ');
 }
 
+function planSummary(turn: AssistantTurn): string {
+  if (turn.kind !== 'CONFIRMATION_REQUIRED' || !turn.result) return '';
+  const parameters = turn.result.businessParameters;
+  if (!parameters || typeof parameters !== 'object' || Array.isArray(parameters)) return '';
+  return Object.entries(parameters)
+    .map(([key, value]) => `${planFieldLabel(key)}：${planValue(value)}`)
+    .join('；');
+}
+
+function planFieldLabel(key: string): string {
+  const labels: Record<string, string> = {
+    periodStart: '开始日期',
+    periodEnd: '结束日期',
+    planId: '采购计划',
+    supplierId: '供应商',
+    orderId: '采购订单',
+    ingredientId: '食材',
+    materialId: '食材',
+    quantity: '数量',
+    unit: '单位',
+    unitPrice: '单价',
+    purchasePrice: '采购价',
+    batchNo: '批次',
+    reason: '原因',
+    warnId: '预警',
+    orderType: '订单类型',
+    expectedDeliveryAt: '预计交付',
+    remark: '备注',
+    productionDate: '生产日期',
+    expiryDate: '失效日期',
+    processTime: '处置时间',
+    processContent: '处置说明',
+    processFile: '处置附件',
+    items: '明细',
+  };
+  return labels[key] ?? key;
+}
+
+function planValue(value: unknown): string {
+  if (Array.isArray(value)) {
+    return value.map((item) => planValue(item)).join('、');
+  }
+  if (value && typeof value === 'object') {
+    return Object.entries(value as Record<string, unknown>)
+      .map(([key, nested]) => `${planFieldLabel(key)}=${planValue(nested)}`)
+      .join(', ');
+  }
+  return String(value ?? '');
+}
+
 async function loadHistory(): Promise<void> {
   if (!props.api.getAssistantHistory) return;
   const requestVersion = ++historyLoadVersion;
@@ -140,14 +190,14 @@ async function send(): Promise<void> {
       <div>
         <p class="eyebrow">ASSISTANT PILOT · GUARDED ACTIONS</p>
         <h2>智能业务助手</h2>
-        <p class="description">支持食品溯源、日菜单查询和菜单发布预览。发布必须经过 Agent Run 确认、领域审批和版本校验。</p>
+        <p class="description">支持食品溯源、日菜单查询，以及采购、库存、预警写入预览。所有写入都必须经过 Agent Run 确认、权限校验和幂等执行；未进入灰度的范围会安全拒绝。</p>
       </div>
       <span class="scope">{{ scope.schoolId }} · {{ scope.canteenId }}</span>
     </div>
 
     <div class="messages" aria-live="polite">
       <p v-if="!messages.length" class="empty" data-testid="assistant-empty">
-        试试：查询 TRACE-001 的食品溯源、查询 MENU-001 的菜单，或发布 MENU-001
+        试试：查询 TRACE-001 的食品溯源、查询 MENU-001 的菜单；灰度范围内也可说“库存出库 ING-001 2 kg，原因 午餐备料”
       </p>
       <article
         v-for="item in messages"
@@ -162,6 +212,10 @@ async function send(): Promise<void> {
           Run {{ item.turn.runId }} · {{ item.turn.runStatus }}
           <span v-if="resultSummary(item.turn)"> · {{ resultSummary(item.turn) }}</span>
         </small>
+        <details v-if="item.turn && planSummary(item.turn)" class="plan-summary" open>
+          <summary>查看不可编辑计划摘要</summary>
+          <p>{{ planSummary(item.turn) }}</p>
+        </details>
         <small v-if="item.turn?.missingFields.length">
           需要补充：{{ item.turn.missingFields.join('、') }}
         </small>
@@ -176,7 +230,7 @@ async function send(): Promise<void> {
           v-model="message"
           rows="2"
           maxlength="2000"
-          placeholder="例如：查询 TRACE-001 的食品溯源，或发布 MENU-001"
+          placeholder="例如：查询 TRACE-001，生成采购计划 2026-08-18 至 2026-08-24，或库存出库 ING-001 2 kg"
           :disabled="loading"
         />
         <button type="submit" :disabled="loading">
@@ -202,6 +256,9 @@ h2 { margin: 0; font-size: 28px; }
 .message.assistant { justify-self: start; color: #233746; background: #e6f1fb; }
 .message p { margin: 4px 0; line-height: 1.5; }
 .message small { display: block; line-height: 1.5; }
+.plan-summary { margin-top: 8px; color: #52697b; font-size: 12px; line-height: 1.5; }
+.plan-summary summary { cursor: pointer; font-weight: 700; }
+.plan-summary p { margin: 6px 0 0; }
 .message.user small { color: #d8ebfc; }
 .role { font-size: 11px; font-weight: 800; }
 .composer { display: grid; gap: 8px; color: #456175; font-size: 13px; font-weight: 700; }

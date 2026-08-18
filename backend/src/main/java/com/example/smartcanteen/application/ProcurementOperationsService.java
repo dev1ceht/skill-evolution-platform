@@ -132,6 +132,36 @@ public class ProcurementOperationsService {
     }
 
     @Transactional
+    public OperationalStore.ReceiveResult receiveInventory(
+            CanteenScope scope,
+            String idempotencyKey,
+            String supplierId,
+            OperationalStore.ReceiveItem item) {
+        require(idempotencyKey, "Idempotency-Key");
+        require(supplierId, "supplierId");
+        store.findSupplier(scope, supplierId)
+                .filter(Supplier::active)
+                .orElseThrow(() -> new IllegalArgumentException("Unknown or disabled supplier"));
+        if (item == null) {
+            throw new IllegalArgumentException("Inventory receipt item is required");
+        }
+        Ingredient ingredient = store.findIngredient(scope, item.ingredientId())
+                .filter(Ingredient::active)
+                .orElseThrow(() -> new IllegalArgumentException("Unknown or disabled ingredient"));
+        ensureCompatibleUnit(scope, ingredient, item.unit());
+        if (item.quantity() == null || item.quantity().signum() <= 0) {
+            throw new IllegalArgumentException("Received quantity must be positive");
+        }
+        if (item.purchasePrice() == null || item.purchasePrice().signum() < 0) {
+            throw new IllegalArgumentException("Received purchasePrice must be non-negative");
+        }
+        if (item.batchNo() == null || item.batchNo().isBlank()) {
+            throw new IllegalArgumentException("Received batchNo is required");
+        }
+        return store.receiveInventory(scope, idempotencyKey, supplierId, item);
+    }
+
+    @Transactional
     public OperationalStore.StockOutResult stockOut(
             CanteenScope scope,
             String idempotencyKey,

@@ -1,5 +1,6 @@
 package com.example.smartcanteen.http;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.notNullValue;
@@ -9,9 +10,14 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.example.smartcanteen.application.ProcurementOperationsService;
+import com.example.smartcanteen.application.port.OperationalStore;
+import com.example.smartcanteen.domain.CanteenScope;
 import com.example.smartcanteen.security.AuthPrincipal;
 import com.example.smartcanteen.security.Role;
+import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,6 +50,9 @@ class OperationalCoreHttpTest {
 
     @Autowired
     private JdbcTemplate jdbc;
+
+    @Autowired
+    private ProcurementOperationsService procurement;
 
     @BeforeEach
     void resetScope() {
@@ -192,6 +201,38 @@ class OperationalCoreHttpTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.todayMenuCount").value(1))
                 .andExpect(jsonPath("$.data.publishedMenuCount").value(1));
+    }
+
+    @Test
+    void rejects_reusing_a_purchase_receipt_key_for_direct_inventory_receiving() {
+        jdbc.update(
+                "INSERT INTO ingredients (school_id, canteen_id, ingredient_id, name, category, base_unit) "
+                        + "VALUES (?, ?, ?, ?, ?, ?)",
+                SCHOOL, CANTEEN, "RICE-CROSS-KEY", "Cross key rice", "主食", "kg");
+        jdbc.update(
+                "INSERT INTO suppliers (school_id, canteen_id, supplier_id, name) VALUES (?, ?, ?, ?)",
+                SCHOOL, CANTEEN, "SUP-CROSS-KEY", "Cross key supplier");
+        jdbc.update(
+                "INSERT INTO purchase_orders (school_id, canteen_id, order_id, order_no, supplier_id, "
+                        + "order_type, status, total_amount, idempotency_key) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                SCHOOL, CANTEEN, "ORDER-CROSS-KEY", "ORDER-NO-CROSS-KEY", "SUP-CROSS-KEY",
+                "OFFLINE", "CONFIRMED", BigDecimal.valueOf(8), "ORDER-IDEMPOTENCY-CROSS-KEY");
+        jdbc.update(
+                "INSERT INTO purchase_order_items (school_id, canteen_id, order_id, ingredient_id, "
+                        + "quantity, unit, unit_price, amount) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                SCHOOL, CANTEEN, "ORDER-CROSS-KEY", "RICE-CROSS-KEY", BigDecimal.valueOf(2), "kg",
+                BigDecimal.valueOf(4), BigDecimal.valueOf(8));
+
+        CanteenScope scope = new CanteenScope(SCHOOL, CANTEEN);
+        OperationalStore.ReceiveItem item = new OperationalStore.ReceiveItem(
+                "RICE-CROSS-KEY", BigDecimal.valueOf(2), "kg", "BATCH-CROSS-KEY",
+                BigDecimal.valueOf(4), null, null);
+        procurement.receive(scope, "ORDER-CROSS-KEY", "RECEIVE-CROSS-KEY", List.of(item));
+
+        assertThatThrownBy(() -> procurement.receiveInventory(
+                        scope, "RECEIVE-CROSS-KEY", "SUP-CROSS-KEY", item))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Idempotency-Key");
     }
 
     @Test

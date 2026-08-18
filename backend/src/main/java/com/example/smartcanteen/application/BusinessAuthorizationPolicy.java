@@ -156,6 +156,7 @@ public class BusinessAuthorizationPolicy {
         // were captured when the Run was created. This closes the privilege-downgrade
         // window between planning and execution.
         requireIntentAccess(current, run.intent());
+        requireDomainApproval(current, run.intent());
     }
 
     /** Applies finer-grained duties for menu approval actions after a Run is resumed. */
@@ -167,6 +168,57 @@ public class BusinessAuthorizationPolicy {
         if (permissionCode != null && !context.hasPermission(permissionCode)) {
             throw new ForbiddenException("User lacks permission " + permissionCode
                     + " for Agent intent " + intent);
+        }
+    }
+
+    /**
+     * Applies domain-approval duties that are stricter than the permission required to request a
+     * write. Runtime confirmation is not a substitute for these duties: a high-risk order,
+     * stock-out, or alert disposal must still be executed by an authorized approver role.
+     */
+    public void requireDomainApproval(ExecutionContext context, String intent) {
+        if (!securityEnabled || context == null || intent == null) {
+            return;
+        }
+        if (authentication != null) {
+            AuthPrincipal current;
+            try {
+                current = authentication.principalForUser(context.actorUserId());
+            } catch (IllegalArgumentException exception) {
+                throw new ForbiddenException("Agent actor is no longer active");
+            }
+            requireDomainApproval(current, intent);
+            return;
+        }
+        requireDomainApproval(context.roles(), intent);
+    }
+
+    /** Applies high-risk domain duties to a freshly reloaded authenticated principal. */
+    private void requireDomainApproval(AuthPrincipal principal, String intent) {
+        if (!securityEnabled || principal == null || intent == null) {
+            return;
+        }
+        requireDomainApproval(authorization.rolesFor(principal), intent);
+    }
+
+    private static void requireDomainApproval(Set<Role> roles, String intent) {
+        switch (intent) {
+            case "procurement.order.create", "procurement.order.receive", "inventory.stock-out" ->
+                    requireDomainRole(roles, Role.SYSTEM_ADMIN, Role.SCHOOL_ADMIN);
+            case "alert.dispose" ->
+                    requireDomainRole(roles, Role.SYSTEM_ADMIN, Role.REGULATOR);
+            default -> {
+                // Plan generation and inventory receiving are validation-gated writes but do not
+                // change an already-approved order or dispose a risk signal.
+            }
+        }
+    }
+
+    private static void requireDomainRole(Set<Role> roles, Role... approverRoles) {
+        boolean allowed = roles != null
+                && Arrays.stream(approverRoles).anyMatch(roles::contains);
+        if (!allowed) {
+            throw new ForbiddenException("A domain approver role is required for this Agent intent");
         }
     }
 
@@ -191,6 +243,12 @@ public class BusinessAuthorizationPolicy {
             case "menu.submit" -> "MENU_SUBMIT";
             case "menu.record-decision" -> "MENU_APPROVE";
             case "menu.publish" -> "MENU_PUBLISH";
+            case "procurement.plan.generate" -> "PROCUREMENT_PLAN_WRITE";
+            case "procurement.order.create" -> "PROCUREMENT_ORDER_WRITE";
+            case "procurement.order.receive" -> "PROCUREMENT_RECEIVE";
+            case "inventory.receive" -> "INVENTORY_RECEIVE";
+            case "inventory.stock-out" -> "INVENTORY_STOCK_OUT";
+            case "alert.dispose" -> "ALERT_DISPOSE";
             default -> null;
         };
     }

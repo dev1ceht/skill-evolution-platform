@@ -151,6 +151,15 @@ class ProcurementPlanClosedLoopHttpTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.id").value(orderId));
 
+        mvc.perform(post("/api/v1/procurement-plans/" + planId + "/purchase-orders?" + SCOPE)
+                        .header("Idempotency-Key", "ORDER-FROM-PLAN-1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"supplierId\":\"SUP-PHASE2\",\"orderType\":\"OFFLINE\","
+                                + "\"items\":[{\"ingredientId\":\"RICE\",\"quantity\":2,"
+                                + "\"unit\":\"bag\",\"unitPrice\":21}]}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message", containsString("different procurement order")));
+
         transitionOrder(orderId, "SUBMITTED");
         transitionOrder(orderId, "CONFIRMED");
 

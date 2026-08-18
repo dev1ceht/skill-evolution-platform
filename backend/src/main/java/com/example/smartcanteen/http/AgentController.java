@@ -31,6 +31,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.transaction.annotation.Transactional;
 
 /** HTTP adapter for the first Agent Runtime vertical slice. */
 @RestController
@@ -114,6 +115,7 @@ public class AgentController {
     }
 
     @PostMapping("/runs/{runId}/decisions")
+    @Transactional
     public ApiResponse<RunView> decide(
             HttpServletRequest request,
             @PathVariable String runId,

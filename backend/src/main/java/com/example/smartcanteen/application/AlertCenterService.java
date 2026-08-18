@@ -47,6 +47,22 @@ public class AlertCenterService implements AlertCenter {
     }
 
     @Override
+    @Transactional
+    public AlertRecord dispose(
+            String warnId, AlertDisposal disposal, String idempotencyKey) {
+        if (idempotencyKey == null || idempotencyKey.isBlank() || idempotencyKey.length() > 128) {
+            throw new IllegalArgumentException("Idempotency-Key must be 1-128 characters");
+        }
+        if (warnId == null || warnId.isBlank()) {
+            throw new IllegalArgumentException("warnId is required");
+        }
+        return store.dispose(
+                warnId.trim(),
+                Objects.requireNonNull(disposal, "disposal is required"),
+                idempotencyKey.trim());
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public AlertPage query(AlertQuery query) {
         return store.query(Objects.requireNonNull(query, "query is required"));

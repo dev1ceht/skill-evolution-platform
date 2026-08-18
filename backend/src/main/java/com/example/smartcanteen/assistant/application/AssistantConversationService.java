@@ -29,6 +29,7 @@ import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
+import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
@@ -189,6 +190,12 @@ public class AssistantConversationService {
                         normalizedKey,
                         context,
                         principal);
+                case WRITE_REQUEST -> previewWrite(
+                        conversation,
+                        resolution,
+                        normalizedKey,
+                        context,
+                        principal);
                 case CONFIRM_PENDING_ACTION -> confirmPendingAction(
                         conversation,
                         resolution,
@@ -276,12 +283,15 @@ public class AssistantConversationService {
             conversations.clearPendingAction(conversation.conversationId());
             return;
         }
-        if (resolution.type() == AssistantResolution.Type.MENU_PUBLISH_REQUEST) {
+        if (resolution.type() == AssistantResolution.Type.MENU_PUBLISH_REQUEST
+                || resolution.type() == AssistantResolution.Type.WRITE_REQUEST) {
             AgentRun run = runtime.find(response.runId()).orElseThrow(() ->
                     new IllegalStateException("Preview Agent Run was not persisted"));
             JsonNode input = parseNullable(run.inputJson());
-            long menuVersion = input == null ? -1 : input.path("menuVersion").asLong(-1);
-            if (menuVersion < 0) {
+            long resourceVersion = resolution.type() == AssistantResolution.Type.MENU_PUBLISH_REQUEST
+                    ? input == null ? -1 : input.path("menuVersion").asLong(-1)
+                    : 0;
+            if (resourceVersion < 0) {
                 throw new IllegalStateException("Preview Agent Run is missing menuVersion");
             }
             Instant now = clock.instant();
@@ -293,8 +303,8 @@ public class AssistantConversationService {
                     resolution.intent(),
                     run.runId(),
                     run.version(),
-                    resolution.menuId(),
-                    menuVersion,
+                    pendingResourceId(resolution),
+                    resourceVersion,
                     run.planHash(),
                     sameAction.map(AssistantPendingAction::createdAt).orElse(now),
                     now));
@@ -385,6 +395,46 @@ public class AssistantConversationService {
                 List.of());
     }
 
+    private AssistantTurn previewWrite(
+            AssistantConversation conversation,
+            AssistantResolution resolution,
+            String idempotencyKey,
+            ExecutionContext context,
+            AuthPrincipal principal) {
+        SkillDefinition skill = skills.findByIntent(resolution.intent())
+                .filter(SkillDefinition::isAvailable)
+                .orElseThrow(() -> new IllegalStateException(
+                        "No active Skill is registered for intent: " + resolution.intent()));
+        policy.requireSkillAccess(principal, skill);
+        policy.requireIntentAccess(context, resolution.intent());
+
+        Map<String, String> input = new LinkedHashMap<>(resolution.parameters());
+        input.put("businessIdempotencyKey", idempotencyKey);
+        String inputJson = writeJson(input);
+        String runIdempotencyKey = "assistant-run-"
+                + digest(conversation.conversationId() + ":" + idempotencyKey).substring(0, 48);
+        AgentRun run = runtime.start(
+                new StartRunCommand(
+                        context.requestId(),
+                        resolution.intent(),
+                        inputJson,
+                        runIdempotencyKey),
+                context);
+        if (run.status() != RunStatus.WAITING_CONFIRMATION) {
+            throw new IllegalStateException("Business write preview must wait for explicit confirmation");
+        }
+        return newTurn(
+                conversation,
+                conversations.nextSequence(conversation.conversationId()),
+                "CONFIRMATION_REQUIRED",
+                resolution.message() + "回复“确认”执行，回复“取消”放弃。",
+                resolution.intent(),
+                run.runId(),
+                run.status().name(),
+                parseNullable(run.planJson()),
+                List.of());
+    }
+
     private AssistantTurn confirmPendingAction(
             AssistantConversation conversation,
             AssistantResolution resolution,
@@ -393,10 +443,10 @@ public class AssistantConversationService {
             ExecutionContext context) {
         requirePendingActionMatches(resolution, pending);
         AgentRun current = runtime.find(pending.runId()).orElseThrow(() ->
-                new IllegalStateException("Pending menu publish Run no longer exists"));
+                new IllegalStateException("Pending business write Run no longer exists"));
         if (current.version() != pending.runVersion()
                 || !current.planHash().equals(pending.planHash())) {
-            throw new IllegalStateException("Pending menu publish plan is stale");
+            throw new IllegalStateException("Pending business write plan is stale");
         }
         AgentRun confirmed = runtime.decide(
                 pending.runId(),
@@ -412,7 +462,7 @@ public class AssistantConversationService {
                 conversation,
                 conversations.nextSequence(conversation.conversationId()),
                 "RESULT",
-                menuPublishMessage(completed, pending.menuId()),
+                actionResultMessage(completed, pending),
                 resolution.intent(),
                 completed.runId(),
                 completed.status().name(),
@@ -428,10 +478,10 @@ public class AssistantConversationService {
             ExecutionContext context) {
         requirePendingActionMatches(resolution, pending);
         AgentRun current = runtime.find(pending.runId()).orElseThrow(() ->
-                new IllegalStateException("Pending menu publish Run no longer exists"));
+                new IllegalStateException("Pending business write Run no longer exists"));
         if (current.version() != pending.runVersion()
                 || !current.planHash().equals(pending.planHash())) {
-            throw new IllegalStateException("Pending menu publish plan is stale");
+            throw new IllegalStateException("Pending business write plan is stale");
         }
         AgentRun cancelled = runtime.decide(
                 pending.runId(),
@@ -444,7 +494,7 @@ public class AssistantConversationService {
                 conversation,
                 conversations.nextSequence(conversation.conversationId()),
                 "RESULT",
-                "已取消菜单发布计划：" + pending.menuId() + "。",
+                "已取消待处理写入计划：" + pendingLabel(pending) + "。",
                 resolution.intent(),
                 cancelled.runId(),
                 cancelled.status().name(),
@@ -456,13 +506,12 @@ public class AssistantConversationService {
             AssistantConversation conversation,
             AssistantPendingAction pending) {
         AgentRun run = runtime.find(pending.runId()).orElseThrow(() ->
-                new IllegalStateException("Pending menu publish Run no longer exists"));
+                new IllegalStateException("Pending business write Run no longer exists"));
         return newTurn(
                 conversation,
                 conversations.nextSequence(conversation.conversationId()),
                 "CONFIRMATION_REQUIRED",
-                "当前仍有待确认的菜单发布计划：" + pending.menuId() + "，版本 "
-                        + pending.menuVersion() + "。请回复“确认发布”执行，或回复“取消”放弃。",
+                "当前仍有待确认的写入计划：" + pendingLabel(pending) + "。请回复“确认”执行，或回复“取消”放弃。",
                 pending.intent(),
                 run.runId(),
                 run.status().name(),
@@ -476,9 +525,9 @@ public class AssistantConversationService {
             Optional<AgentRun> currentRun) {
         String status = currentRun.map(run -> run.status().name()).orElse("UNKNOWN");
         String message = currentRun.isPresent()
-                ? "待确认的菜单发布计划已由其他入口处理，当前 Agent Run 状态为「"
+                ? "待确认的写入计划已由其他入口处理，当前 Agent Run 状态为「"
                         + status + "」，助手待处理状态已同步清理。"
-                : "待确认的菜单发布 Run " + pending.runId()
+                : "待确认的业务写入 Run " + pending.runId()
                         + " 已不存在，助手待处理状态已同步清理。";
         return newTurn(
                 conversation,
@@ -551,14 +600,40 @@ public class AssistantConversationService {
         }
     }
 
-    private static String menuPublishMessage(AgentRun run, String menuId) {
+    private static String actionResultMessage(AgentRun run, AssistantPendingAction pending) {
         if (run.status() == RunStatus.SUCCEEDED) {
-            return "已完成菜单发布：" + menuId + "。";
+            return "已完成写入操作：" + pendingLabel(pending) + "。";
         }
         if (run.status() == RunStatus.RECONCILIATION_REQUIRED) {
-            return "菜单发布结果未知，需要人工对账：" + menuId + "。";
+            return "写入结果未知，需要人工对账：" + pendingLabel(pending) + "。";
         }
-        return "菜单发布未完成，请查看运行状态后重试或人工处理：" + menuId + "。";
+        return "写入操作未完成，请查看运行状态后重试或人工处理：" + pendingLabel(pending) + "。";
+    }
+
+    private static String pendingResourceId(AssistantResolution resolution) {
+        if (resolution.type() == AssistantResolution.Type.MENU_PUBLISH_REQUEST) {
+            return resolution.menuId();
+        }
+        return switch (resolution.intent()) {
+            case "procurement.order.create" -> resolution.parameters().getOrDefault(
+                    "supplierId", "采购订单");
+            case "procurement.order.receive" -> resolution.parameters().getOrDefault(
+                    "orderId", "采购收货");
+            case "inventory.receive" -> resolution.parameters().getOrDefault(
+                    "materialId", "库存入库");
+            case "inventory.stock-out" -> resolution.parameters().getOrDefault(
+                    "ingredientId", "库存出库");
+            case "alert.dispose" -> resolution.parameters().getOrDefault(
+                    "warnId", "预警处置");
+            default -> "采购计划";
+        };
+    }
+
+    private static String pendingLabel(AssistantPendingAction pending) {
+        if ("menu.publish".equals(pending.intent())) {
+            return "菜单发布计划 " + pending.menuId() + "（版本 " + pending.menuVersion() + "）";
+        }
+        return pending.intent() + " / " + pending.menuId();
     }
 
     private String writeJson(Object value) {

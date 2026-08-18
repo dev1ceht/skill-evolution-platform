@@ -85,10 +85,11 @@ public class AssistantIntentResolverRouter implements AssistantIntentResolver {
             case MENU_QUERY -> resolution.intent().equals("menu.query")
                     && (hasPrefix(resolution.menuId(), "MENU-")
                     || hasPrefix(resolution.menuId(), "MENU_"));
-            case MENU_PUBLISH_REQUEST, CONFIRM_PENDING_ACTION, CANCEL_PENDING_ACTION -> false;
+            case MENU_PUBLISH_REQUEST, WRITE_REQUEST, CONFIRM_PENDING_ACTION, CANCEL_PENDING_ACTION -> false;
             case CLARIFICATION -> resolution.intent() == null
                     || resolution.intent().equals("traceability.query")
-                    || resolution.intent().equals("menu.query");
+                    || resolution.intent().equals("menu.query")
+                    || AssistantResolution.isWriteIntent(resolution.intent());
             case UNSUPPORTED -> true;
         };
     }

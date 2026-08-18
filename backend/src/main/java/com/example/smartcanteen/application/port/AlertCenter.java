@@ -16,6 +16,13 @@ public interface AlertCenter {
 
     AlertRecord dispose(String warnId, AlertDisposal disposal);
 
+    /** Agent/worker seam carrying the stable Step business idempotency key. */
+    default AlertRecord dispose(
+            String warnId, AlertDisposal disposal, String idempotencyKey) {
+        throw new UnsupportedOperationException(
+                "Idempotent alert disposal is not configured for this center");
+    }
+
     AlertPage query(AlertQuery query);
 
     record AlertPage(List<AlertRecord> records, int pageNum, int pageSize, long total) {

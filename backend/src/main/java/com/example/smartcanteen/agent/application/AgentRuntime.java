@@ -486,25 +486,29 @@ public class AgentRuntime {
         plan.put("schoolId", scope.schoolId());
         plan.put("canteenId", scope.canteenId());
         plan.put("tools", List.of(selectedTool));
-        // Keep the operator-reviewable business coordinates in the immutable plan. The
-        // full input remains separately canonicalized/digested; only non-sensitive menu
-        // coordinates are copied here so a plan hash cannot hide a different menu version.
-        if (command.intent().startsWith("menu.")) {
+        // Keep operator-reviewable business coordinates in the immutable plan. The full input
+        // remains separately canonicalized/digested; the assistant idempotency token is omitted
+        // so the plan does not echo a transport credential.
+        if (skill.runtime() != null && "write".equals(skill.runtime().sideEffect())) {
             try {
                 JsonNode input = objectMapper.readTree(command.inputJson());
                 Map<String, Object> businessParameters = new LinkedHashMap<>();
-                if (input != null && input.hasNonNull("menuId")) {
-                    businessParameters.put("menuId", input.get("menuId").asText());
-                }
-                if (input != null && input.hasNonNull("menuVersion")) {
-                    businessParameters.put("menuVersion", input.get("menuVersion").asLong());
-                }
-                if (input != null && input.hasNonNull("decision")) {
-                    businessParameters.put("decision", input.get("decision").asText());
+                if (input != null && input.isObject()) {
+                    Iterator<Map.Entry<String, JsonNode>> fields = input.fields();
+                    while (fields.hasNext()) {
+                        Map.Entry<String, JsonNode> field = fields.next();
+                        if (isSafePlanField(field.getKey())) {
+                            JsonNode reviewable = reviewablePlanValue(field.getKey(), field.getValue());
+                            if (reviewable != null) {
+                                businessParameters.put(
+                                        field.getKey(), objectMapper.convertValue(reviewable, Object.class));
+                            }
+                        }
+                    }
                 }
                 plan.put("businessParameters", businessParameters);
             } catch (JsonProcessingException exception) {
-                throw new IllegalArgumentException("Agent menu input must be valid JSON", exception);
+                throw new IllegalArgumentException("Agent write input must be valid JSON", exception);
             }
         }
         try {
@@ -512,6 +516,51 @@ public class AgentRuntime {
         } catch (JsonProcessingException exception) {
             throw new IllegalStateException("Unable to serialize Agent plan", exception);
         }
+    }
+
+    private static boolean isSafePlanField(String field) {
+        return switch (field) {
+            case "menuId", "menuVersion", "decision", "periodStart", "periodEnd", "planId", "supplierId", "orderId",
+                    "ingredientId", "materialId", "quantity", "unit", "unitPrice",
+                    "purchasePrice", "batchNo", "reason", "warnId", "orderType",
+                    "expectedDeliveryAt", "remark", "productionDate", "expiryDate", "processTime",
+                    "processContent", "processFile", "items" -> true;
+            default -> false;
+        };
+    }
+
+    /** Keeps nested order/receipt lines reviewable without echoing transport credentials. */
+    private JsonNode reviewablePlanValue(String field, JsonNode value) {
+        if (!"items".equals(field)) {
+            return value;
+        }
+        if (value == null || !value.isArray()) {
+            return null;
+        }
+        ArrayNode sanitized = objectMapper.createArrayNode();
+        for (JsonNode item : value) {
+            if (item == null || !item.isObject()) {
+                continue;
+            }
+            ObjectNode line = objectMapper.createObjectNode();
+            Iterator<Map.Entry<String, JsonNode>> fields = item.fields();
+            while (fields.hasNext()) {
+                Map.Entry<String, JsonNode> entry = fields.next();
+                if (isSafePlanLineField(entry.getKey())) {
+                    line.set(entry.getKey(), entry.getValue());
+                }
+            }
+            sanitized.add(line);
+        }
+        return sanitized;
+    }
+
+    private static boolean isSafePlanLineField(String field) {
+        return switch (field) {
+            case "ingredientId", "materialId", "quantity", "unit", "unitPrice",
+                    "purchasePrice", "batchNo", "productionDate", "expiryDate" -> true;
+            default -> false;
+        };
     }
 
     private static RunStatus initialStatus(SkillDefinition skill) {

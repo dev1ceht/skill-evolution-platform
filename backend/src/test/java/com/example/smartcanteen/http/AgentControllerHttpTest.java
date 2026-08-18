@@ -15,6 +15,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 @SpringBootTest
@@ -160,6 +161,33 @@ class AgentControllerHttpTest {
     }
 
     @Test
+    void business_write_skill_can_be_planned_but_execution_remains_closed_without_rollout() throws Exception {
+        MvcResult planned = mvc.perform(startBusinessWriteRequest())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("WAITING_CONFIRMATION"))
+                .andReturn();
+        String runId = com.jayway.jsonpath.JsonPath.read(
+                planned.getResponse().getContentAsString(), "$.data.runId");
+        Number versionValue = com.jayway.jsonpath.JsonPath.read(
+                planned.getResponse().getContentAsString(), "$.data.version");
+        long version = versionValue.longValue();
+
+        mvc.perform(confirmRequest(runId, version, PRINCIPAL,
+                        "confirm-inventory-write-closed", null))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value(40300))
+                .andExpect(jsonPath("$.message").value("Agent write pilot is disabled"));
+
+        mvc.perform(get("/api/v1/agent/runs/{runId}", runId)
+                        .queryParam("schoolId", SCHOOL_ID)
+                        .queryParam("canteenId", CANTEEN_ID)
+                        .requestAttr(AuthPrincipal.class.getName(), PRINCIPAL))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("WAITING_CONFIRMATION"))
+                .andExpect(jsonPath("$.data.version").value(0));
+    }
+
+    @Test
     void missing_run_is_reported_as_not_found() throws Exception {
         mvc.perform(get("/api/v1/agent/runs/RUN-MISSING")
                         .queryParam("schoolId", SCHOOL_ID)
@@ -222,6 +250,19 @@ class AgentControllerHttpTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"intent\":\"traceability.query\",\"input\":{\"traceCode\":\""
                         + traceCode + "\"}}")
+                .requestAttr(AuthPrincipal.class.getName(), PRINCIPAL);
+    }
+
+    private MockHttpServletRequestBuilder startBusinessWriteRequest() {
+        return post("/api/v1/agent/runs")
+                .queryParam("schoolId", SCHOOL_ID)
+                .queryParam("canteenId", CANTEEN_ID)
+                .header("Idempotency-Key", "inventory-write-closed")
+                .header("X-Request-Id", "request-inventory-write-closed")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"intent\":\"inventory.stock-out\",\"input\":{"
+                        + "\"ingredientId\":\"ING-AGENT\",\"quantity\":\"1\",\"unit\":\"kg\","
+                        + "\"items\":[{\"ingredientId\":\"ING-AGENT\",\"quantity\":\"1\",\"unit\":\"kg\"}]}}")
                 .requestAttr(AuthPrincipal.class.getName(), PRINCIPAL);
     }
 

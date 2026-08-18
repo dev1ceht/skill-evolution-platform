@@ -15,5 +15,12 @@ public interface AlertStore {
 
     AlertRecord dispose(String warnId, AlertDisposal disposal);
 
+    /** Persists the idempotency evidence for a Runtime-triggered disposal. */
+    default AlertRecord dispose(
+            String warnId, AlertDisposal disposal, String idempotencyKey) {
+        throw new UnsupportedOperationException(
+                "Idempotent alert disposal is not configured for this store");
+    }
+
     AlertCenter.AlertPage query(AlertQuery query);
 }

@@ -28,6 +28,12 @@ class YamlSkillRegistryTest {
         assertThat(registry.findByIntent("menu.publish")).isPresent();
         assertThat(registry.findByIntent("menu.validate-for-submit")).isPresent();
         assertThat(registry.findByIntent("menu.query")).isPresent();
+        assertThat(registry.findByIntent("procurement.plan.generate")).isPresent();
+        assertThat(registry.findByIntent("procurement.order.create")).isPresent();
+        assertThat(registry.findByIntent("procurement.order.receive")).isPresent();
+        assertThat(registry.findByIntent("inventory.receive")).isPresent();
+        assertThat(registry.findByIntent("inventory.stock-out")).isPresent();
+        assertThat(registry.findByIntent("alert.dispose")).isPresent();
     }
 
     @Test

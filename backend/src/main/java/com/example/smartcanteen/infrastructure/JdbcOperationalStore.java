@@ -22,6 +22,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.nio.charset.StandardCharsets;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -569,6 +570,8 @@ public class JdbcOperationalStore implements OperationalStore {
             String orderId,
             String idempotencyKey,
             List<ReceiveItem> items) {
+        PurchaseOrder order = findPurchaseOrder(scope, orderId)
+                .orElseThrow(() -> new IllegalArgumentException("Purchase order not found: " + orderId));
         Optional<ReceiveResult> previous = findReceiptByIdempotency(scope, idempotencyKey);
         if (previous.isPresent()) {
             if (!previous.get().orderId().equals(orderId)) {
@@ -578,12 +581,10 @@ public class JdbcOperationalStore implements OperationalStore {
             // An empty body means "receive the remaining quantity". It is intentionally
             // accepted on an idempotent retry of an explicit receipt.
             if (items != null && !items.isEmpty()) {
-                ensureSameReceipt(scope, previous.get(), items);
+                ensureSameReceipt(scope, previous.get(), order.supplierId(), items);
             }
             return previous.get();
         }
-        PurchaseOrder order = findPurchaseOrder(scope, orderId)
-                .orElseThrow(() -> new IllegalArgumentException("Purchase order not found: " + orderId));
         if (!"CONFIRMED".equals(order.status())) {
             throw new IllegalStateException("Purchase order cannot be received in status " + order.status());
         }
@@ -633,7 +634,7 @@ public class JdbcOperationalStore implements OperationalStore {
                         "Idempotency-Key was already used for a different purchase receipt");
             }
             if (items != null && !items.isEmpty()) {
-                ensureSameReceipt(scope, raced, items);
+                ensureSameReceipt(scope, raced, order.supplierId(), items);
             }
             return raced;
         }
@@ -719,6 +720,100 @@ public class JdbcOperationalStore implements OperationalStore {
     }
 
     @Override
+    public ReceiveResult receiveInventory(
+            CanteenScope scope,
+            String idempotencyKey,
+            String supplierId,
+            ReceiveItem item) {
+        Optional<ReceiveResult> previous = findReceiptByIdempotency(scope, idempotencyKey);
+        if (previous.isPresent()) {
+            ensureDirectReceipt(scope, idempotencyKey, previous.get());
+            ensureSameReceipt(scope, previous.get(), supplierId, List.of(item));
+            return previous.get();
+        }
+        IngredientData ingredient = findIngredientData(scope, item.ingredientId())
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Unknown ingredient: " + item.ingredientId()));
+        BaseAmount amount = toIngredientBase(scope, item.ingredientId(), item.quantity(), item.unit());
+        String receiptId = "RECEIPT-" + UUID.randomUUID();
+        try {
+            jdbc.update(
+                    "INSERT INTO purchase_receipts (school_id, canteen_id, receipt_id, order_id, idempotency_key) "
+                            + "VALUES (?, ?, ?, ?, ?)",
+                    scope.schoolId(),
+                    scope.canteenId(),
+                    receiptId,
+                    directReceiptOrderId(scope, idempotencyKey),
+                    idempotencyKey);
+        } catch (DuplicateKeyException exception) {
+            ReceiveResult raced = findReceiptByIdempotency(scope, idempotencyKey)
+                    .orElseThrow(() -> new IllegalStateException(
+                            "Receipt idempotency race was not recoverable"));
+            ensureDirectReceipt(scope, idempotencyKey, raced);
+            ensureSameReceipt(scope, raced, supplierId, List.of(item));
+            return raced;
+        }
+        String batchId = "BATCH-" + UUID.randomUUID();
+        String traceCode = "TRACE-" + UUID.randomUUID();
+        String orderId = directReceiptOrderId(scope, idempotencyKey);
+        jdbc.update(
+                "INSERT INTO inventory_batches (school_id, canteen_id, batch_id, order_id, ingredient_id, "
+                        + "supplier_id, batch_no, quantity_base, base_unit, purchase_price, production_date, "
+                        + "expiry_date, trace_code) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                scope.schoolId(),
+                scope.canteenId(),
+                batchId,
+                orderId,
+                item.ingredientId(),
+                supplierId,
+                item.batchNo(),
+                amount.quantity(),
+                amount.unit(),
+                item.purchasePrice(),
+                item.productionDate() == null ? null : java.sql.Date.valueOf(item.productionDate()),
+                item.expiryDate() == null ? null : java.sql.Date.valueOf(item.expiryDate()),
+                traceCode);
+        jdbc.update(
+                "INSERT INTO purchase_receipt_items (school_id, canteen_id, receipt_id, batch_id, ingredient_id, "
+                        + "quantity_base, base_unit) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                scope.schoolId(),
+                scope.canteenId(),
+                receiptId,
+                batchId,
+                item.ingredientId(),
+                amount.quantity(),
+                amount.unit());
+        addInventory(scope, item.ingredientId(), ingredient, amount);
+        jdbc.update(
+                "INSERT INTO traceability_records (school_id, canteen_id, trace_code, batch_id, order_id, "
+                        + "ingredient_id, supplier_id, quantity_base, base_unit) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                scope.schoolId(),
+                scope.canteenId(),
+                traceCode,
+                batchId,
+                orderId,
+                item.ingredientId(),
+                supplierId,
+                amount.quantity(),
+                amount.unit());
+        return new ReceiveResult(orderId, receiptId, List.of(traceCode));
+    }
+
+    private static void ensureDirectReceipt(
+            CanteenScope scope, String idempotencyKey, ReceiveResult stored) {
+        if (!directReceiptOrderId(scope, idempotencyKey).equals(stored.orderId())) {
+            throw new IllegalArgumentException(
+                    "Idempotency-Key was already used for a different purchase receipt");
+        }
+    }
+
+    private static String directReceiptOrderId(CanteenScope scope, String idempotencyKey) {
+        UUID stable = UUID.nameUUIDFromBytes((scope.schoolId() + ":" + scope.canteenId() + ":"
+                + idempotencyKey).getBytes(StandardCharsets.UTF_8));
+        return "DIRECT-" + stable;
+    }
+
+    @Override
     public PageResult<InventoryLine> listInventory(
             CanteenScope scope, String keyword, boolean warningOnly, int page, int size) {
         requirePage(page, size);
@@ -766,7 +861,7 @@ public class JdbcOperationalStore implements OperationalStore {
             List<StockOutItem> items) {
         Optional<StockOutResult> previous = findStockOutByIdempotency(scope, idempotencyKey);
         if (previous.isPresent()) {
-            ensureSameStockOut(scope, previous.get(), items);
+            ensureSameStockOut(scope, previous.get(), reason, items);
             return previous.get();
         }
         String stockOutId = "STOCK-OUT-" + UUID.randomUUID();
@@ -782,7 +877,7 @@ public class JdbcOperationalStore implements OperationalStore {
         } catch (DuplicateKeyException exception) {
             StockOutResult raced = findStockOutByIdempotency(scope, idempotencyKey)
                     .orElseThrow(() -> new IllegalStateException("Stock-out idempotency race was not recoverable"));
-            ensureSameStockOut(scope, raced, items);
+            ensureSameStockOut(scope, raced, reason, items);
             return raced;
         }
         List<StockOutItem> persistedItems = new ArrayList<>();
@@ -1191,7 +1286,24 @@ public class JdbcOperationalStore implements OperationalStore {
     }
 
     private void ensureSameStockOut(
-            CanteenScope scope, StockOutResult stored, List<StockOutItem> requested) {
+            CanteenScope scope,
+            StockOutResult stored,
+            String requestedReason,
+            List<StockOutItem> requested) {
+        String storedReason = jdbc.query(
+                        "SELECT reason FROM stock_out_records WHERE school_id = ? AND canteen_id = ? "
+                                + "AND stock_out_id = ?",
+                        (result, row) -> result.getString("reason"),
+                        scope.schoolId(),
+                        scope.canteenId(),
+                        stored.stockOutId())
+                .stream()
+                .findFirst()
+                .orElse(null);
+        if (!java.util.Objects.equals(storedReason, requestedReason)) {
+            throw new IllegalArgumentException(
+                    "Idempotency-Key was already used for a different stock-out");
+        }
         if (requested == null || requested.size() != stored.items().size()) {
             throw new IllegalArgumentException(
                     "Idempotency-Key was already used for a different stock-out");
@@ -1201,7 +1313,7 @@ public class JdbcOperationalStore implements OperationalStore {
             expected.put(item.ingredientId(), item);
         }
         for (StockOutItem item : requested) {
-            IngredientData ingredient = findIngredientData(scope, item.ingredientId())
+            findIngredientData(scope, item.ingredientId())
                     .orElseThrow(() -> new IllegalArgumentException(
                             "Unknown ingredient: " + item.ingredientId()));
             BaseAmount amount = toIngredientBase(
@@ -1242,23 +1354,29 @@ public class JdbcOperationalStore implements OperationalStore {
     }
 
     private void ensureSameReceipt(
-            CanteenScope scope, ReceiveResult stored, List<ReceiveItem> requested) {
-        List<ReceiveItem> persisted = jdbc.query(
-                "SELECT i.ingredient_id, i.quantity_base, i.base_unit, b.purchase_price, "
-                        + "b.production_date, b.expiry_date "
+            CanteenScope scope,
+            ReceiveResult stored,
+            String expectedSupplierId,
+            List<ReceiveItem> requested) {
+        List<ReceiptItemSnapshot> persisted = jdbc.query(
+                "SELECT i.ingredient_id, i.quantity_base, i.base_unit, b.batch_id, b.supplier_id, "
+                        + "b.batch_no, b.purchase_price, b.production_date, b.expiry_date "
                         + "FROM purchase_receipt_items i "
                         + "JOIN inventory_batches b ON b.school_id = i.school_id "
                         + "AND b.canteen_id = i.canteen_id AND b.batch_id = i.batch_id "
                         + "WHERE i.school_id = ? AND i.canteen_id = ? AND i.receipt_id = ? "
                         + "ORDER BY i.ingredient_id",
-                (result, row) -> new ReceiveItem(
-                        result.getString("ingredient_id"),
-                        result.getBigDecimal("quantity_base"),
-                        result.getString("base_unit"),
-                        null,
-                        result.getBigDecimal("purchase_price"),
-                        localDate(result.getDate("production_date")),
-                        localDate(result.getDate("expiry_date"))),
+                (result, row) -> new ReceiptItemSnapshot(
+                        new ReceiveItem(
+                                result.getString("ingredient_id"),
+                                result.getBigDecimal("quantity_base"),
+                                result.getString("base_unit"),
+                                result.getString("batch_no"),
+                                result.getBigDecimal("purchase_price"),
+                                localDate(result.getDate("production_date")),
+                                localDate(result.getDate("expiry_date"))),
+                        result.getString("batch_id"),
+                        result.getString("supplier_id")),
                 scope.schoolId(),
                 scope.canteenId(),
                 stored.receiptId());
@@ -1266,9 +1384,9 @@ public class JdbcOperationalStore implements OperationalStore {
             throw new IllegalArgumentException(
                     "Idempotency-Key was already used for a different purchase receipt");
         }
-        Map<String, ReceiveItem> expected = new HashMap<>();
-        for (ReceiveItem item : persisted) {
-            expected.put(item.ingredientId(), item);
+        Map<String, ReceiptItemSnapshot> expected = new HashMap<>();
+        for (ReceiptItemSnapshot snapshot : persisted) {
+            expected.put(snapshot.item().ingredientId(), snapshot);
         }
         Set<String> receivedIngredients = new HashSet<>();
         for (ReceiveItem item : requested) {
@@ -1276,15 +1394,23 @@ public class JdbcOperationalStore implements OperationalStore {
                 throw new IllegalArgumentException(
                         "Idempotency-Key was already used for a different purchase receipt");
             }
-            IngredientData ingredient = findIngredientData(scope, item.ingredientId())
+            findIngredientData(scope, item.ingredientId())
                     .orElseThrow(() -> new IllegalArgumentException(
                             "Unknown ingredient: " + item.ingredientId()));
             BaseAmount amount = toIngredientBase(
                     scope, item.ingredientId(), item.quantity(), item.unit());
-            ReceiveItem saved = expected.get(item.ingredientId());
+            ReceiptItemSnapshot snapshot = expected.get(item.ingredientId());
+            ReceiveItem saved = snapshot == null ? null : snapshot.item();
+            boolean batchMatches = saved != null
+                    && (item.batchNo() == null || item.batchNo().isBlank()
+                            ? saved.batchNo().equals(snapshot.batchId())
+                            : saved.batchNo().equals(item.batchNo()));
             if (saved == null
+                    || (expectedSupplierId != null
+                            && !expectedSupplierId.equals(snapshot.supplierId()))
                     || !saved.unit().equals(amount.unit())
                     || saved.quantity().compareTo(amount.quantity()) != 0
+                    || !batchMatches
                     || saved.purchasePrice().compareTo(item.purchasePrice()) != 0
                     || !java.util.Objects.equals(saved.productionDate(), item.productionDate())
                     || !java.util.Objects.equals(saved.expiryDate(), item.expiryDate())) {
@@ -1292,6 +1418,10 @@ public class JdbcOperationalStore implements OperationalStore {
                         "Idempotency-Key was already used for a different purchase receipt");
             }
         }
+    }
+
+    private record ReceiptItemSnapshot(
+            ReceiveItem item, String batchId, String supplierId) {
     }
 
     private Optional<StockOutResult> findStockOutByIdempotency(

@@ -1,7 +1,9 @@
 package com.example.smartcanteen.assistant.domain;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 /** Structured result of the first deterministic assistant intent resolver. */
 public record AssistantResolution(
@@ -10,12 +12,22 @@ public record AssistantResolution(
         String traceCode,
         String menuId,
         List<String> missingFields,
-        String message) {
+        String message,
+        Map<String, String> parameters) {
+
+    private static final Set<String> WRITE_INTENTS = Set.of(
+            "procurement.plan.generate",
+            "procurement.order.create",
+            "procurement.order.receive",
+            "inventory.receive",
+            "inventory.stock-out",
+            "alert.dispose");
 
     public enum Type {
         TRACEABILITY_QUERY,
         MENU_QUERY,
         MENU_PUBLISH_REQUEST,
+        WRITE_REQUEST,
         CONFIRM_PENDING_ACTION,
         CANCEL_PENDING_ACTION,
         CLARIFICATION,
@@ -26,6 +38,7 @@ public record AssistantResolution(
         Objects.requireNonNull(type, "type");
         missingFields = missingFields == null ? List.of() : List.copyOf(missingFields);
         Objects.requireNonNull(message, "message");
+        parameters = parameters == null ? Map.of() : Map.copyOf(parameters);
         if (type == Type.TRACEABILITY_QUERY) {
             if (!"traceability.query".equals(intent)) {
                 throw new IllegalArgumentException(
@@ -59,13 +72,23 @@ public record AssistantResolution(
                 throw new IllegalArgumentException("Menu publish resolution cannot contain traceCode");
             }
         } else if (type == Type.CONFIRM_PENDING_ACTION || type == Type.CANCEL_PENDING_ACTION) {
-            if (!"menu.publish".equals(intent)) {
+            if (!"menu.publish".equals(intent) && !WRITE_INTENTS.contains(intent)) {
                 throw new IllegalArgumentException(
-                        "Pending action resolution must select menu.publish");
+                        "Pending action resolution must select a supported write intent");
             }
             if (traceCode != null || menuId != null) {
                 throw new IllegalArgumentException(
                         "Pending action resolution cannot contain a resource identifier");
+            }
+        } else if (type == Type.WRITE_REQUEST) {
+            if (!WRITE_INTENTS.contains(intent)) {
+                throw new IllegalArgumentException("Unsupported write intent: " + intent);
+            }
+            if (traceCode != null || menuId != null) {
+                throw new IllegalArgumentException("Write resolution cannot contain menu or trace identifiers");
+            }
+            if (parameters.isEmpty()) {
+                throw new IllegalArgumentException("Write resolution requires parameters");
             }
         } else if (traceCode != null || menuId != null) {
             throw new IllegalArgumentException(
@@ -73,9 +96,21 @@ public record AssistantResolution(
         } else if (intent != null
                 && !intent.equals("traceability.query")
                 && !intent.equals("menu.query")
-                && !intent.equals("menu.publish")) {
+                && !intent.equals("menu.publish")
+                && !WRITE_INTENTS.contains(intent)) {
             throw new IllegalArgumentException("Unsupported clarification intent: " + intent);
         }
+    }
+
+    /** Backward-compatible constructor for read-only and menu resolutions. */
+    public AssistantResolution(
+            Type type,
+            String intent,
+            String traceCode,
+            String menuId,
+            List<String> missingFields,
+            String message) {
+        this(type, intent, traceCode, menuId, missingFields, message, Map.of());
     }
 
     public static AssistantResolution traceability(String traceCode) {
@@ -106,6 +141,18 @@ public record AssistantResolution(
                 menuId,
                 List.of(),
                 "已识别为菜单发布请求。");
+    }
+
+    public static AssistantResolution writeRequest(
+            String intent, Map<String, String> parameters, String message) {
+        return new AssistantResolution(
+                Type.WRITE_REQUEST,
+                intent,
+                null,
+                null,
+                List.of(),
+                message,
+                parameters);
     }
 
     public static AssistantResolution confirmPendingAction(String intent) {
@@ -150,5 +197,13 @@ public record AssistantResolution(
 
     public static AssistantResolution unsupported(String message) {
         return new AssistantResolution(Type.UNSUPPORTED, null, null, null, List.of(), message);
+    }
+
+    public boolean isWriteRequest() {
+        return type == Type.WRITE_REQUEST || WRITE_INTENTS.contains(intent);
+    }
+
+    public static boolean isWriteIntent(String intent) {
+        return WRITE_INTENTS.contains(intent);
     }
 }

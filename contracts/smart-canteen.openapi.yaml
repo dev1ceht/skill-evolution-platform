@@ -2763,7 +2763,7 @@ components:
         menuId: { type: string, minLength: 1, maxLength: 64 }
     AssistantTurn:
       type: object
-      description: 助手响应；菜单发布写入必须先返回确认计划，之后仅由明确确认或取消推进 Agent Run。
+      description: 助手响应；菜单发布以及采购、库存、预警写入必须先返回确认计划，之后仅由明确确认或取消推进 Agent Run。写入入口仍受部署灰度开关、scope、权限和幂等策略约束。
       required: [conversationId, turnId, sequence, kind, message, missingFields, createdAt]
       properties:
         conversationId: { type: string }

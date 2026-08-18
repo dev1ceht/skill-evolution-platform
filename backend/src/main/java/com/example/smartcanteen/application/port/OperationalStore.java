@@ -93,6 +93,18 @@ public interface OperationalStore {
             String idempotencyKey,
             List<ReceiveItem> items);
 
+    /**
+     * Records a manually sourced receipt in the canonical batch, inventory and traceability
+     * transaction. This is intentionally separate from the legacy inventory receipt port.
+     */
+    default ReceiveResult receiveInventory(
+            CanteenScope scope,
+            String idempotencyKey,
+            String supplierId,
+            ReceiveItem item) {
+        throw new UnsupportedOperationException("Canonical inventory receiving is not configured");
+    }
+
     PageResult<InventoryLine> listInventory(
             CanteenScope scope, String keyword, boolean warningOnly, int page, int size);
 

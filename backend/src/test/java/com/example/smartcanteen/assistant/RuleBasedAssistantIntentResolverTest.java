@@ -169,4 +169,63 @@ class RuleBasedAssistantIntentResolverTest {
         assertThat(cancel.type()).isEqualTo(AssistantResolution.Type.CANCEL_PENDING_ACTION);
         assertThat(cancel.intent()).isEqualTo("menu.publish");
     }
+
+    @Test
+    void resolves_a_procurement_plan_write_with_an_explicit_period() {
+        AssistantResolution result = resolver.resolve(
+                "生成采购计划 2026-08-18 至 2026-08-24");
+
+        assertThat(result.type()).isEqualTo(AssistantResolution.Type.WRITE_REQUEST);
+        assertThat(result.intent()).isEqualTo("procurement.plan.generate");
+        assertThat(result.parameters())
+                .containsEntry("periodStart", "2026-08-18")
+                .containsEntry("periodEnd", "2026-08-24");
+    }
+
+    @Test
+    void requires_a_confirmed_plan_before_creating_a_purchase_order() {
+        AssistantResolution result = resolver.resolve(
+                "创建采购订单，供应商 SUP-001，食材 ING-001 10 kg，单价 8");
+
+        assertThat(result.type()).isEqualTo(AssistantResolution.Type.CLARIFICATION);
+        assertThat(result.intent()).isEqualTo("procurement.order.create");
+        assertThat(result.missingFields()).containsExactly("planId");
+    }
+
+    @Test
+    void resolves_a_manual_inventory_receipt_with_traceability_coordinates() {
+        AssistantResolution result = resolver.resolve(
+                "库存入库 ING-001，供应商 SUP-001，2 kg，批次 BATCH-001，采购价 8");
+
+        assertThat(result.type()).isEqualTo(AssistantResolution.Type.WRITE_REQUEST);
+        assertThat(result.intent()).isEqualTo("inventory.receive");
+        assertThat(result.parameters())
+                .containsEntry("materialId", "ING-001")
+                .containsEntry("supplierId", "SUP-001")
+                .containsEntry("batchNo", "BATCH-001")
+                .containsEntry("purchasePrice", "8");
+    }
+
+    @Test
+    void resolves_an_inventory_stock_out_write_and_keeps_the_reason() {
+        AssistantResolution result = resolver.resolve(
+                "库存出库 ING-001 2 kg，原因 午餐备料");
+
+        assertThat(result.type()).isEqualTo(AssistantResolution.Type.WRITE_REQUEST);
+        assertThat(result.intent()).isEqualTo("inventory.stock-out");
+        assertThat(result.parameters())
+                .containsEntry("ingredientId", "ING-001")
+                .containsEntry("quantity", "2")
+                .containsEntry("unit", "kg")
+                .containsEntry("reason", "午餐备料");
+    }
+
+    @Test
+    void asks_for_an_alert_id_before_allowing_disposal() {
+        AssistantResolution result = resolver.resolve("处置预警，说明已整改");
+
+        assertThat(result.type()).isEqualTo(AssistantResolution.Type.CLARIFICATION);
+        assertThat(result.intent()).isEqualTo("alert.dispose");
+        assertThat(result.missingFields()).containsExactly("warnId");
+    }
 }

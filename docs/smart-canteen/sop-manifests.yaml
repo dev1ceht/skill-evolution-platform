@@ -323,18 +323,44 @@ sops:
       modules:
         - "backend/src/main/java/com/example/smartcanteen/application/ProcurementPlanService.java"
         - "backend/src/main/java/com/example/smartcanteen/application/ProcurementOperationsService.java"
+        - "backend/src/main/java/com/example/smartcanteen/infrastructure/JdbcProcurementPlanStore.java"
+        - "backend/src/main/java/com/example/smartcanteen/agent/infrastructure/OperationsToolExecutor.java"
       apis: ["contracts/smart-canteen.openapi.yaml"]
-      migrations: ["backend/src/main/resources/db/migration/V5__create_operational_core.sql"]
+      migrations:
+        - "backend/src/main/resources/db/migration/V5__create_operational_core.sql"
+        - "backend/src/main/resources/db/migration/V21__add_agent_business_write_permissions.sql"
+        - "backend/src/main/resources/db/migration/V24__add_procurement_order_payload_hash.sql"
       tests:
         - "backend/src/test/java/com/example/smartcanteen/application/ProcurementPlanServiceModuleTest.java"
         - "backend/src/test/java/com/example/smartcanteen/http/OperationalCoreHttpTest.java"
+        - "backend/src/test/java/com/example/smartcanteen/agent/OperationsToolExecutorTest.java"
+        - "backend/src/test/java/com/example/smartcanteen/http/ProcurementPlanClosedLoopHttpTest.java"
+        - "backend/src/test/java/com/example/smartcanteen/application/BusinessAuthorizationPolicyTest.java"
       verification: ["docs/smart-canteen/phase5-verification.json"]
     adapters:
       - name: "JdbcOperationalStore"
         status: "implemented"
       - name: "SupplierGateway"
         status: "port-only"
-    evidence: ["docs/smart-canteen/phase5-traceability.md"]
+    evidence:
+      - "docs/smart-canteen/phase5-traceability.md"
+      - "docs/smart-canteen/agent-write-rollout-v1.md"
+    runtime:
+      intents: ["procurement.plan.generate", "procurement.order.create", "procurement.order.receive"]
+      input_schema: "agent/business-write-input-v1"
+      output_schema: "agent/business-write-result-v1"
+      tools: ["procurement.plan.generate", "procurement.order.create", "procurement.order.receive"]
+      tool_by_intent:
+        procurement.plan.generate: "procurement.plan.generate"
+        procurement.order.create: "procurement.order.create"
+        procurement.order.receive: "procurement.order.receive"
+      side_effect: "write"
+      run_confirmation: "required-before-write"
+      domain_approval: "required-before-order-and-receipt"
+      activation: "active"
+      deadline_ms: 10000
+      retry_policy: "no-retry-after-write"
+      evidence: "agent-write-rollout-v1"
     status: "implemented"
 
   - id: "smart-canteen.inventory"
@@ -359,18 +385,40 @@ sops:
     references: ["skills/smart-canteen-sop/references/inventory.md"]
     implementation:
       modules:
-        - "backend/src/main/java/com/example/smartcanteen/application/InventoryReceivingService.java"
+        - "backend/src/main/java/com/example/smartcanteen/application/ProcurementOperationsService.java"
+        - "backend/src/main/java/com/example/smartcanteen/application/port/OperationalStore.java"
         - "backend/src/main/java/com/example/smartcanteen/domain/UnitConverter.java"
+        - "backend/src/main/java/com/example/smartcanteen/agent/infrastructure/OperationsToolExecutor.java"
       apis: ["contracts/smart-canteen.openapi.yaml"]
-      migrations: ["backend/src/main/resources/db/migration/V5__create_operational_core.sql"]
+      migrations:
+        - "backend/src/main/resources/db/migration/V5__create_operational_core.sql"
+        - "backend/src/main/resources/db/migration/V21__add_agent_business_write_permissions.sql"
       tests:
         - "backend/src/test/java/com/example/smartcanteen/application/InventoryReceivingModuleTest.java"
         - "backend/src/test/java/com/example/smartcanteen/http/OperationalCoreHttpTest.java"
+        - "backend/src/test/java/com/example/smartcanteen/agent/OperationsToolExecutorTest.java"
       verification: ["docs/smart-canteen/phase5-verification.json"]
     adapters:
       - name: "JdbcOperationalStore"
         status: "implemented"
-    evidence: ["docs/smart-canteen/phase5-traceability.md"]
+    evidence:
+      - "docs/smart-canteen/phase5-traceability.md"
+      - "docs/smart-canteen/agent-write-rollout-v1.md"
+    runtime:
+      intents: ["inventory.receive", "inventory.stock-out"]
+      input_schema: "agent/business-write-input-v1"
+      output_schema: "agent/business-write-result-v1"
+      tools: ["inventory.receive", "inventory.stock-out"]
+      tool_by_intent:
+        inventory.receive: "inventory.receive"
+        inventory.stock-out: "inventory.stock-out"
+      side_effect: "write"
+      run_confirmation: "required-before-write"
+      domain_approval: "required-before-stock-out"
+      activation: "active"
+      deadline_ms: 10000
+      retry_policy: "no-retry-after-write"
+      evidence: "agent-write-rollout-v1"
     status: "implemented"
 
   - id: "smart-canteen.ledger"
@@ -414,7 +462,7 @@ sops:
       - "处置预警"
     risk_level: "high"
     approval: "required-for-disposal"
-    permissions: ["SYSTEM_ADMIN", "SCHOOL_ADMIN", "CANTEEN_STAFF", "REGULATOR"]
+    permissions: ["SYSTEM_ADMIN", "REGULATOR"]
     scope: "schoolId + canteenId"
     preconditions:
       - "来源、thirdWarnId、事件类型和范围通过边界校验"
@@ -429,11 +477,20 @@ sops:
     implementation:
       modules:
         - "backend/src/main/java/com/example/smartcanteen/application/AlertCenterService.java"
+        - "backend/src/main/java/com/example/smartcanteen/infrastructure/JdbcAlertStore.java"
         - "backend/src/main/java/com/example/smartcanteen/http/AlertCenterController.java"
+        - "backend/src/main/java/com/example/smartcanteen/agent/infrastructure/OperationsToolExecutor.java"
       apis: ["contracts/smart-canteen.openapi.yaml"]
-      migrations: ["backend/src/main/resources/db/migration/V4__create_alert_center.sql"]
+      migrations:
+        - "backend/src/main/resources/db/migration/V4__create_alert_center.sql"
+        - "backend/src/main/resources/db/migration/V21__add_agent_business_write_permissions.sql"
+        - "backend/src/main/resources/db/migration/V22__add_alert_disposal_idempotency.sql"
+        - "backend/src/main/resources/db/migration/V23__tighten_agent_alert_approval_role.sql"
       tests:
         - "backend/src/test/java/com/example/smartcanteen/http/AlertCenterHttpTest.java"
+        - "backend/src/test/java/com/example/smartcanteen/agent/OperationsToolExecutorTest.java"
+        - "backend/src/test/java/com/example/smartcanteen/application/AlertCenterPersistenceRestartTest.java"
+        - "backend/src/test/java/com/example/smartcanteen/application/BusinessAuthorizationPolicyTest.java"
       verification: ["docs/smart-canteen/phase4-verification.json"]
     adapters:
       - name: "AlertSourceAdapter"
@@ -444,7 +501,21 @@ sops:
         status: "port-only"
       - name: "MorningInspectionGateway"
         status: "port-only"
-    evidence: ["docs/smart-canteen/phase4-traceability.md"]
+    evidence:
+      - "docs/smart-canteen/phase4-traceability.md"
+      - "docs/smart-canteen/agent-write-rollout-v1.md"
+    runtime:
+      intents: ["alert.dispose"]
+      input_schema: "agent/business-write-input-v1"
+      output_schema: "agent/business-write-result-v1"
+      tools: ["alert.dispose"]
+      side_effect: "write"
+      run_confirmation: "required-before-write"
+      domain_approval: "required-for-disposal"
+      activation: "active"
+      deadline_ms: 10000
+      retry_policy: "no-retry-after-write"
+      evidence: "agent-write-rollout-v1"
     status: "implemented"
 
   - id: "smart-canteen.traceability"

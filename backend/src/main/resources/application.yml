@@ -39,6 +39,11 @@ agent:
       recovery-interval-ms: ${SMART_CANTEEN_AGENT_SCHEDULER_RECOVERY_INTERVAL_MS:10000}
       stale-after: ${SMART_CANTEEN_AGENT_SCHEDULER_STALE_AFTER:PT2M}
       batch-size: ${SMART_CANTEEN_AGENT_SCHEDULER_BATCH_SIZE:10}
+  write:
+    # High-risk business writes are opt-in and scope/intention allowlisted per deployment.
+    enabled: ${SMART_CANTEEN_AGENT_WRITE_ENABLED:false}
+    allowed-scopes: ${SMART_CANTEEN_AGENT_WRITE_ALLOWED_SCOPES:}
+    allowed-intents: ${SMART_CANTEEN_AGENT_WRITE_ALLOWED_INTENTS:}
 
 smart-canteen:
   assistant:
