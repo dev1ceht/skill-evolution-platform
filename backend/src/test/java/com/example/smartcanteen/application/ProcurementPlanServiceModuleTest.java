@@ -34,7 +34,7 @@ class ProcurementPlanServiceModuleTest {
                 "DISH-RICE", "Rice dish", "staple", null, null, true, 0,
                 List.of(new DishIngredient("RICE", new BigDecimal("100"), "g")));
         DailyMenu menu = new DailyMenu(
-                "MENU-RICE", LocalDate.of(2026, 8, 14), "LUNCH", "PUBLISHED", 0,
+                "M002", LocalDate.of(2026, 8, 14), "LUNCH", "PUBLISHED", 0,
                 List.of(new DailyMenuItem("DISH-RICE", new BigDecimal("100"), 0)));
         FakePlanStore store = new FakePlanStore(menu, dish, rice);
         IngredientQuantityConverter converter = new IngredientQuantityConverter(
@@ -169,7 +169,13 @@ class ProcurementPlanServiceModuleTest {
         @Override
         public ProcurementPlan linkOrder(
                 CanteenScope scope, String planId, long expectedVersion,
-                String orderId, String idempotencyKey) {
+                String orderId, String idempotencyKey, String payloadHash) {
+            throw new UnsupportedOperationException("not used by planning generation");
+        }
+
+        @Override
+        public void recordOrderPayloadHash(
+                CanteenScope scope, String planId, String idempotencyKey, String payloadHash) {
             throw new UnsupportedOperationException("not used by planning generation");
         }
     }

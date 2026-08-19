@@ -102,11 +102,11 @@ class AgentControllerHttpTest {
         jdbc.update(
                 "INSERT INTO daily_menus (school_id, canteen_id, menu_id, menu_date, meal_time, status, version) "
                         + "VALUES (?, ?, ?, CURRENT_DATE, 'LUNCH', 'DRAFT', 0)",
-                SCHOOL_ID, CANTEEN_ID, "MENU-AGENT");
+                SCHOOL_ID, CANTEEN_ID, "M001");
         jdbc.update(
                 "INSERT INTO daily_menu_items (school_id, canteen_id, menu_id, dish_id, estimated_quantity, sort_order) "
                         + "VALUES (?, ?, ?, ?, 100, 0)",
-                SCHOOL_ID, CANTEEN_ID, "MENU-AGENT", "DISH-AGENT");
+                SCHOOL_ID, CANTEEN_ID, "M001", "DISH-AGENT");
     }
 
     @Test
@@ -200,7 +200,7 @@ class AgentControllerHttpTest {
     @Test
     void menu_agent_separates_run_confirmation_from_domain_approval_and_publish() throws Exception {
         String submit = mvc.perform(startMenuRequest(
-                        "menu-agent-submit", "menu.submit", "MENU-AGENT", 0, PRINCIPAL))
+                        "menu-agent-submit", "menu.submit", "M001", 0, PRINCIPAL))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.status").value("WAITING_CONFIRMATION"))
                 .andReturn().getResponse().getContentAsString();
@@ -215,7 +215,7 @@ class AgentControllerHttpTest {
                 .andExpect(jsonPath("$.code").value(40000));
 
         String decision = mvc.perform(startMenuRequest(
-                        "menu-agent-decision", "menu.record-decision", "MENU-AGENT", 1, APPROVER))
+                        "menu-agent-decision", "menu.record-decision", "M001", 1, APPROVER))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.status").value("WAITING_CONFIRMATION"))
                 .andReturn().getResponse().getContentAsString();
@@ -225,7 +225,7 @@ class AgentControllerHttpTest {
                 .andExpect(jsonPath("$.data.result.status").value("APPROVED"));
 
         String publish = mvc.perform(startMenuRequest(
-                        "menu-agent-publish", "menu.publish", "MENU-AGENT", 2, PUBLISHER))
+                        "menu-agent-publish", "menu.publish", "M001", 2, PUBLISHER))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.status").value("WAITING_CONFIRMATION"))
                 .andReturn().getResponse().getContentAsString();

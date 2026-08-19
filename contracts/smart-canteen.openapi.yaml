@@ -263,91 +263,6 @@ paths:
         '403':
           $ref: '#/components/responses/ForbiddenError'
 
-  /api/v1/menus/{menuId}/submit:
-    post:
-      operationId: submitMenu
-      tags: [menu-approval]
-      parameters:
-        - $ref: '#/components/parameters/MenuId'
-        - $ref: '#/components/parameters/SchoolId'
-        - $ref: '#/components/parameters/CanteenId'
-      responses:
-        '200':
-          description: 菜单已提交审批
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/MenuResponse'
-        '400':
-          $ref: '#/components/responses/BusinessError'
-  /api/v1/menu-approvals/{menuId}/decision:
-    post:
-      operationId: decideMenuApproval
-      tags: [menu-approval]
-      parameters:
-        - $ref: '#/components/parameters/MenuId'
-        - $ref: '#/components/parameters/SchoolId'
-        - $ref: '#/components/parameters/CanteenId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ApprovalDecision'
-      responses:
-        '200':
-          description: 审批结果
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/MenuResponse'
-        '400':
-          $ref: '#/components/responses/BusinessError'
-  /api/v1/menus/{menuId}/recipe:
-    post:
-      operationId: importMenuRecipe
-      tags: [recipe]
-      parameters:
-        - $ref: '#/components/parameters/MenuId'
-        - $ref: '#/components/parameters/SchoolId'
-        - $ref: '#/components/parameters/CanteenId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/RecipeImportRequest'
-      responses:
-        '200':
-          description: 鑿滃崟椋熻氨瀵煎叆缁撴灉
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RecipeResponse'
-        '400':
-          $ref: '#/components/responses/BusinessError'
-  /api/v1/procurement-plans/generate:
-    post:
-      operationId: generateProcurementPlan
-      tags: [procurement]
-      parameters:
-        - $ref: '#/components/parameters/SchoolId'
-        - $ref: '#/components/parameters/CanteenId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/GenerateProcurementRequest'
-      responses:
-        '200':
-          description: 基于已审批菜单和当前库存生成的采购缺口
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ProcurementPlanResponse'
-        '400':
-          $ref: '#/components/responses/BusinessError'
   /api/v1/procurement-plans:
     get:
       operationId: listProcurementPlans
@@ -508,34 +423,6 @@ paths:
                 $ref: '#/components/schemas/PurchaseOrderResponse'
         '400':
           $ref: '#/components/responses/BusinessError'
-  /api/v1/inventory/receipts:
-    post:
-      operationId: receiveInventory
-      tags: [inventory]
-      parameters:
-        - name: Idempotency-Key
-          in: header
-          required: true
-          description: 防止入库单重复提交
-          schema:
-            type: string
-        - $ref: '#/components/parameters/SchoolId'
-        - $ref: '#/components/parameters/CanteenId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/InventoryReceipt'
-      responses:
-        '200':
-          description: 入库后的基础单位库存
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ReceiptResponse'
-        '400':
-          $ref: '#/components/responses/BusinessError'
   /api/v1/alerts:
     post:
       operationId: reportAlert
@@ -601,182 +488,6 @@ paths:
                 $ref: '#/components/schemas/AlertResponse'
         '400':
           $ref: '#/components/responses/BusinessError'
-  /alarmApi/warn/report:
-    post:
-      operationId: reportExternalAlert
-      tags: [alert-center-compatibility]
-      description: 设计文档规定的外部预警接收兼容入口；接受本地时间格式并允许非 AI 事件缺省 thirdWarnId，内部归一化后使用统一 ApiResponse 包络。
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ExternalAlertReportRequest'
-      responses:
-        '200':
-          description: 预警记录
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AlertResponse'
-        '400':
-          $ref: '#/components/responses/BusinessError'
-  /alarmApi/warnResult/report:
-    post:
-      operationId: disposeExternalAlert
-      tags: [alert-center-compatibility]
-      description: 设计文档规定的外部预警处置结果入口；processTime 支持 `yyyy-MM-dd HH:mm:ss`，内部使用统一 ApiResponse 包络。
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ExternalAlertDisposalRequest'
-      responses:
-        '200':
-          description: 更新后的预警记录
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AlertResponse'
-        '400':
-          $ref: '#/components/responses/BusinessError'
-  /alarmWarn/school/queryPage:
-    get:
-      operationId: queryExternalAlerts
-      tags: [alert-center-compatibility]
-      description: 设计文档规定的预警中心分页查询兼容入口。
-      parameters:
-        - $ref: '#/components/parameters/SchoolId'
-        - $ref: '#/components/parameters/CanteenId'
-        - $ref: '#/components/parameters/AlertSource'
-        - $ref: '#/components/parameters/AlertStatus'
-        - $ref: '#/components/parameters/AlarmEventId'
-        - name: warnStatus
-          in: query
-          required: false
-          schema:
-            type: string
-            enum: [UNPROCESSED, PROCESSED]
-        - $ref: '#/components/parameters/DeviceName'
-        - $ref: '#/components/parameters/StartDateTime'
-        - $ref: '#/components/parameters/EndDateTime'
-        - $ref: '#/components/parameters/PageNum'
-        - $ref: '#/components/parameters/PageSize'
-      responses:
-        '200':
-          description: 分页预警记录
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AlertPageResponse'
-        '400':
-          $ref: '#/components/responses/BusinessError'
-  /api/v1/ledger-cycles:
-    post:
-      operationId: startLedgerCycle
-      tags: [ledger]
-      description: 同一学校、食堂和周期编号重复提交相同周期定义会返回已有状态；要求集合或日期不同会返回业务错误。
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/LedgerCycleRequest'
-      responses:
-        '200':
-          description: 台账周期和当前预警状态
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/LedgerAlertResponse'
-        '400':
-          $ref: '#/components/responses/BusinessError'
-  /api/v1/ledger-cycles/{cycleId}/records:
-    post:
-      operationId: completeScopedLedgerRecord
-      tags: [ledger]
-      description: 按学校、食堂、周期和台账编码幂等完成；重复完成已完成台账不会产生额外业务副作用。
-      parameters:
-        - name: cycleId
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ScopedLedgerRecord'
-      responses:
-        '200':
-          description: 完成台账后的当前预警状态
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/LedgerAlertResponse'
-        '400':
-          $ref: '#/components/responses/BusinessError'
-  /api/v1/ledger-cycles/{cycleId}/alerts/current:
-    get:
-      operationId: getScopedLedgerAlert
-      tags: [ledger]
-      parameters:
-        - name: cycleId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: schoolId
-          in: query
-          required: true
-          schema:
-            type: string
-        - name: canteenId
-          in: query
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: 指定学校食堂周期的当前预警状态
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/LedgerAlertResponse'
-        '400':
-          $ref: '#/components/responses/BusinessError'
-  /api/v1/ledger-records:
-    post:
-      operationId: completeLedgerRecord
-      tags: [ledger]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/LedgerRecord'
-      responses:
-        '200':
-          description: 台账完成后的预警状态
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/LedgerAlertResponse'
-        '400':
-          $ref: '#/components/responses/BusinessError'
-  /api/v1/ledger-alerts/current:
-    get:
-      operationId: getCurrentLedgerAlert
-      tags: [ledger]
-      responses:
-        '200':
-          description: 当前待补台账和预警状态
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/LedgerAlertResponse'
   /api/v1/auth/login:
     post:
       operationId: login
@@ -1049,7 +760,8 @@ paths:
         - name: menuId
           in: path
           required: true
-          schema: { type: string }
+          schema:
+            $ref: '#/components/schemas/MenuId'
         - $ref: '#/components/parameters/OperationalSchoolId'
         - $ref: '#/components/parameters/OperationalCanteenId'
       responses:
@@ -1067,7 +779,8 @@ paths:
         - name: menuId
           in: path
           required: true
-          schema: { type: string }
+          schema:
+            $ref: '#/components/schemas/MenuId'
         - $ref: '#/components/parameters/OperationalSchoolId'
         - $ref: '#/components/parameters/OperationalCanteenId'
       responses:
@@ -1085,7 +798,8 @@ paths:
         - name: menuId
           in: path
           required: true
-          schema: { type: string }
+          schema:
+            $ref: '#/components/schemas/MenuId'
         - name: version
           in: query
           required: true
@@ -1107,7 +821,8 @@ paths:
         - name: menuId
           in: path
           required: true
-          schema: { type: string }
+          schema:
+            $ref: '#/components/schemas/MenuId'
         - $ref: '#/components/parameters/OperationalSchoolId'
         - $ref: '#/components/parameters/OperationalCanteenId'
       requestBody:
@@ -2555,12 +2270,6 @@ components:
       scheme: bearer
       bearerFormat: JWT
   parameters:
-    MenuId:
-      name: menuId
-      in: path
-      required: true
-      schema:
-        type: string
     SchoolIdPath:
       name: schoolId
       in: path
@@ -2598,14 +2307,14 @@ components:
       name: schoolId
       in: query
       required: false
-      description: 学校范围；必须与 canteenId 成对提供，省略时使用兼容默认范围。
+      description: 学校范围；与 canteenId 一起提供时限定到具体食堂。
       schema:
         type: string
     CanteenId:
       name: canteenId
       in: query
       required: false
-      description: 食堂范围；必须与 schoolId 成对提供，省略时使用兼容默认范围。
+      description: 食堂范围；与 schoolId 一起提供时限定到具体食堂。
       schema:
         type: string
     AlertSource:
@@ -2760,7 +2469,8 @@ components:
       required: [menuId]
       additionalProperties: false
       properties:
-        menuId: { type: string, minLength: 1, maxLength: 64 }
+        menuId:
+          $ref: '#/components/schemas/MenuId'
     AssistantTurn:
       type: object
       description: 助手响应；菜单发布以及采购、库存、预警写入必须先返回确认计划，之后仅由明确确认或取消推进 Agent Run。写入入口仍受部署灰度开关、scope、权限和幂等策略约束。
@@ -2838,7 +2548,8 @@ components:
       required: [menuId, menuVersion]
       additionalProperties: false
       properties:
-        menuId: { type: string, minLength: 1 }
+        menuId:
+          $ref: '#/components/schemas/MenuId'
         menuVersion: { type: integer, format: int64, minimum: 0 }
         decision:
           type: string
@@ -3446,6 +3157,12 @@ components:
           minItems: 1
           items:
             $ref: '#/components/schemas/DishIngredientRequest'
+    MenuId:
+      type: string
+      pattern: '^M([0-9]{3}|[A-Fa-f0-9]{6})$'
+      minLength: 4
+      maxLength: 7
+      description: 短格式日菜单 ID，例如 M001 或 MABC123。
     DailyMenuItem:
       type: object
       required: [dishId, estimatedQuantity, sortOrder]
@@ -3457,7 +3174,8 @@ components:
       type: object
       required: [id, menuDate, mealTime, status, version, items]
       properties:
-        id: { type: string }
+        id:
+          $ref: '#/components/schemas/MenuId'
         menuDate: { type: string, format: date }
         mealTime: { type: string, enum: [BREAKFAST, LUNCH, DINNER, SNACK] }
         status: { type: string, enum: [DRAFT, PENDING_APPROVAL, APPROVED, REJECTED, PUBLISHED] }
@@ -3482,7 +3200,10 @@ components:
       type: object
       required: [menuDate, mealTime, version, items]
       properties:
-        menuId: { type: string, nullable: true }
+        menuId:
+          allOf:
+            - $ref: '#/components/schemas/MenuId'
+          nullable: true
         menuDate: { type: string, format: date }
         mealTime: { type: string, enum: [BREAKFAST, LUNCH, DINNER, SNACK] }
         version: { type: integer, format: int64, minimum: 0, default: 0 }
@@ -3912,78 +3633,6 @@ components:
         code: { type: integer }
         message: { type: string }
         data: { $ref: '#/components/schemas/TraceabilityResult' }
-    Menu:
-      type: object
-      required: [id, status]
-      properties:
-        id:
-          type: string
-        status:
-          type: string
-          enum: [DRAFT, PENDING_APPROVAL, APPROVED, REJECTED]
-        decisionComment:
-          type: string
-          nullable: true
-    ApprovalDecision:
-      type: object
-      required: [decision, comment]
-      properties:
-        decision:
-          type: string
-          enum: [APPROVE, REJECT]
-        comment:
-          type: string
-    GenerateProcurementRequest:
-      type: object
-      required: [menuId]
-      properties:
-        menuId:
-          type: string
-    RecipeImportRequest:
-      type: object
-      required: [requirements]
-      properties:
-        requirements:
-          type: array
-          minItems: 1
-          items:
-            $ref: '#/components/schemas/RecipeRequirement'
-    RecipeRequirement:
-      type: object
-      required: [materialId, quantity, unit]
-      properties:
-        materialId:
-          type: string
-        quantity:
-          type: number
-          exclusiveMinimum: true
-          minimum: 0
-        unit:
-          type: string
-          enum: [kg, g, L, ml, count]
-    ProcurementItem:
-      type: object
-      required: [materialId, requiredBaseQuantity, shortageBaseQuantity, baseUnit]
-      properties:
-        materialId:
-          type: string
-        requiredBaseQuantity:
-          type: number
-        shortageBaseQuantity:
-          type: number
-        baseUnit:
-          type: string
-          enum: [g, ml, count]
-    ProcurementPlan:
-      type: object
-      required: [menuId, items]
-      properties:
-        menuId:
-          type: string
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/ProcurementItem'
     ProcurementPlanAggregateItem:
       type: object
       required: [ingredientId, requiredBaseQuantity, inventoryBaseQuantity, openOrderBaseQuantity, shortageBaseQuantity, plannedBaseQuantity, baseUnit]
@@ -4052,19 +3701,6 @@ components:
           minItems: 1
           items:
             $ref: '#/components/schemas/PurchaseOrderItemRequest'
-    InventoryReceipt:
-      type: object
-      required: [materialId, quantity, unit]
-      properties:
-        materialId:
-          type: string
-        quantity:
-          type: number
-          minimum: 0
-          exclusiveMinimum: true
-        unit:
-          type: string
-          enum: [kg, g, L, ml, count]
     AlertReportRequest:
       type: object
       required: [thirdWarnId, schoolId, warnHappenTime, alarmEventId, warnContent]
@@ -4102,55 +3738,10 @@ components:
           nullable: true
         warnContent:
           type: string
-    ExternalAlertReportRequest:
-      type: object
-      required: [schoolId, warnHappenTime, alarmEventId]
-      description: Compatibility input; when thirdWarnId is absent, a stable ID is derived from source, school, canteen, device identity, event ID and normalized occurrence time, excluding mutable content.
-      properties:
-        source:
-          type: string
-          enum: [DISTRICT_PLATFORM, BRIGHT_KITCHEN, MORNING_INSPECTION, LEDGER, COMPLIANCE]
-        thirdWarnId:
-          type: string
-          nullable: true
-        schoolId:
-          type: string
-        schoolName:
-          type: string
-          nullable: true
-        areaCode:
-          type: string
-          nullable: true
-        deviceId:
-          type: string
-          nullable: true
-        deviceName:
-          type: string
-          nullable: true
-        canteenId:
-          type: string
-          nullable: true
-        warnHappenTime:
-          type: string
-          description: ISO-8601 或 yyyy-MM-dd HH:mm:ss
-        alarmEventId:
-          type: string
-        warnFullPic:
-          type: string
-          nullable: true
-        warnContent:
-          type: string
-          nullable: true
     AlertDisposalRequest:
       type: object
       required: [processStatus]
       properties:
-        source:
-          type: string
-          enum: [DISTRICT_PLATFORM, BRIGHT_KITCHEN, MORNING_INSPECTION, LEDGER, COMPLIANCE]
-        thirdWarnId:
-          type: string
-          nullable: true
         processStatus:
           type: integer
           enum: [0, 1]
@@ -4158,35 +3749,6 @@ components:
           type: string
           format: date-time
           nullable: true
-        processUser:
-          type: string
-          nullable: true
-        processContent:
-          type: string
-          nullable: true
-        processFile:
-          type: string
-          nullable: true
-    ExternalAlertDisposalRequest:
-      type: object
-      required: [processStatus]
-      properties:
-        source:
-          type: string
-          enum: [DISTRICT_PLATFORM, BRIGHT_KITCHEN, MORNING_INSPECTION, LEDGER, COMPLIANCE]
-        thirdWarnId:
-          type: string
-          nullable: true
-        warnId:
-          type: string
-          nullable: true
-        processStatus:
-          type: integer
-          enum: [0, 1]
-        processTime:
-          type: string
-          nullable: true
-          description: ISO-8601 或 yyyy-MM-dd HH:mm:ss
         processUser:
           type: string
           nullable: true
@@ -4290,95 +3852,6 @@ components:
           type: string
         data:
           $ref: '#/components/schemas/AlertPage'
-    Receipt:
-      type: object
-      required: [materialId, quantityBase, baseUnit]
-      properties:
-        materialId:
-          type: string
-        quantityBase:
-          type: number
-        baseUnit:
-          type: string
-    LedgerRecord:
-      type: object
-      required: [ledgerCode]
-      properties:
-        ledgerCode:
-          type: string
-          enum: [PERSONNEL_MORNING_CHECK, FACILITY_DISINFECTION, FOOD_PROCESSING, SAMPLE_RETENTION, ACCOMPANYING_MEAL_EVALUATION, PURCHASE_ACCEPTANCE]
-    LedgerCycleRequest:
-      type: object
-      required: [schoolId, canteenId, cycleId, ledgerCodes]
-      properties:
-        schoolId:
-          type: string
-        canteenId:
-          type: string
-        cycleId:
-          type: string
-        ledgerCodes:
-          type: array
-          minItems: 1
-          items:
-            type: string
-            enum: [PERSONNEL_MORNING_CHECK, FACILITY_DISINFECTION, FOOD_PROCESSING, SAMPLE_RETENTION, ACCOMPANYING_MEAL_EVALUATION, PURCHASE_ACCEPTANCE]
-        periodStart:
-          type: string
-          format: date
-        periodEnd:
-          type: string
-          format: date
-    ScopedLedgerRecord:
-      type: object
-      required: [schoolId, canteenId, ledgerCode]
-      properties:
-        schoolId:
-          type: string
-        canteenId:
-          type: string
-        ledgerCode:
-          type: string
-          enum: [PERSONNEL_MORNING_CHECK, FACILITY_DISINFECTION, FOOD_PROCESSING, SAMPLE_RETENTION, ACCOMPANYING_MEAL_EVALUATION, PURCHASE_ACCEPTANCE]
-    LedgerAlert:
-      type: object
-      required: [schoolId, canteenId, cycleId, status, cleared, missingLedgerCodes]
-      properties:
-        schoolId:
-          type: string
-        canteenId:
-          type: string
-        cycleId:
-          type: string
-        status:
-          type: string
-          enum: [OPEN, CLEARED]
-        cleared:
-          type: boolean
-        missingLedgerCodes:
-          type: array
-          items:
-            type: string
-    MenuResponse:
-      type: object
-      required: [code, message, data]
-      properties:
-        code:
-          type: integer
-        message:
-          type: string
-        data:
-          $ref: '#/components/schemas/Menu'
-    ProcurementPlanResponse:
-      type: object
-      required: [code, message, data]
-      properties:
-        code:
-          type: integer
-        message:
-          type: string
-        data:
-          $ref: '#/components/schemas/ProcurementPlan'
     ProcurementPlanAggregateResponse:
       type: object
       required: [code, message, data]
@@ -4417,46 +3890,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/IngredientUnit'
-    RecipeResponse:
-      type: object
-      required: [code, message, data]
-      properties:
-        code:
-          type: integer
-        message:
-          type: string
-        data:
-          $ref: '#/components/schemas/Recipe'
-    Recipe:
-      type: object
-      required: [menuId, requirements]
-      properties:
-        menuId:
-          type: string
-        requirements:
-          type: array
-          items:
-            $ref: '#/components/schemas/RecipeRequirement'
-    ReceiptResponse:
-      type: object
-      required: [code, message, data]
-      properties:
-        code:
-          type: integer
-        message:
-          type: string
-        data:
-          $ref: '#/components/schemas/Receipt'
-    LedgerAlertResponse:
-      type: object
-      required: [code, message, data]
-      properties:
-        code:
-          type: integer
-        message:
-          type: string
-        data:
-          $ref: '#/components/schemas/LedgerAlert'
     LedgerFrequency:
       type: string
       enum: [DAILY, WEEKLY, MONTHLY, CUSTOM]

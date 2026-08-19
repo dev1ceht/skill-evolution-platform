@@ -3,6 +3,7 @@ package com.example.smartcanteen.assistant.infrastructure;
 import com.example.smartcanteen.assistant.domain.AssistantClarification;
 import com.example.smartcanteen.assistant.domain.AssistantResolution;
 import com.example.smartcanteen.assistant.port.AssistantModelResolver;
+import com.example.smartcanteen.domain.MenuId;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -47,7 +48,7 @@ public class DeepSeekAssistantModelResolver implements AssistantModelResolver {
             你是智慧食堂助手的意图分类器。只能输出一个 JSON 对象，不要 Markdown，不要解释。
             允许的 type 只有 TRACEABILITY_QUERY、MENU_QUERY、CLARIFICATION、UNSUPPORTED。
             TRACEABILITY_QUERY 必须包含 intent=traceability.query 和 TRACE- 或 TRACE_ 开头的 traceCode。
-            MENU_QUERY 必须包含 intent=menu.query 和 MENU- 或 MENU_ 开头的 menuId。
+            MENU_QUERY 必须包含 intent=menu.query 和短格式 M001 或 MABC123 的 menuId。
             CLARIFICATION 可以包含 intent、missingFields 数组和 message。
             不得输出 WRITE_REQUEST、MENU_PUBLISH_REQUEST、CONFIRM_PENDING_ACTION 或 CANCEL_PENDING_ACTION。
             JSON 示例：{"type":"TRACEABILITY_QUERY","intent":"traceability.query","traceCode":"TRACE-001"}
@@ -212,7 +213,7 @@ public class DeepSeekAssistantModelResolver implements AssistantModelResolver {
     }
 
     private Optional<AssistantResolution> menu(JsonNode result) {
-        String menuId = normalizedIdentifier(result.path("menuId").asText(null), "MENU-");
+        String menuId = normalizedShortMenuId(result.path("menuId").asText(null));
         return menuId == null ? Optional.empty() : Optional.of(AssistantResolution.menuQuery(menuId));
     }
 
@@ -243,6 +244,10 @@ public class DeepSeekAssistantModelResolver implements AssistantModelResolver {
         return normalized.startsWith(prefix) || normalized.startsWith(prefix.replace('-', '_'))
                 ? normalized
                 : null;
+    }
+
+    private static String normalizedShortMenuId(String value) {
+        return MenuId.normalizeOrNull(value);
     }
 
     private static String stripMarkdownFence(String value) {

@@ -27,24 +27,6 @@
       "dependencies": ["CatalogPage:dishes-ready"]
     },
     {
-      "page": "MenuApprovalPage",
-      "operations": ["submitMenu", "decideMenuApproval"],
-      "states": ["loading", "ready", "submitting", "success", "business-error"],
-      "dependencies": ["RecipeImportPage:imported"]
-    },
-    {
-      "page": "RecipeImportPage",
-      "operations": ["importMenuRecipe"],
-      "states": ["loading", "ready", "submitting", "success", "business-error"],
-      "dependencies": []
-    },
-    {
-      "page": "ProcurementWorkbenchPage",
-      "operations": ["generateProcurementPlan", "receiveInventory", "listSuppliers", "createSupplier", "listPurchaseOrders", "createPurchaseOrder", "transitionPurchaseOrder", "receivePurchaseOrder", "stockOutInventory"],
-      "states": ["loading", "empty", "ready", "submitting", "business-error"],
-      "dependencies": ["MenuApprovalPage:APPROVED"]
-    },
-    {
       "page": "UnifiedProcurementPlanPage",
       "operations": ["listProcurementPlans", "getProcurementPlan", "generateProcurementPlanRange", "adjustProcurementPlan", "confirmProcurementPlan", "cancelProcurementPlan", "createPurchaseOrderFromPlan", "listSuppliers"],
       "states": ["loading", "empty", "ready", "editing", "confirming", "converted", "cancelled", "business-error"],
@@ -58,9 +40,9 @@
     },
     {
       "page": "LedgerAlertPage",
-      "operations": ["getCurrentLedgerAlert", "completeLedgerRecord", "listOperationalLedgerRecords", "saveOperationalLedgerRecord", "getOperationalLedgerStats"],
+      "operations": ["listOperationalLedgerRecords", "saveOperationalLedgerRecord", "getOperationalLedgerStats"],
       "states": ["loading", "empty", "ready", "submitting", "business-error"],
-      "dependencies": ["ProcurementWorkbenchPage:receipt-completed"]
+      "dependencies": ["PurchaseOrderFulfillmentPage:receipt-completed"]
     },
     {
       "page": "AlertCenterPage",
@@ -72,7 +54,7 @@
       "page": "TraceabilityPage",
       "operations": ["traceIngredientBatch"],
       "states": ["loading", "empty", "ready", "business-error"],
-      "dependencies": ["ProcurementWorkbenchPage:receipt-completed"]
+      "dependencies": ["PurchaseOrderFulfillmentPage:receipt-completed"]
     },
     {
       "page": "AgentTraceabilityPage",

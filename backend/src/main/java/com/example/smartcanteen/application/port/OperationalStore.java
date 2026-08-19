@@ -45,28 +45,19 @@ public interface OperationalStore {
 
     void saveDailyMenu(CanteenScope scope, DailyMenu menu, boolean create);
 
-    void publishDailyMenu(CanteenScope scope, String menuId);
+    void submitDailyMenu(
+            CanteenScope scope, String menuId, long expectedVersion, String actorUserId);
 
-    /** Canonical menu lifecycle operations. Legacy stores may opt in incrementally. */
-    default void submitDailyMenu(
-            CanteenScope scope, String menuId, long expectedVersion, String actorUserId) {
-        throw new UnsupportedOperationException("Canonical menu approval is not configured");
-    }
-
-    default void decideDailyMenu(
+    void decideDailyMenu(
             CanteenScope scope,
             String menuId,
             long expectedVersion,
             String decision,
             String comment,
-            String actorUserId) {
-        throw new UnsupportedOperationException("Canonical menu approval is not configured");
-    }
+            String actorUserId);
 
-    default void publishDailyMenu(
-            CanteenScope scope, String menuId, long expectedVersion, String actorUserId) {
-        publishDailyMenu(scope, menuId);
-    }
+    void publishDailyMenu(
+            CanteenScope scope, String menuId, long expectedVersion, String actorUserId);
 
     PageResult<Supplier> listSuppliers(CanteenScope scope, String keyword, int page, int size);
 
@@ -93,17 +84,12 @@ public interface OperationalStore {
             String idempotencyKey,
             List<ReceiveItem> items);
 
-    /**
-     * Records a manually sourced receipt in the canonical batch, inventory and traceability
-     * transaction. This is intentionally separate from the legacy inventory receipt port.
-     */
-    default ReceiveResult receiveInventory(
+    /** Records a manually sourced receipt in the canonical batch, inventory and traceability transaction. */
+    ReceiveResult receiveInventory(
             CanteenScope scope,
             String idempotencyKey,
             String supplierId,
-            ReceiveItem item) {
-        throw new UnsupportedOperationException("Canonical inventory receiving is not configured");
-    }
+            ReceiveItem item);
 
     PageResult<InventoryLine> listInventory(
             CanteenScope scope, String keyword, boolean warningOnly, int page, int size);

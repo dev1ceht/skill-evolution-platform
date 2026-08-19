@@ -11,7 +11,7 @@
       "delivered": [
         "structured requirements catalog",
         "smart-canteen business service boundary",
-        "LedgerMonitoring deep module extracted from SmartCanteenWorkflow",
+        "Configurable ledger governance and cycle persistence",
         "school, canteen, cycle, completion requirement and alert persistence",
         "cycle creation, item completion, clear-on-last-item and idempotent retry",
         "H2 restart and MySQL concurrency test paths",
@@ -25,14 +25,13 @@
       "goal": "Menu approval and recipe import only",
       "status": "complete",
       "delivered": [
-        "MenuApproval public module and REST approval flow",
-        "RecipeImport public module with draft-menu guard",
-        "recipe validation, duplicate-material rejection and replace semantics",
-        "scoped recipe persistence and recipe import REST/OpenAPI/frontend contract"
+        "DailyMenuService canonical approval lifecycle",
+        "short menu ID validation and canonical menu REST contract",
+        "old menu/recipe compatibility tables and routes removed by V25/V27"
       ],
       "verification": [
-        "RecipeImportModuleTest",
-        "RecipeImportHttpTest",
+        "DailyMenuApprovalModuleTest",
+        "OperationalCoreHttpTest",
         "generated API IR/client/contract tests",
         "frontend tests and production build"
       ],
@@ -46,7 +45,7 @@
       "status": "complete",
       "delivered": [
         "approved-menu procurement shortage calculation",
-        "inventory receiving with Idempotency-Key",
+        "purchase-order receiving with Idempotency-Key",
         "kg/L to g/ml base-unit conversion and unit consistency checks",
         "recipe and inventory reads isolated by school and canteen",
         "composite scoped persistence and cross-canteen HTTP verification"
@@ -69,7 +68,7 @@
         "normalized alert-center report and disposal domain model",
         "idempotent alert ingestion, conflict detection and paginated query",
         "Flyway V4 alert_records persistence and H2 migration verification",
-        "REST v1 alert endpoints plus design-document compatibility aliases",
+        "canonical REST v1 alert endpoints; design-document aliases removed",
         "DistrictPlatformGateway, BrightKitchenGateway, MorningInspectionGateway and AlertSourceAdapter ports",
         "OpenAPI/API IR/generated client and frontend Axios adapter synchronization"
       ],
@@ -77,7 +76,7 @@
         "AlertCenterModuleTest",
         "AlertCenterHttpTest",
         "Flyway V4 H2 migration",
-        "generated 16-operation API IR/client/contract tests"
+        "generated canonical API IR/client/contract tests"
       ],
       "deferred": [
         "district/county platform network adapter",

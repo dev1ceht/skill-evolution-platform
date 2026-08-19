@@ -3,6 +3,7 @@ package com.example.smartcanteen.assistant.application;
 import com.example.smartcanteen.assistant.domain.AssistantResolution;
 import com.example.smartcanteen.assistant.domain.AssistantClarification;
 import com.example.smartcanteen.assistant.domain.AssistantPendingAction;
+import com.example.smartcanteen.domain.MenuId;
 import java.util.Locale;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -122,50 +123,52 @@ public class RuleBasedAssistantIntentResolver implements AssistantIntentResolver
                 || normalized.contains("上线")
                 || normalized.contains("publish");
         if (publishRequest) {
-            Matcher matcher = RESOURCE_ID.matcher(message.trim());
-            while (matcher.find()) {
-                String candidate = matcher.group(1).toUpperCase(Locale.ROOT);
-                if (isMenuId(candidate)) {
-                    return AssistantResolution.menuPublish(candidate);
-                }
+            Optional<String> menuId = findMenuId(message);
+            if (menuId.isPresent()) {
+                return AssistantResolution.menuPublish(menuId.get());
             }
             return AssistantResolution.clarificationFor(
                     "menu.publish",
-                    "请提供要发布的日菜单 ID，例如 MENU-001。", "menuId");
+                    "请提供要发布的日菜单 ID，例如 M001。", "menuId");
         }
         boolean menuRequest = normalized.contains("菜单")
                 || normalized.contains("食谱")
                 || normalized.contains("daily menu")
                 || normalized.contains("menu");
         if (menuRequest) {
-            Matcher matcher = RESOURCE_ID.matcher(message.trim());
-            while (matcher.find()) {
-                String candidate = matcher.group(1).toUpperCase(Locale.ROOT);
-                if (isMenuId(candidate)) {
-                    return AssistantResolution.menuQuery(candidate);
-                }
+            Optional<String> menuId = findMenuId(message);
+            if (menuId.isPresent()) {
+                return AssistantResolution.menuQuery(menuId.get());
             }
             return AssistantResolution.clarificationFor(
                     "menu.query",
-                    "请提供日菜单 ID，例如 MENU-001。", "menuId");
+                    "请提供日菜单 ID，例如 M001。", "menuId");
         }
         return AssistantResolution.unsupported(
                 "当前助手已开放食品溯源和日菜单只读查询。请说明“查询 TRACE-001 的溯源信息”"
-                        + "或“查询 MENU-001 的菜单”，采购、库存和预警写入需要明确的灰度与确认。");
+                        + "或“查询 M001 的菜单”，采购、库存和预警写入需要明确的灰度与确认。");
     }
 
     private Optional<AssistantResolution> resolvePendingAnswer(
             String message, AssistantClarification pending) {
+        if ("menu.query".equals(pending.intent()) || "menu.publish".equals(pending.intent())) {
+            Optional<String> menuId = findMenuId(message);
+            if (menuId.isPresent()) {
+                return Optional.of("menu.query".equals(pending.intent())
+                        ? AssistantResolution.menuQuery(menuId.get())
+                        : AssistantResolution.menuPublish(menuId.get()));
+            }
+        }
         Matcher matcher = RESOURCE_ID.matcher(message == null ? "" : message.trim());
         while (matcher.find()) {
             String candidate = matcher.group(1).toUpperCase(Locale.ROOT);
             if ("traceability.query".equals(pending.intent()) && isTraceabilityId(candidate)) {
                 return Optional.of(AssistantResolution.traceability(candidate));
             }
-            if ("menu.query".equals(pending.intent()) && isMenuId(candidate)) {
+            if ("menu.query".equals(pending.intent()) && MenuId.isValid(candidate)) {
                 return Optional.of(AssistantResolution.menuQuery(candidate));
             }
-            if ("menu.publish".equals(pending.intent()) && isMenuId(candidate)) {
+            if ("menu.publish".equals(pending.intent()) && MenuId.isValid(candidate)) {
                 return Optional.of(AssistantResolution.menuPublish(candidate));
             }
         }
@@ -177,12 +180,12 @@ public class RuleBasedAssistantIntentResolver implements AssistantIntentResolver
         if ("menu.query".equals(pending.intent())) {
             return Optional.of(AssistantResolution.clarificationFor(
                     "menu.query",
-                    "请提供日菜单 ID，例如 MENU-001。", "menuId"));
+                    "请提供日菜单 ID，例如 M001。", "menuId"));
         }
         if ("menu.publish".equals(pending.intent())) {
             return Optional.of(AssistantResolution.clarificationFor(
                     "menu.publish",
-                    "请提供要发布的日菜单 ID，例如 MENU-001。", "menuId"));
+                    "请提供要发布的日菜单 ID，例如 M001。", "menuId"));
         }
         if (AssistantResolution.isWriteIntent(pending.intent())) {
             AssistantResolution combined = resolveExplicitWrite(
@@ -198,8 +201,8 @@ public class RuleBasedAssistantIntentResolver implements AssistantIntentResolver
         return value.startsWith("TRACE-") || value.startsWith("TRACE_");
     }
 
-    private static boolean isMenuId(String value) {
-        return value.startsWith("MENU-") || value.startsWith("MENU_");
+    private static Optional<String> findMenuId(String message) {
+        return MenuId.findIn(message);
     }
 
     private static boolean isResourceOnly(String message) {

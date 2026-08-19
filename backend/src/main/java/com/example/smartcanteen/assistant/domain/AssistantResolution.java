@@ -102,17 +102,6 @@ public record AssistantResolution(
         }
     }
 
-    /** Backward-compatible constructor for read-only and menu resolutions. */
-    public AssistantResolution(
-            Type type,
-            String intent,
-            String traceCode,
-            String menuId,
-            List<String> missingFields,
-            String message) {
-        this(type, intent, traceCode, menuId, missingFields, message, Map.of());
-    }
-
     public static AssistantResolution traceability(String traceCode) {
         return new AssistantResolution(
                 Type.TRACEABILITY_QUERY,
@@ -120,7 +109,8 @@ public record AssistantResolution(
                 traceCode,
                 null,
                 List.of(),
-                "已识别为食品溯源查询。");
+                "已识别为食品溯源查询。",
+                Map.of());
     }
 
     public static AssistantResolution menuQuery(String menuId) {
@@ -130,7 +120,8 @@ public record AssistantResolution(
                 null,
                 menuId,
                 List.of(),
-                "已识别为日菜单查询。");
+                "已识别为日菜单查询。",
+                Map.of());
     }
 
     public static AssistantResolution menuPublish(String menuId) {
@@ -140,7 +131,8 @@ public record AssistantResolution(
                 null,
                 menuId,
                 List.of(),
-                "已识别为菜单发布请求。");
+                "已识别为菜单发布请求。",
+                Map.of());
     }
 
     public static AssistantResolution writeRequest(
@@ -162,7 +154,8 @@ public record AssistantResolution(
                 null,
                 null,
                 List.of(),
-                "已确认执行待处理操作。");
+                "已确认执行待处理操作。",
+                Map.of());
     }
 
     public static AssistantResolution cancelPendingAction(String intent) {
@@ -172,7 +165,8 @@ public record AssistantResolution(
                 null,
                 null,
                 List.of(),
-                "已取消待处理操作。");
+                "已取消待处理操作。",
+                Map.of());
     }
 
     public static AssistantResolution clarification(String message, String... missingFields) {
@@ -192,11 +186,13 @@ public record AssistantResolution(
                 null,
                 null,
                 List.of(missingFields),
-                message);
+                message,
+                Map.of());
     }
 
     public static AssistantResolution unsupported(String message) {
-        return new AssistantResolution(Type.UNSUPPORTED, null, null, null, List.of(), message);
+        return new AssistantResolution(
+                Type.UNSUPPORTED, null, null, null, List.of(), message, Map.of());
     }
 
     public boolean isWriteRequest() {

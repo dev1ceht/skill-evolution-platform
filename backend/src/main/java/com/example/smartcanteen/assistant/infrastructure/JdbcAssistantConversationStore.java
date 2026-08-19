@@ -228,8 +228,8 @@ public class JdbcAssistantConversationStore implements AssistantConversationStor
     @Override
     public Optional<AssistantPendingAction> findPendingAction(String conversationId) {
         return jdbc.query(
-                        "SELECT conversation_id, intent, run_id, run_version, menu_id, "
-                                + "menu_version, plan_hash, created_at, updated_at "
+                        "SELECT conversation_id, intent, run_id, run_version, resource_id, "
+                                + "resource_version, plan_hash, created_at, updated_at "
                                 + "FROM assistant_pending_actions WHERE conversation_id = ?",
                         this::mapPendingAction,
                         conversationId)
@@ -241,13 +241,13 @@ public class JdbcAssistantConversationStore implements AssistantConversationStor
     public void savePendingAction(AssistantPendingAction action) {
         int updated = jdbc.update(
                 "UPDATE assistant_pending_actions SET intent = ?, run_id = ?, run_version = ?, "
-                        + "menu_id = ?, menu_version = ?, plan_hash = ?, updated_at = ? "
+                        + "resource_id = ?, resource_version = ?, plan_hash = ?, updated_at = ? "
                         + "WHERE conversation_id = ?",
                 action.intent(),
                 action.runId(),
                 action.runVersion(),
-                action.menuId(),
-                action.menuVersion(),
+                action.resourceId(),
+                action.resourceVersion(),
                 action.planHash(),
                 Timestamp.from(action.updatedAt()),
                 action.conversationId());
@@ -257,27 +257,27 @@ public class JdbcAssistantConversationStore implements AssistantConversationStor
         try {
             jdbc.update(
                     "INSERT INTO assistant_pending_actions (conversation_id, intent, run_id, "
-                            + "run_version, menu_id, menu_version, plan_hash, created_at, updated_at) "
+                            + "run_version, resource_id, resource_version, plan_hash, created_at, updated_at) "
                             + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     action.conversationId(),
                     action.intent(),
                     action.runId(),
                     action.runVersion(),
-                    action.menuId(),
-                    action.menuVersion(),
+                    action.resourceId(),
+                    action.resourceVersion(),
                     action.planHash(),
                     Timestamp.from(action.createdAt()),
                     Timestamp.from(action.updatedAt()));
         } catch (DuplicateKeyException duplicate) {
             jdbc.update(
                     "UPDATE assistant_pending_actions SET intent = ?, run_id = ?, run_version = ?, "
-                            + "menu_id = ?, menu_version = ?, plan_hash = ?, updated_at = ? "
+                            + "resource_id = ?, resource_version = ?, plan_hash = ?, updated_at = ? "
                             + "WHERE conversation_id = ?",
                     action.intent(),
                     action.runId(),
                     action.runVersion(),
-                    action.menuId(),
-                    action.menuVersion(),
+                    action.resourceId(),
+                    action.resourceVersion(),
                     action.planHash(),
                     Timestamp.from(action.updatedAt()),
                     action.conversationId());
@@ -336,8 +336,8 @@ public class JdbcAssistantConversationStore implements AssistantConversationStor
                 result.getString("intent"),
                 result.getString("run_id"),
                 result.getLong("run_version"),
-                result.getString("menu_id"),
-                result.getLong("menu_version"),
+                result.getString("resource_id"),
+                result.getLong("resource_version"),
                 result.getString("plan_hash"),
                 result.getTimestamp("created_at").toInstant(),
                 result.getTimestamp("updated_at").toInstant());

@@ -1,13 +1,257 @@
 {
-  "added": [
+  "added": [],
+  "removed": [
     {
       "method": "GET",
-      "path": "/api/v1/agent/metrics"
+      "path": "/alarmWarn/school/queryPage"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/ledger-alerts/current"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/ledger-cycles/{cycleId}/alerts/current"
+    },
+    {
+      "method": "POST",
+      "path": "/alarmApi/warn/report"
+    },
+    {
+      "method": "POST",
+      "path": "/alarmApi/warnResult/report"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/inventory/receipts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/ledger-cycles"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/ledger-cycles/{cycleId}/records"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/ledger-records"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/menu-approvals/{menuId}/decision"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/menus/{menuId}/recipe"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/menus/{menuId}/submit"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/procurement-plans/generate"
     }
   ],
-  "removed": [],
-  "changed": [],
-  "breaking": [],
-  "beforeHash": "59c4c8264dc7ab1a254e2a97b55cbde69452a9a03fb0560408bec8c6fb20e4b8",
-  "afterHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db"
+  "changed": [
+    {
+      "method": "GET",
+      "path": "/api/v1/alerts",
+      "breakingReasons": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/assistant/conversations/{conversationId}/messages",
+      "breakingReasons": []
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/daily-menus",
+      "breakingReasons": [
+        "response-schema-became-incompatible"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/daily-menus/{menuId}",
+      "breakingReasons": [
+        "parameter-schema-narrowed:path:menuId",
+        "response-schema-became-incompatible"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/alerts/{warnId}/disposal",
+      "breakingReasons": [
+        "request-schema-became-incompatible"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/assistant/conversations/{conversationId}/messages",
+      "breakingReasons": []
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/daily-menus",
+      "breakingReasons": [
+        "request-schema-became-incompatible",
+        "response-schema-became-incompatible"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/daily-menus/{menuId}/decision",
+      "breakingReasons": [
+        "parameter-schema-narrowed:path:menuId",
+        "response-schema-became-incompatible"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/daily-menus/{menuId}/publish",
+      "breakingReasons": [
+        "parameter-schema-narrowed:path:menuId",
+        "response-schema-became-incompatible"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/daily-menus/{menuId}/submit",
+      "breakingReasons": [
+        "parameter-schema-narrowed:path:menuId",
+        "response-schema-became-incompatible"
+      ]
+    }
+  ],
+  "breaking": [
+    {
+      "type": "removed-operation",
+      "method": "GET",
+      "path": "/alarmWarn/school/queryPage"
+    },
+    {
+      "type": "removed-operation",
+      "method": "GET",
+      "path": "/api/v1/ledger-alerts/current"
+    },
+    {
+      "type": "removed-operation",
+      "method": "GET",
+      "path": "/api/v1/ledger-cycles/{cycleId}/alerts/current"
+    },
+    {
+      "type": "removed-operation",
+      "method": "POST",
+      "path": "/alarmApi/warn/report"
+    },
+    {
+      "type": "removed-operation",
+      "method": "POST",
+      "path": "/alarmApi/warnResult/report"
+    },
+    {
+      "type": "removed-operation",
+      "method": "POST",
+      "path": "/api/v1/inventory/receipts"
+    },
+    {
+      "type": "removed-operation",
+      "method": "POST",
+      "path": "/api/v1/ledger-cycles"
+    },
+    {
+      "type": "removed-operation",
+      "method": "POST",
+      "path": "/api/v1/ledger-cycles/{cycleId}/records"
+    },
+    {
+      "type": "removed-operation",
+      "method": "POST",
+      "path": "/api/v1/ledger-records"
+    },
+    {
+      "type": "removed-operation",
+      "method": "POST",
+      "path": "/api/v1/menu-approvals/{menuId}/decision"
+    },
+    {
+      "type": "removed-operation",
+      "method": "POST",
+      "path": "/api/v1/menus/{menuId}/recipe"
+    },
+    {
+      "type": "removed-operation",
+      "method": "POST",
+      "path": "/api/v1/menus/{menuId}/submit"
+    },
+    {
+      "type": "removed-operation",
+      "method": "POST",
+      "path": "/api/v1/procurement-plans/generate"
+    },
+    {
+      "type": "response-schema-became-incompatible",
+      "method": "GET",
+      "path": "/api/v1/daily-menus"
+    },
+    {
+      "type": "parameter-schema-narrowed:path:menuId",
+      "method": "GET",
+      "path": "/api/v1/daily-menus/{menuId}"
+    },
+    {
+      "type": "response-schema-became-incompatible",
+      "method": "GET",
+      "path": "/api/v1/daily-menus/{menuId}"
+    },
+    {
+      "type": "request-schema-became-incompatible",
+      "method": "POST",
+      "path": "/api/v1/alerts/{warnId}/disposal"
+    },
+    {
+      "type": "request-schema-became-incompatible",
+      "method": "POST",
+      "path": "/api/v1/daily-menus"
+    },
+    {
+      "type": "response-schema-became-incompatible",
+      "method": "POST",
+      "path": "/api/v1/daily-menus"
+    },
+    {
+      "type": "parameter-schema-narrowed:path:menuId",
+      "method": "POST",
+      "path": "/api/v1/daily-menus/{menuId}/decision"
+    },
+    {
+      "type": "response-schema-became-incompatible",
+      "method": "POST",
+      "path": "/api/v1/daily-menus/{menuId}/decision"
+    },
+    {
+      "type": "parameter-schema-narrowed:path:menuId",
+      "method": "POST",
+      "path": "/api/v1/daily-menus/{menuId}/publish"
+    },
+    {
+      "type": "response-schema-became-incompatible",
+      "method": "POST",
+      "path": "/api/v1/daily-menus/{menuId}/publish"
+    },
+    {
+      "type": "parameter-schema-narrowed:path:menuId",
+      "method": "POST",
+      "path": "/api/v1/daily-menus/{menuId}/submit"
+    },
+    {
+      "type": "response-schema-became-incompatible",
+      "method": "POST",
+      "path": "/api/v1/daily-menus/{menuId}/submit"
+    }
+  ],
+  "beforeHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+  "afterHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7"
 }

@@ -199,22 +199,6 @@ public class AgentRuntime {
             long expectedVersion,
             String decisionType,
             String comment,
-            ExecutionContext context) {
-        return decide(
-                runId,
-                expectedVersion,
-                decisionType,
-                comment,
-                "legacy-decision-" + runId + "-" + expectedVersion + "-" + decisionType,
-                context);
-    }
-
-    @Transactional
-    public AgentRun decide(
-            String runId,
-            long expectedVersion,
-            String decisionType,
-            String comment,
             String idempotencyKey,
             ExecutionContext context) {
         AgentRun current = runs.findById(runId).orElseThrow(() ->

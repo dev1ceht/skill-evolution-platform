@@ -41,15 +41,6 @@ public record AssistantPendingAction(
         }
     }
 
-    /** Compatibility aliases retained while the persistence column names migrate from menu-only. */
-    public String menuId() {
-        return resourceId;
-    }
-
-    public long menuVersion() {
-        return resourceVersion;
-    }
-
     private static void requireText(String name, String value, int maxLength) {
         Objects.requireNonNull(value, name);
         if (value.isBlank() || value.length() > maxLength) {

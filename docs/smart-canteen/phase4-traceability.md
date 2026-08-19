@@ -6,7 +6,7 @@
 | ALERT-002 | `AlertDisposal`, `JdbcAlertStore.dispose` | module and HTTP idempotence/conflict tests | implemented |
 | DATA-004 | `V4__create_alert_center.sql`, `JdbcAlertStore` | Flyway H2 migration and persistence tests | implemented |
 | ARCH-005 | `DistrictPlatformGateway`, `BrightKitchenGateway`, `MorningInspectionGateway`, `AlertSourceAdapter` | compile boundary and provenance review | port-only |
-| API-004 | `AlertCenterController`, OpenAPI/API IR/generated clients | generated contract tests and HTTP compatibility tests | path/normalized-input compatibility |
+| API-004 | `AlertCenterController`, OpenAPI/API IR/generated clients | generated contract tests and canonical HTTP tests | normalized canonical alert API |
 | TEST-004 | phase4 verification artifact | Maven/Python/frontend/OpenAPI commands | implemented |
 
 ## Boundary
@@ -17,8 +17,6 @@ network policy and vendor-specific contracts. The delivered boundary accepts a
 normalized event and makes its persistence and lifecycle behavior real and
 testable; adapters can be added without changing the alert domain.
 
-The PDF compatibility routes intentionally return the repository's standard
-`{code,message,data}` envelope and normalized `records/total` page shape. Full
-vendor wire response fields (`list`, `totalCount`, icon/video fields), disposal
-history, notification routing, and the PDF's detail/update-history routes remain
-deferred to the full alert-center integration slice.
+Vendor wire response fields (`list`, `totalCount`, icon/video fields), disposal
+history, notification routing, and vendor-specific detail/update-history routes
+remain deferred to the full alert-center integration slice.

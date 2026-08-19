@@ -15,5 +15,5 @@
 ## Evidence
 
 - Requirement: `INVENTORY-001`。
-- Implementation: `InventoryReceivingService`、`UnitConverter`、`inventory_batches`、`stock_out_*`。
-- Verification: `OperationalCoreHttpTest`、`InventoryReceivingModuleTest`、MySQL workflow evidence。
+- Implementation: `ProcurementOperationsService`、`UnitConverter`、`inventory_batches`、`stock_out_*`。
+- Verification: `OperationalCoreHttpTest`、`OperationsToolExecutorTest`、MySQL workflow evidence。

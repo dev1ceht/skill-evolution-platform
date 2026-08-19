@@ -6,22 +6,14 @@ import type {
   CurrentUserResponse,
   DashboardSummary,
   DashboardSummaryResponse,
-  LedgerAlert,
-  LedgerAlertResponse,
   RiskAssessment,
   RiskAssessmentResponse,
   InventoryLine,
   InventoryPageResponse,
   Supplier,
   SupplierPageResponse,
-  Menu,
-  MenuResponse,
   DailyMenu,
   DailyMenuResponse,
-  Recipe,
-  RecipeResponse,
-  ProcurementPlan,
-  ProcurementPlanResponse,
   ProcurementPlanAggregate,
   ProcurementPlanAggregateResponse,
   ProcurementPlanAggregatePageResponse,
@@ -33,8 +25,6 @@ import type {
   ReceiveRequest,
   ReceiveResponse,
   ReceiveResult,
-  Receipt,
-  ReceiptResponse,
   AlertRecord,
   AlertResponse,
   AlertPage,
@@ -124,28 +114,6 @@ function unwrap<T>(response: AxiosResponse<ApiEnvelope<T>>): T {
 }
 
 export interface SmartCanteenApiPort {
-  getCurrentLedgerAlert(scope?: CanteenScope): Promise<LedgerAlert>;
-  submitMenu(menuId: string, scope?: CanteenScope): Promise<Menu>;
-  importMenuRecipe(
-    menuId: string,
-    requirements: Array<{ materialId: string; quantity: number; unit: string }>,
-    scope?: CanteenScope,
-  ): Promise<Recipe>;
-  decideMenuApproval(
-    menuId: string,
-    decision: 'APPROVE' | 'REJECT',
-    comment: string,
-    scope?: CanteenScope,
-  ): Promise<Menu>;
-  generateProcurementPlan(menuId: string, scope?: CanteenScope): Promise<ProcurementPlan>;
-  receiveInventory(
-    idempotencyKey: string,
-    materialId: string,
-    quantity: number,
-    unit: string,
-    scope?: CanteenScope,
-  ): Promise<Receipt>;
-  completeLedgerRecord(ledgerCode: string, scope?: CanteenScope): Promise<LedgerAlert>;
   getDailyMenu?(menuId: string, scope: CanteenScope): Promise<DailyMenu>;
   startAgentTraceability?(
     traceCode: string,
@@ -1058,96 +1026,6 @@ export class SmartCanteenApi implements SmartCanteenApiPort {
       expiresIn: tokens.expiresIn,
       userInfo: tokens.userInfo,
     };
-  }
-
-  async getCurrentLedgerAlert(scope?: CanteenScope): Promise<LedgerAlert> {
-    const response = await this.client.get<LedgerAlertResponse>(
-      '/api/v1/ledger-alerts/current',
-      scope ? { params: scope } : undefined,
-    );
-    return unwrap(response);
-  }
-
-  async submitMenu(menuId: string, scope?: CanteenScope): Promise<Menu> {
-    const path = `/api/v1/menus/${encodeURIComponent(menuId)}/submit`;
-    const response = scope
-      ? await this.client.post<MenuResponse>(path, undefined, { params: scope })
-      : await this.client.post<MenuResponse>(path);
-    return unwrap(response);
-  }
-
-  async importMenuRecipe(
-    menuId: string,
-    requirements: Array<{ materialId: string; quantity: number; unit: string }>,
-    scope?: CanteenScope,
-  ): Promise<Recipe> {
-    const path = `/api/v1/menus/${encodeURIComponent(menuId)}/recipe`;
-    const response = scope
-      ? await this.client.post<RecipeResponse>(
-          path,
-          { requirements },
-          { params: scope },
-        )
-      : await this.client.post<RecipeResponse>(path, { requirements });
-    return unwrap(response);
-  }
-
-  async decideMenuApproval(
-    menuId: string,
-    decision: 'APPROVE' | 'REJECT',
-    comment: string,
-    scope?: CanteenScope,
-  ): Promise<Menu> {
-    const path = `/api/v1/menu-approvals/${encodeURIComponent(menuId)}/decision`;
-    const body = { decision, comment };
-    const response = scope
-      ? await this.client.post<MenuResponse>(path, body, { params: scope })
-      : await this.client.post<MenuResponse>(path, body);
-    return unwrap(response);
-  }
-
-  async generateProcurementPlan(
-    menuId: string,
-    scope?: CanteenScope,
-  ): Promise<ProcurementPlan> {
-    const response = scope
-      ? await this.client.post<ProcurementPlanResponse>(
-          '/api/v1/procurement-plans/generate',
-          { menuId },
-          { params: scope },
-        )
-      : await this.client.post<ProcurementPlanResponse>(
-          '/api/v1/procurement-plans/generate',
-          { menuId },
-        );
-    return unwrap(response);
-  }
-
-  async receiveInventory(
-    idempotencyKey: string,
-    materialId: string,
-    quantity: number,
-    unit: string,
-    scope?: CanteenScope,
-  ): Promise<Receipt> {
-    const response = await this.client.post<ReceiptResponse>(
-      '/api/v1/inventory/receipts',
-      { materialId, quantity, unit },
-      {
-        headers: { 'Idempotency-Key': idempotencyKey },
-        ...(scope ? { params: scope } : {}),
-      },
-    );
-    return unwrap(response);
-  }
-
-  async completeLedgerRecord(ledgerCode: string, scope?: CanteenScope): Promise<LedgerAlert> {
-    const response = await this.client.post<LedgerAlertResponse>(
-      '/api/v1/ledger-records',
-      { ledgerCode },
-      scope ? { params: scope } : undefined,
-    );
-    return unwrap(response);
   }
 
   async getDailyMenu(menuId: string, scope: CanteenScope): Promise<DailyMenu> {

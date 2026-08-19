@@ -197,7 +197,7 @@ async function send(): Promise<void> {
 
     <div class="messages" aria-live="polite">
       <p v-if="!messages.length" class="empty" data-testid="assistant-empty">
-        试试：查询 TRACE-001 的食品溯源、查询 MENU-001 的菜单；灰度范围内也可说“库存出库 ING-001 2 kg，原因 午餐备料”
+        试试：查询 TRACE-001 的食品溯源、查询 M001 的菜单；灰度范围内也可说“库存出库 ING-001 2 kg，原因 午餐备料”
       </p>
       <article
         v-for="item in messages"

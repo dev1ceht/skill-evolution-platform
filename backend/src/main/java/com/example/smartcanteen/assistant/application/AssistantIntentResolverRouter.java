@@ -3,6 +3,7 @@ package com.example.smartcanteen.assistant.application;
 import com.example.smartcanteen.assistant.domain.AssistantClarification;
 import com.example.smartcanteen.assistant.domain.AssistantPendingAction;
 import com.example.smartcanteen.assistant.domain.AssistantResolution;
+import com.example.smartcanteen.domain.MenuId;
 import com.example.smartcanteen.assistant.port.AssistantModelResolver;
 import java.util.Locale;
 import java.util.Objects;
@@ -83,8 +84,7 @@ public class AssistantIntentResolverRouter implements AssistantIntentResolver {
                     && (hasPrefix(resolution.traceCode(), "TRACE-")
                     || hasPrefix(resolution.traceCode(), "TRACE_"));
             case MENU_QUERY -> resolution.intent().equals("menu.query")
-                    && (hasPrefix(resolution.menuId(), "MENU-")
-                    || hasPrefix(resolution.menuId(), "MENU_"));
+                    && isShortMenuId(resolution.menuId());
             case MENU_PUBLISH_REQUEST, WRITE_REQUEST, CONFIRM_PENDING_ACTION, CANCEL_PENDING_ACTION -> false;
             case CLARIFICATION -> resolution.intent() == null
                     || resolution.intent().equals("traceability.query")
@@ -96,5 +96,9 @@ public class AssistantIntentResolverRouter implements AssistantIntentResolver {
 
     private static boolean hasPrefix(String value, String prefix) {
         return value != null && value.toUpperCase(Locale.ROOT).startsWith(prefix);
+    }
+
+    private static boolean isShortMenuId(String value) {
+        return MenuId.isValid(value);
     }
 }

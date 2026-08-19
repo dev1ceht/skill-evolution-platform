@@ -288,13 +288,13 @@ def test_normalization_resolves_reusable_parameter_components() -> None:
     )
 
     ir = normalize_openapi(source)
-    submit = next(item for item in ir["operations"] if item["operationId"] == "submitMenu")
+    menu = next(item for item in ir["operations"] if item["operationId"] == "getDailyMenu")
 
-    assert submit["parameters"][0] == {
+    assert menu["parameters"][0] == {
         "name": "menuId",
         "in": "path",
         "required": True,
-        "schema": {"type": "string"},
+        "schema": {"$ref": "#/components/schemas/MenuId"},
     }
 
 
@@ -306,9 +306,6 @@ def test_smart_canteen_alert_schemas_include_compliance_source() -> None:
     ir = normalize_openapi(source)
     schema_names = {
         "AlertReportRequest",
-        "ExternalAlertReportRequest",
-        "AlertDisposalRequest",
-        "ExternalAlertDisposalRequest",
         "AlertRecord",
     }
 

@@ -110,7 +110,7 @@ public class JdbcAuthStore implements AuthStore {
                     "INSERT INTO user_roles (user_id, role_code) VALUES (?, 'SYSTEM_ADMIN')",
                     "USER-BOOTSTRAP-ADMIN");
         } catch (DuplicateKeyException ignored) {
-            // The compatibility role assignment is also create-once.
+            // The bootstrap role assignment is also create-once.
         }
     }
 

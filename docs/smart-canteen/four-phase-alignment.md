@@ -6,9 +6,9 @@ current scope source of truth.
 
 | Phase | Goal | Status | Evidence |
 | --- | --- | --- | --- |
-| 1 | Ledger-cycle alerts only | complete | `LedgerMonitoring`, V2, restart/concurrency paths |
-| 2 | Menu approval and recipe import | complete | `MenuApproval`, `RecipeImport`, recipe module/HTTP tests |
-| 3 | Procurement, inventory and unified units | complete | `ProcurementPlanning`, `InventoryReceiving`, scoped persistence |
+| 1 | Ledger governance and cycle alerts | complete | `ConfigurableLedgerService`, V2/V8, restart/concurrency paths |
+| 2 | Canonical daily-menu approval | complete | `DailyMenuService`, V12/V25/V27, menu module/HTTP tests |
+| 3 | Canonical procurement, inventory and units | complete | `ProcurementOperationsService`, `JdbcOperationalStore`, scoped persistence |
 | 4 | County platform, bright kitchen, morning inspection and alert center | first slice complete | `phase4-requirements.yaml`, `AlertCenterModuleTest`, `AlertCenterHttpTest` |
 
 ## Phase 4 boundary
@@ -16,11 +16,10 @@ current scope source of truth.
 The first phase-4 vertical slice is a real unified alert center. It accepts a
 normalized `AlertReport`, persists it, makes repeated `(source, thirdWarnId)`
 submissions idempotent, rejects changed payloads, records disposal results, and
-supports paginated filtering. It exposes both REST v1 paths and the design
-document compatibility paths `/alarmApi/warn/report`,
-`/alarmApi/warnResult/report`, and `/alarmWarn/school/queryPage`; these are
-path/normalized-input compatibility routes using the project's standard
-`{code,message,data}` envelope, not the PDF's full vendor response shape.
+supports paginated filtering. It exposes the canonical REST v1 paths using the
+project's standard `{code,message,data}` envelope. The former design-document
+aliases are no longer registered; vendor-specific payloads must be normalized
+by an adapter before entering this API.
 
 `DistrictPlatformGateway`, `BrightKitchenGateway`, and
 `MorningInspectionGateway` are replaceable ports only. Vendor HTTP clients,

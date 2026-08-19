@@ -26,7 +26,7 @@ class DailyMenuApprovalModuleTest {
         FakeOperationalStore store = new FakeOperationalStore();
         DailyMenuService service = new DailyMenuService(store);
         DailyMenu draft = new DailyMenu(
-                "MENU-CANONICAL",
+                "M003",
                 LocalDate.of(2026, 8, 17),
                 "LUNCH",
                 "DRAFT",
@@ -56,7 +56,7 @@ class DailyMenuApprovalModuleTest {
         FakeOperationalStore store = new FakeOperationalStore();
         DailyMenuService service = new DailyMenuService(store);
         store.menu = new DailyMenu(
-                "MENU-REJECTED",
+                "M004",
                 LocalDate.of(2026, 8, 17),
                 "DINNER",
                 "PENDING_APPROVAL",
@@ -68,9 +68,9 @@ class DailyMenuApprovalModuleTest {
                 null);
 
         DailyMenu rejected = service.recordDecision(
-                SCOPE, "MENU-REJECTED", 4, "REJECT", "missing allergen note", "USER-APPROVER");
+                SCOPE, "M004", 4, "REJECT", "missing allergen note", "USER-APPROVER");
         assertThat(rejected.status()).isEqualTo("REJECTED");
-        assertThatThrownBy(() -> service.publish(SCOPE, "MENU-REJECTED", 5, "USER-PUBLISH"))
+        assertThatThrownBy(() -> service.publish(SCOPE, "M004", 5, "USER-PUBLISH"))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("domain approval");
     }
@@ -80,7 +80,7 @@ class DailyMenuApprovalModuleTest {
         FakeOperationalStore store = new FakeOperationalStore();
         DailyMenuService service = new DailyMenuService(store);
         store.menu = new DailyMenu(
-                "MENU-SEPARATION",
+                "M005",
                 LocalDate.of(2026, 8, 17),
                 "LUNCH",
                 "PENDING_APPROVAL",
@@ -92,7 +92,7 @@ class DailyMenuApprovalModuleTest {
                 null);
 
         assertThatThrownBy(() -> service.recordDecision(
-                SCOPE, "MENU-SEPARATION", 1, "APPROVE", "", "SAME-USER"))
+                SCOPE, "M005", 1, "APPROVE", "", "SAME-USER"))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("submitter");
     }
@@ -102,7 +102,7 @@ class DailyMenuApprovalModuleTest {
         FakeOperationalStore store = new FakeOperationalStore();
         DailyMenuService service = new DailyMenuService(store);
         DailyMenu draft = new DailyMenu(
-                "MENU-PREFLIGHT",
+                "M006",
                 LocalDate.of(2026, 8, 17),
                 "LUNCH",
                 "DRAFT",
@@ -117,7 +117,7 @@ class DailyMenuApprovalModuleTest {
 
         store.recipeIngredientActive = true;
         store.dailyMenus = List.of(new DailyMenu(
-                "MENU-OTHER",
+                "M007",
                 draft.menuDate(),
                 draft.mealTime(),
                 "DRAFT",
@@ -201,7 +201,6 @@ class DailyMenuApprovalModuleTest {
             return new PageResult<>(dailyMenus, p, z, dailyMenus.size());
         }
         @Override public void saveDailyMenu(CanteenScope s, DailyMenu m, boolean c) { menu = m; }
-        @Override public void publishDailyMenu(CanteenScope s, String id) { }
         @Override public PageResult listSuppliers(CanteenScope s, String k, int p, int z) { return empty(p, z); }
         @Override public Optional findSupplier(CanteenScope s, String id) { return Optional.empty(); }
         @Override public void createSupplier(CanteenScope s, com.example.smartcanteen.domain.Supplier v) { }
@@ -210,6 +209,7 @@ class DailyMenuApprovalModuleTest {
         @Override public com.example.smartcanteen.domain.PurchaseOrder createPurchaseOrder(CanteenScope s, com.example.smartcanteen.domain.PurchaseOrder o, String k) { return o; }
         @Override public com.example.smartcanteen.domain.PurchaseOrder transitionPurchaseOrder(CanteenScope s, String id, String st) { throw new UnsupportedOperationException(); }
         @Override public ReceiveResult receivePurchaseOrder(CanteenScope s, String id, String k, List<ReceiveItem> i) { throw new UnsupportedOperationException(); }
+        @Override public ReceiveResult receiveInventory(CanteenScope s, String k, String supplierId, ReceiveItem i) { throw new UnsupportedOperationException(); }
         @Override public PageResult listInventory(CanteenScope s, String k, boolean w, int p, int z) { return empty(p, z); }
         @Override public StockOutResult stockOut(CanteenScope s, String k, String r, List<StockOutItem> i) { throw new UnsupportedOperationException(); }
         @Override public com.example.smartcanteen.domain.OperationalLedgerRecord saveLedgerRecord(CanteenScope s, com.example.smartcanteen.domain.OperationalLedgerRecord r) { return r; }

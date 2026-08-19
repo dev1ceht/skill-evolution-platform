@@ -13,7 +13,7 @@ function plan(status = 'DRAFT', version = 0) {
     periodEnd: '2026-08-14',
     status,
     version,
-    sourceMenuIds: ['MENU-001'],
+    sourceMenuIds: ['M001'],
     items: [{
       ingredientId: 'RICE',
       requiredBaseQuantity: 10000,
@@ -29,13 +29,6 @@ function plan(status = 'DRAFT', version = 0) {
 
 function apiStub(overrides: Partial<SmartCanteenApiPort> = {}): SmartCanteenApiPort {
   return {
-    getCurrentLedgerAlert: vi.fn(),
-    submitMenu: vi.fn(),
-    importMenuRecipe: vi.fn(),
-    decideMenuApproval: vi.fn(),
-    generateProcurementPlan: vi.fn(),
-    receiveInventory: vi.fn(),
-    completeLedgerRecord: vi.fn(),
     listProcurementPlans: vi.fn().mockResolvedValue([plan()]),
     listSuppliers: vi.fn().mockResolvedValue([
       { id: 'SUPPLIER-001', name: '本地供应商', active: true },

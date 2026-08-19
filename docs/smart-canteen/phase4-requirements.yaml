@@ -61,10 +61,10 @@ requirements:
     source:
       document: phase2-design
       section: "3.2.4 预警中心设计 / external endpoint compatibility"
-    statement: "保留设计文档中的预警接收、处置和分页查询路径，同时提供 REST v1 规范路径。"
+    statement: "提供统一的 REST v1 预警接收、处置和分页查询路径。"
     acceptance:
       - "实现 /api/v1/alerts、/api/v1/alerts/{warnId}/disposal 和查询参数。"
-      - "兼容 /alarmApi/warn/report、/alarmApi/warnResult/report、/alarmWarn/school/queryPage。"
+      - "不注册已移除的 /alarmApi/* 和 /alarmWarn/* 兼容路径；外部事件先经适配器归一化。"
       - "OpenAPI、API IR、TypeScript 生成客户端和契约测试保持同步。"
     status: approved
   - id: TEST-004
@@ -75,6 +75,6 @@ requirements:
     statement: "第四阶段首个纵向切片必须通过领域、HTTP、迁移、契约和前端生成物验证。"
     acceptance:
       - "AlertCenterModuleTest 覆盖重复接收、内容冲突、处置幂等和边界校验。"
-      - "AlertCenterHttpTest 覆盖 PDF 兼容路径、统一包络和分页查询。"
+      - "AlertCenterHttpTest 覆盖 canonical 路径、统一包络和分页查询。"
       - "记录 Maven、Python、frontend、OpenAPI 生成和 provenance 结果。"
     status: approved

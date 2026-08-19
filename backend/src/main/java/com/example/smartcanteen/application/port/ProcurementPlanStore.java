@@ -57,23 +57,11 @@ public interface ProcurementPlanStore {
             String planId,
             long expectedVersion,
             String orderId,
-            String idempotencyKey);
-
-    default ProcurementPlan linkOrder(
-            CanteenScope scope,
-            String planId,
-            long expectedVersion,
-            String orderId,
             String idempotencyKey,
-            String payloadHash) {
-        return linkOrder(scope, planId, expectedVersion, orderId, idempotencyKey);
-    }
+            String payloadHash);
 
-    default void recordOrderPayloadHash(
-            CanteenScope scope, String planId, String idempotencyKey, String payloadHash) {
-        // Legacy adapters may not have the payload evidence column yet. JDBC overrides this
-        // seam; callers still compare the hydrated order before accepting a replay.
-    }
+    void recordOrderPayloadHash(
+            CanteenScope scope, String planId, String idempotencyKey, String payloadHash);
 
     record PlanOrder(String planId, String orderId, String idempotencyKey, String payloadHash) {
         public PlanOrder(String planId, String orderId, String idempotencyKey) {

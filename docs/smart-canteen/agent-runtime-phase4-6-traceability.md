@@ -4,7 +4,7 @@
 
 | 要求 | 实现 | 验证 |
 |---|---|---|
-| `daily_menus` 作为唯一 Agent 写聚合 | `DailyMenu`、`DailyMenuService`、`JdbcOperationalStore`、Flyway V12；旧 `menus` 保留为兼容路径 | `DailyMenuApprovalModuleTest`、`OperationalCoreHttpTest` |
+| `daily_menus` 作为唯一 Agent 写聚合 | `DailyMenu`、`DailyMenuService`、`JdbcOperationalStore`、Flyway V12/V25；旧 `menus` 表和兼容路径已删除 | `DailyMenuApprovalModuleTest`、`OperationalCoreHttpTest` |
 | 提交/审批/发布状态机和乐观版本 | `submitForApproval`、`recordDecision`、严格 `publish`、版本条件更新 | `DailyMenuApprovalModuleTest`、Agent 菜单 HTTP 测试 |
 | 运行确认不替代领域审批 | `RUN_CONFIRM` 只推进 Run；`menu.record-decision` 独立调用菜单服务 | `AgentControllerHttpTest.menu_agent_separates_run_confirmation...` |
 | 职责分离 | submitter 不能审批；submitter/approver 不能发布；审批/发布角色收紧 | `DailyMenuApprovalModuleTest`、现有操作 HTTP 回归 |
@@ -30,4 +30,4 @@
 
 ## 尚未宣称完成的生产门禁
 
-真实 MySQL 8 并发/迁移/重启及 claim lease 基础门禁已在 MySQL 8.4.11 隔离数据库实际通过；完整 worker 调度、自动过期恢复、旧 `menus` 历史回填收口、跨系统 outbox、敏感结果引用化和保留清理、clarification 编排、长期指标告警/保留、生产灰度配置，以及采购/库存/预警写 Skill 仍需独立验收。
+真实 MySQL 8 并发/迁移/重启及 claim lease 基础门禁已在 MySQL 8.4.11 隔离数据库实际通过；旧 `menus`/`recipe_requirements` 表和运行时兼容路径已由 V25 删除，V26 已统一待确认资源列。完整 worker 调度、自动过期恢复、跨系统 outbox、敏感结果引用化和保留清理、clarification 编排、长期指标告警/保留、生产灰度配置，以及采购/库存/预警写 Skill 仍需独立验收。

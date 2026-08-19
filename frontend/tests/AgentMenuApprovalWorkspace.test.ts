@@ -18,7 +18,7 @@ function run(status: string, version = 0): AgentRun {
     planHash: 'b'.repeat(64),
     plan: {
       tools: ['menu.submit'],
-      businessParameters: { menuId: 'MENU-001', menuVersion: 0 },
+      businessParameters: { menuId: 'M001', menuVersion: 0 },
     },
     createdAt: '2026-08-16T10:00:00Z',
     updatedAt: '2026-08-16T10:00:01Z',
@@ -27,13 +27,6 @@ function run(status: string, version = 0): AgentRun {
 
 function apiWith(overrides: Partial<SmartCanteenApiPort>): SmartCanteenApiPort {
   return {
-    getCurrentLedgerAlert: vi.fn(),
-    submitMenu: vi.fn(),
-    importMenuRecipe: vi.fn(),
-    decideMenuApproval: vi.fn(),
-    generateProcurementPlan: vi.fn(),
-    receiveInventory: vi.fn(),
-    completeLedgerRecord: vi.fn(),
     ...overrides,
   };
 }
@@ -49,27 +42,27 @@ describe('AgentMenuApprovalWorkspace', () => {
       },
     ]);
     const getDailyMenu = vi.fn().mockResolvedValue({
-      id: 'MENU-001', menuDate: '2026-08-17', mealTime: 'LUNCH', status: 'DRAFT', version: 0,
+      id: 'M001', menuDate: '2026-08-17', mealTime: 'LUNCH', status: 'DRAFT', version: 0,
       items: [{ dishId: 'DISH-001', estimatedQuantity: 1, sortOrder: 0 }],
     });
     const wrapper = mount(AgentMenuApprovalWorkspace, {
       props: { api: apiWith({ startAgentRun, decideAgentRun, getAgentRunEvents, getDailyMenu }), scope },
     });
 
-    await wrapper.get('#agent-menu-id').setValue('MENU-001');
+    await wrapper.get('#agent-menu-id').setValue('M001');
     await wrapper.get('form').trigger('submit');
     await flushPromises();
 
     expect(startAgentRun).toHaveBeenCalledWith(
-      'menu.submit', { menuId: 'MENU-001', menuVersion: 0 }, scope,
-      expect.stringContaining('agent-menu-menu.submit-MENU-001-'),
+      'menu.submit', { menuId: 'M001', menuVersion: 0 }, scope,
+      expect.stringContaining('agent-menu-menu.submit-M001-'),
     );
-    expect(getDailyMenu).toHaveBeenCalledWith('MENU-001', scope);
+    expect(getDailyMenu).toHaveBeenCalledWith('M001', scope);
     expect(wrapper.get('[data-testid="agent-menu-run"]').text()).toContain('WAITING_CONFIRMATION');
     expect(wrapper.get('[data-testid="agent-menu-domain-state"]').text())
       .toContain('当前状态：DRAFT · 下一步：可提交领域审批');
     expect(wrapper.get('[data-testid="agent-menu-plan-summary"]').text())
-      .toContain('目标菜单 MENU-001 · 菜单版本 0');
+      .toContain('目标菜单 M001 · 菜单版本 0');
     expect(wrapper.get('#agent-menu-id').attributes('disabled')).toBeDefined();
 
     await wrapper.get('button:not([type="submit"])').trigger('click');

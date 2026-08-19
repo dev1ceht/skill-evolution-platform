@@ -28,6 +28,58 @@
 
 当前已沉淀的业务 SOP 包括菜单审批、采购履约、库存、台账、预警处置和食品溯源；组合流程见 [`docs/smart-canteen/sop-manifests.yaml`](docs/smart-canteen/sop-manifests.yaml)。第三方平台、明厨亮灶和晨检设备在真实合同、凭据和网络策略具备前保持 `port-only`，不会伪装成已接通。
 
+## 本地启动
+
+项目目前没有根目录的一键启动命令，需要按“基础设施 → 后端 → 前端”的顺序启动，建议使用三个 PowerShell 窗口。
+
+### 1. 启动基础设施
+
+首次启动时，在 `infra/` 下复制环境文件并替换其中的占位密码：
+
+```powershell
+cd infra
+Copy-Item .env.example .env
+# 编辑 .env，替换所有 replace-with-* 值
+docker compose --env-file .env up -d --build --wait
+```
+
+该命令启动 MySQL、Redis 和 RabbitMQ。当前后端启动时实际依赖 MySQL；Redis 和 RabbitMQ 已纳入本地基础设施编排，但尚未接入后端运行链路。
+
+### 2. 启动后端
+
+在第二个窗口执行：
+
+```powershell
+cd backend
+mvn spring-boot:run
+```
+
+后端启动时会读取 `src/main/resources/application.yml`，连接 MySQL，并自动执行和校验 `src/main/resources/db/migration/` 下的 Flyway 迁移。默认监听 `http://localhost:8080`。
+
+健康检查地址：
+
+```text
+http://localhost:8080/actuator/health
+```
+
+本地管理员由 `SMART_CANTEEN_BOOTSTRAP_ADMIN_USERNAME` 和 `SMART_CANTEEN_BOOTSTRAP_ADMIN_PASSWORD` 配置；生产环境应通过部署环境变量或密钥管理系统覆盖本地默认值。
+
+### 3. 启动前端
+
+在第三个窗口执行：
+
+```powershell
+cd frontend
+npm ci
+npm run dev
+```
+
+前端地址为 `http://localhost:5173`。Vite 会把 `/api` 请求代理到 `http://localhost:8080`，因此浏览器访问前端地址即可使用后端 API。
+
+当前默认开关中，后端鉴权开启，Agent Scheduler、Agent 高风险写入和 Assistant 后端能力关闭；需要启用时通过 `application.yml` 对应的环境变量显式配置。
+
+> `infra/verify-stack.ps1` 只负责启动和验收基础设施，不会启动前端或后端。
+
 ## 快速验证
 
 需要 Python 3.11+、Java 17、Maven、Node.js 20+；Docker 验收还需要 Docker Desktop 或兼容 Docker Engine。

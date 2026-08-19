@@ -20,7 +20,7 @@ class AssistantIntentResolverRouterTest {
         RuleBasedAssistantIntentResolver rules = new RuleBasedAssistantIntentResolver();
         AssistantModelResolver model = mock(AssistantModelResolver.class);
         when(model.resolve("帮我看看今天有什么菜", Optional.empty()))
-                .thenReturn(Optional.of(AssistantResolution.menuQuery("MENU-001")));
+                .thenReturn(Optional.of(AssistantResolution.menuQuery("M001")));
 
         AssistantIntentResolverRouter router = new AssistantIntentResolverRouter(
                 rules, model, true);
@@ -28,7 +28,7 @@ class AssistantIntentResolverRouterTest {
         AssistantResolution result = router.resolve("帮我看看今天有什么菜");
 
         assertThat(result.type()).isEqualTo(AssistantResolution.Type.MENU_QUERY);
-        assertThat(result.menuId()).isEqualTo("MENU-001");
+        assertThat(result.menuId()).isEqualTo("M001");
     }
 
     @Test
@@ -63,7 +63,7 @@ class AssistantIntentResolverRouterTest {
         RuleBasedAssistantIntentResolver rules = new RuleBasedAssistantIntentResolver();
         AssistantModelResolver model = mock(AssistantModelResolver.class);
         when(model.resolve("帮我安排明天的采购", Optional.empty()))
-                .thenReturn(Optional.of(AssistantResolution.menuQuery("MENU-001")));
+                .thenReturn(Optional.of(AssistantResolution.menuQuery("M001")));
         AssistantIntentResolverRouter router = new AssistantIntentResolverRouter(
                 rules, model, true);
 
@@ -78,7 +78,7 @@ class AssistantIntentResolverRouterTest {
         RuleBasedAssistantIntentResolver rules = new RuleBasedAssistantIntentResolver();
         AssistantModelResolver model = mock(AssistantModelResolver.class);
         when(model.resolve("帮我处理这个事项", Optional.empty()))
-                .thenReturn(Optional.of(AssistantResolution.menuPublish("MENU-001")));
+                .thenReturn(Optional.of(AssistantResolution.menuPublish("M001")));
         AssistantIntentResolverRouter router = new AssistantIntentResolverRouter(
                 rules, model, true);
 

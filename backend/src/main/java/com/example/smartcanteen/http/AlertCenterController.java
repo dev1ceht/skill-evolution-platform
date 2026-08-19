@@ -35,7 +35,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/** Unified alert-center API plus the external paths specified by the design PDF. */
+/** Unified alert-center API. */
 @RestController
 public class AlertCenterController {
 
@@ -60,20 +60,9 @@ public class AlertCenterController {
             HttpServletRequest httpRequest,
             @Valid @RequestBody AlertReportRequest request) {
         // Internal callers must be both operationally privileged and inside the payload scope.
-        // The external adapter below is deliberately reserved for trusted integration roles.
         roles.requireAny(
                 httpRequest, Role.SYSTEM_ADMIN, Role.SCHOOL_ADMIN, Role.CANTEEN_STAFF);
         requirePayloadScope(httpRequest, request.schoolId(), request.canteenId());
-        AlertRecord record = alerts.report(request.toDomain());
-        return ApiResponse.ok(AlertView.from(record));
-    }
-
-    @PostMapping("/alarmApi/warn/report")
-    public ApiResponse<AlertView> reportExternal(
-            HttpServletRequest httpRequest,
-            @Valid @RequestBody ExternalAlertReportRequest request) {
-        roles.requireAny(httpRequest, Role.SYSTEM_ADMIN, Role.REGULATOR);
-        requireExternalPayloadScope(httpRequest, request.schoolId(), request.canteenId());
         AlertRecord record = alerts.report(request.toDomain());
         return ApiResponse.ok(AlertView.from(record));
     }
@@ -90,31 +79,7 @@ public class AlertCenterController {
                 warnId, request.toDomain())));
     }
 
-    @PostMapping("/alarmApi/warnResult/report")
-    public ApiResponse<AlertView> disposeExternal(
-            HttpServletRequest httpRequest,
-            @Valid @RequestBody AlertDisposalRequest request) {
-        roles.requireAny(httpRequest, Role.SYSTEM_ADMIN, Role.REGULATOR);
-        String warnId = request.warnId;
-        if (warnId == null || warnId.isBlank()) {
-            if (request.thirdWarnId == null || request.thirdWarnId.isBlank()) {
-                throw new IllegalArgumentException(
-                        "warnId or thirdWarnId is required for external disposal");
-            }
-            AlertSource source = request.source == null
-                    ? AlertSource.BRIGHT_KITCHEN
-                    : AlertSource.from(request.source);
-            warnId = source.name() + ":" + request.thirdWarnId.trim();
-        }
-        String resolvedWarnId = warnId.trim();
-        AlertRecord existing = alerts.find(resolvedWarnId)
-                .orElseThrow(() -> new IllegalArgumentException("Alert not found: " + resolvedWarnId));
-        requireAlertAccess(httpRequest, existing);
-        return ApiResponse.ok(AlertView.from(alerts.dispose(
-                resolvedWarnId, request.toDomain())));
-    }
-
-    @GetMapping({"/api/v1/alerts", "/alarmWarn/school/queryPage"})
+    @GetMapping("/api/v1/alerts")
     public ApiResponse<AlertPageView> query(
             HttpServletRequest httpRequest,
             @RequestParam(required = false) String schoolId,
@@ -175,28 +140,6 @@ public class AlertCenterController {
             return;
         }
         scopes.require(httpRequest, schoolId, canteenId);
-    }
-
-    private void requireExternalPayloadScope(
-            HttpServletRequest httpRequest, String schoolId, String canteenId) {
-        AuthPrincipal current = principal(httpRequest);
-        if (current == null) {
-            return;
-        }
-        if (schoolId == null || schoolId.isBlank()) {
-            throw new IllegalArgumentException("schoolId is required");
-        }
-        if (canteenId != null && !canteenId.isBlank()) {
-            scopes.require(httpRequest, schoolId, canteenId);
-            return;
-        }
-        if (organization.findSchool(schoolId).map(school -> !school.active()).orElse(true)) {
-            throw new ForbiddenException("The requested school scope is disabled or missing");
-        }
-        if (!authorization.hasRole(current, Role.SYSTEM_ADMIN)
-                && !authorization.canAccessSchool(current, schoolId)) {
-            throw new ForbiddenException("User is outside the requested school scope");
-        }
     }
 
     private void requireAlertAccess(HttpServletRequest httpRequest, AlertRecord record) {
@@ -280,52 +223,7 @@ public class AlertCenterController {
         }
     }
 
-    public record ExternalAlertReportRequest(
-            String source,
-            String thirdWarnId,
-            @NotBlank String schoolId,
-            String schoolName,
-            String areaCode,
-            String deviceId,
-            String deviceName,
-            String canteenId,
-            @NotBlank String warnHappenTime,
-            @NotBlank String alarmEventId,
-            String warnFullPic,
-            String warnContent) {
-
-        AlertReport toDomain() {
-            AlertSource resolvedSource = source == null || source.isBlank()
-                    ? (hasDeviceFields() ? AlertSource.BRIGHT_KITCHEN
-                            : AlertSource.DISTRICT_PLATFORM)
-                    : AlertSource.from(source);
-            Instant occurredAt = parseDateTime(warnHappenTime, false);
-            return AlertReport.fromExternal(
-                    resolvedSource,
-                    thirdWarnId,
-                    schoolId,
-                    schoolName,
-                    areaCode,
-                    deviceId,
-                    deviceName,
-                    occurredAt,
-                    alarmEventId,
-                    warnFullPic,
-                    warnContent,
-                    canteenId);
-        }
-
-        private boolean hasDeviceFields() {
-            return (deviceId != null && !deviceId.isBlank())
-                    || (deviceName != null && !deviceName.isBlank())
-                    || (warnFullPic != null && !warnFullPic.isBlank());
-        }
-    }
-
     public record AlertDisposalRequest(
-            String source,
-            String thirdWarnId,
-            String warnId,
             @NotNull @DecimalMin(value = "0") @DecimalMax(value = "1") Integer processStatus,
             String processTime,
             String processUser,

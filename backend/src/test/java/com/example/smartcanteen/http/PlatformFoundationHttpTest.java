@@ -336,7 +336,7 @@ class PlatformFoundationHttpTest {
     }
 
     @Test
-    void regulatorWithoutGrantCannotUseScopedOperationalApi() throws Exception {
+    void regulatorWithoutGrantCannotReportAnAlert() throws Exception {
         String token = login("foundation-regulator-none", "foundation-password");
 
         mvc.perform(get("/api/v1/ingredients")
@@ -346,13 +346,15 @@ class PlatformFoundationHttpTest {
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value(40300));
 
-        mvc.perform(post("/alarmApi/warn/report")
+        mvc.perform(post("/api/v1/alerts")
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
+                                  "source":"DISTRICT_PLATFORM",
+                                  "thirdWarnId":"UNAUTHORIZED_EXTERNAL",
                                   "schoolId":"PF-SCHOOL-ALLOWED",
-                                  "warnHappenTime":"2026-08-14 03:00:00",
+                                  "warnHappenTime":"2026-08-14T03:00:00Z",
                                   "alarmEventId":"UNAUTHORIZED_EXTERNAL",
                                   "warnContent":"should be rejected"
                                 }

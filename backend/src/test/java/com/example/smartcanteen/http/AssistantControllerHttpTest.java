@@ -209,18 +209,18 @@ class AssistantControllerHttpTest {
         jdbc.update(
                 "INSERT INTO daily_menus (school_id, canteen_id, menu_id, menu_date, meal_time, status, version) "
                         + "VALUES (?, ?, ?, ?, ?, ?, ?)",
-                SCHOOL_ID, CANTEEN_ID, "MENU-ASSIST-001", "2026-08-17", "LUNCH", "PUBLISHED", 2);
+                SCHOOL_ID, CANTEEN_ID, "M001", "2026-08-17", "LUNCH", "PUBLISHED", 2);
         jdbc.update(
                 "INSERT INTO daily_menu_items (school_id, canteen_id, menu_id, dish_id, estimated_quantity, sort_order) "
                         + "VALUES (?, ?, ?, ?, ?, ?)",
-                SCHOOL_ID, CANTEEN_ID, "MENU-ASSIST-001", "DISH-ASSIST-001", 120, 1);
+                SCHOOL_ID, CANTEEN_ID, "M001", "DISH-ASSIST-001", 120, 1);
 
-        mvc.perform(message("menu-message-001", "请查询 MENU-ASSIST-001 的菜单", "CONV-ASSIST-MENU"))
+        mvc.perform(message("menu-message-001", "请查询 M001 的菜单", "CONV-ASSIST-MENU"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.kind").value("RESULT"))
                 .andExpect(jsonPath("$.data.intent").value("menu.query"))
                 .andExpect(jsonPath("$.data.runStatus").value("SUCCEEDED"))
-                .andExpect(jsonPath("$.data.result.id").value("MENU-ASSIST-001"))
+                .andExpect(jsonPath("$.data.result.id").value("M001"))
                 .andExpect(jsonPath("$.data.result.status").value("PUBLISHED"))
                 .andExpect(jsonPath("$.data.result.items[0].dishId").value("DISH-ASSIST-001"));
     }
@@ -230,20 +230,20 @@ class AssistantControllerHttpTest {
         jdbc.update(
                 "INSERT INTO daily_menus (school_id, canteen_id, menu_id, menu_date, meal_time, "
                         + "status, version, submitted_by, decision_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                SCHOOL_ID, CANTEEN_ID, "MENU-ASSIST-PUBLISH", "2026-08-18", "LUNCH",
+                SCHOOL_ID, CANTEEN_ID, "M002", "2026-08-18", "LUNCH",
                 "APPROVED", 3, "USER-SUBMITTER", "USER-APPROVER");
         jdbc.update(
                 "INSERT INTO daily_menu_items (school_id, canteen_id, menu_id, dish_id, "
                         + "estimated_quantity, sort_order) VALUES (?, ?, ?, ?, ?, ?)",
-                SCHOOL_ID, CANTEEN_ID, "MENU-ASSIST-PUBLISH", "DISH-ASSIST-001", 120, 1);
+                SCHOOL_ID, CANTEEN_ID, "M002", "DISH-ASSIST-001", 120, 1);
 
-        mvc.perform(message("publish-preview", "请发布 MENU-ASSIST-PUBLISH", "CONV-ASSIST-PUBLISH"))
+        mvc.perform(message("publish-preview", "请发布 M002", "CONV-ASSIST-PUBLISH"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.kind").value("CONFIRMATION_REQUIRED"))
                 .andExpect(jsonPath("$.data.intent").value("menu.publish"))
                 .andExpect(jsonPath("$.data.runStatus").value("WAITING_CONFIRMATION"))
                 .andExpect(jsonPath("$.data.result.businessParameters.menuId")
-                        .value("MENU-ASSIST-PUBLISH"));
+                        .value("M002"));
         assertEquals(
                 "WAITING_CONFIRMATION",
                 jdbc.queryForObject(
@@ -256,7 +256,7 @@ class AssistantControllerHttpTest {
                         "SELECT status FROM daily_menus WHERE school_id = ? AND canteen_id = ? "
                         + "AND menu_id = ?",
                         String.class,
-                        SCHOOL_ID, CANTEEN_ID, "MENU-ASSIST-PUBLISH"));
+                        SCHOOL_ID, CANTEEN_ID, "M002"));
 
         mvc.perform(message("publish-unrelated", "查询 TRACE-ASSIST-001", "CONV-ASSIST-PUBLISH"))
                 .andExpect(status().isOk())
@@ -264,7 +264,7 @@ class AssistantControllerHttpTest {
                 .andExpect(jsonPath("$.data.intent").value("menu.publish"))
                 .andExpect(jsonPath("$.data.runStatus").value("WAITING_CONFIRMATION"));
 
-        mvc.perform(message("publish-replan", "请发布 MENU-OTHER", "CONV-ASSIST-PUBLISH"))
+        mvc.perform(message("publish-replan", "请发布 M003", "CONV-ASSIST-PUBLISH"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.kind").value("CONFIRMATION_REQUIRED"))
                 .andExpect(jsonPath("$.data.intent").value("menu.publish"))
@@ -300,11 +300,11 @@ class AssistantControllerHttpTest {
         jdbc.update(
                 "INSERT INTO daily_menus (school_id, canteen_id, menu_id, menu_date, meal_time, "
                         + "status, version, submitted_by, decision_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                SCHOOL_ID, CANTEEN_ID, "MENU-ASSIST-EXTERNAL-CANCEL", "2026-08-19", "LUNCH",
+                SCHOOL_ID, CANTEEN_ID, "M004", "2026-08-19", "LUNCH",
                 "APPROVED", 1, "USER-SUBMITTER", "USER-APPROVER");
         String preview = mvc.perform(message(
                         "external-cancel-preview",
-                        "请发布 MENU-ASSIST-EXTERNAL-CANCEL",
+                        "请发布 M004",
                         "CONV-ASSIST-EXTERNAL-CANCEL"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.kind").value("CONFIRMATION_REQUIRED"))

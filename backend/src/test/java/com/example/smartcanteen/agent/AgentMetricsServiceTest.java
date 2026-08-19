@@ -26,13 +26,18 @@ class AgentMetricsServiceTest {
                         run("RUN-2", "FAILED", "2026-08-17T09:01:00Z", "2026-08-17T09:01:05Z"),
                         run("RUN-3", "WAITING_CONFIRMATION", "2026-08-17T09:02:00Z", "2026-08-17T09:02:00Z")),
                 List.of(
+                        run("RUN-1", "SUCCEEDED", "2026-08-17T09:00:00Z", "2026-08-17T09:00:02Z"),
+                        run("RUN-2", "FAILED", "2026-08-17T09:01:00Z", "2026-08-17T09:01:05Z"),
+                        run("RUN-3", "WAITING_CONFIRMATION", "2026-08-17T09:02:00Z", "2026-08-17T09:02:00Z")),
+                List.of(
                         step("SUCCEEDED", "2026-08-17T09:00:00Z", "2026-08-17T09:00:02Z"),
                         step("FAILED", "2026-08-17T09:01:00Z", "2026-08-17T09:01:05Z")),
                 List.of(
                         event("RUN-1", "RUN_IDEMPOTENCY_REPLAY", "SUCCEEDED", "SUCCEEDED", "2026-08-17T09:00:03Z"),
                         event("RUN-3", "RUN_PLANNED", null, "WAITING_CONFIRMATION", "2026-08-17T09:02:00Z"),
                         event("RUN-3", "RUN_CONFIRM", "WAITING_CONFIRMATION", "PLANNED", "2026-08-17T09:02:03Z")),
-                4);
+                4,
+                1);
         AgentMetrics metrics = new AgentMetricsService(
                 store, Clock.fixed(NOW, ZoneOffset.UTC)).collect(
                         SCOPE,
@@ -56,7 +61,7 @@ class AgentMetricsServiceTest {
     @Test
     void uses_a_last_day_window_by_default_and_rejects_oversized_or_reversed_windows() {
         AgentMetricsStore store = (scope, from, to) -> new AgentMetricsStore.Snapshot(
-                List.of(), List.of(), List.of(), 0);
+                List.of(), List.of(), List.of(), List.of(), 0, 0);
         AgentMetricsService service = new AgentMetricsService(
                 store, Clock.fixed(NOW, ZoneOffset.UTC));
 

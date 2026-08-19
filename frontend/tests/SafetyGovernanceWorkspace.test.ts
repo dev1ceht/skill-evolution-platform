@@ -7,13 +7,6 @@ const scope = { schoolId: 'SCHOOL-001', canteenId: 'CANTEEN-001' };
 
 function apiStub(overrides: Partial<SmartCanteenApiPort> = {}): SmartCanteenApiPort {
   return {
-    getCurrentLedgerAlert: vi.fn().mockResolvedValue({ cleared: true, missingLedgerCodes: [] }),
-    submitMenu: vi.fn().mockResolvedValue({ id: 'MENU-001', status: 'PENDING_APPROVAL' }),
-    importMenuRecipe: vi.fn().mockResolvedValue({ menuId: 'MENU-001', requirements: [] }),
-    decideMenuApproval: vi.fn().mockResolvedValue({ id: 'MENU-001', status: 'APPROVED' }),
-    generateProcurementPlan: vi.fn().mockResolvedValue({ menuId: 'MENU-001', items: [] }),
-    receiveInventory: vi.fn().mockResolvedValue({ materialId: 'FLOUR', quantityBase: 1, baseUnit: 'kg' }),
-    completeLedgerRecord: vi.fn().mockResolvedValue({ cleared: true, missingLedgerCodes: [] }),
     listLedgerConfigurations: vi.fn().mockResolvedValue([]),
     ensureConfiguredLedgerCycles: vi.fn().mockResolvedValue([]),
     listComplianceRecords: vi.fn().mockResolvedValue([]),

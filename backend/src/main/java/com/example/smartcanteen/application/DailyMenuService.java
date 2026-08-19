@@ -77,13 +77,6 @@ public class DailyMenuService {
     }
 
     @Transactional
-    public DailyMenu publish(CanteenScope scope, String menuId) {
-        DailyMenu menu = store.findDailyMenu(scope, menuId)
-                .orElseThrow(() -> new IllegalArgumentException("Daily menu not found: " + menuId));
-        return publish(scope, menuId, menu.version(), "legacy-page");
-    }
-
-    @Transactional
     public DailyMenu submitForApproval(
             CanteenScope scope, String menuId, long expectedVersion, String actorUserId) {
         requireActor(actorUserId);
@@ -169,11 +162,7 @@ public class DailyMenuService {
         }
     }
 
-    /**
-     * Validate the menu aggregate and its referenced recipe graph before a write path is
-     * planned.  The catalog service applies the same checks when a dish is created; repeating
-     * them here protects menus imported before that invariant existed.
-     */
+    /** Validate the menu aggregate and its referenced recipe graph before a lifecycle write. */
     private void validateMenuContents(CanteenScope scope, DailyMenu menu) {
         if (menu.items().isEmpty()) {
             throw new IllegalStateException("A daily menu must contain at least one dish");

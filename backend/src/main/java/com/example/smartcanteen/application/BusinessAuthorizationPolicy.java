@@ -108,7 +108,7 @@ public class BusinessAuthorizationPolicy {
         }
     }
 
-    /** Accepts legacy role names and fine-grained permission codes during the migration period. */
+    /** Accepts role names and fine-grained permission codes declared by the Skill. */
     public void requireSkillAccess(AuthPrincipal principal, SkillDefinition skill) {
         Objects.requireNonNull(skill, "skill");
         if (!securityEnabled) {

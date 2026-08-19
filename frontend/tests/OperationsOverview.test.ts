@@ -22,13 +22,6 @@ describe('OperationsOverview', () => {
   it('renders loading and live summary states', async () => {
     let resolveSummary!: (value: ReturnType<typeof summary>) => void;
     const api: SmartCanteenApiPort = {
-      getCurrentLedgerAlert: vi.fn(),
-      submitMenu: vi.fn(),
-      importMenuRecipe: vi.fn(),
-      decideMenuApproval: vi.fn(),
-      generateProcurementPlan: vi.fn(),
-      receiveInventory: vi.fn(),
-      completeLedgerRecord: vi.fn(),
       getDashboardSummary: vi.fn().mockReturnValue(
         new Promise((resolve) => { resolveSummary = resolve; }),
       ),
@@ -45,13 +38,6 @@ describe('OperationsOverview', () => {
 
   it('renders a recoverable error state', async () => {
     const api: SmartCanteenApiPort = {
-      getCurrentLedgerAlert: vi.fn(),
-      submitMenu: vi.fn(),
-      importMenuRecipe: vi.fn(),
-      decideMenuApproval: vi.fn(),
-      generateProcurementPlan: vi.fn(),
-      receiveInventory: vi.fn(),
-      completeLedgerRecord: vi.fn(),
       getDashboardSummary: vi.fn().mockRejectedValue(new Error('服务不可用')),
     };
     const wrapper = mount(OperationsOverview, { props: { api, scope } });

@@ -145,9 +145,8 @@ public class JdbcAlertStore implements AlertStore {
             throw new IllegalArgumentException(
                     "Idempotency-Key was already used for a different alert disposal", duplicate);
         }
-        // Record the idempotency evidence before applying the state transition. If the alert was
-        // already disposed through a legacy path with the same payload, the evidence is still
-        // created and future Agent retries cannot bypass the durable guard.
+        // Record the idempotency evidence before applying the state transition so future Agent
+        // retries cannot bypass the durable guard.
         return dispose(warnId, disposal);
     }
 

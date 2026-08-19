@@ -334,13 +334,6 @@ public class JdbcOperationalStore implements OperationalStore {
     }
 
     @Override
-    public void publishDailyMenu(CanteenScope scope, String menuId) {
-        DailyMenu menu = findDailyMenu(scope, menuId)
-                .orElseThrow(() -> new IllegalArgumentException("Daily menu not found: " + menuId));
-        publishDailyMenu(scope, menuId, menu.version(), "legacy-page");
-    }
-
-    @Override
     public void submitDailyMenu(
             CanteenScope scope, String menuId, long expectedVersion, String actorUserId) {
         int changed = jdbc.update(

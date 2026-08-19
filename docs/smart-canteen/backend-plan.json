@@ -1,4 +1,6 @@
 {
+  "status": "archived",
+  "archive_note": "Historical phase-1 plan retained as provenance. Its pre-canonical module names are not runtime contracts; current ledger runtime uses ConfigurableLedgerService and JdbcOperationalStore.",
   "phase": "phase-1-ledger-backend",
   "objective": "将全局台账完成标记改造成按学校、食堂、周期隔离且可恢复的后端模块",
   "scope": {

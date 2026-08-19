@@ -10,7 +10,6 @@ import OperationsOverview from './components/OperationsOverview.vue';
 import ProcurementPlanWorkspace from './components/ProcurementPlanWorkspace.vue';
 import PurchaseOrderWorkspace from './components/PurchaseOrderWorkspace.vue';
 import SafetyGovernanceWorkspace from './components/SafetyGovernanceWorkspace.vue';
-import WorkflowDashboard from './components/WorkflowDashboard.vue';
 import type { AuthSession, CanteenScope } from './api/smartCanteenApi';
 import { SmartCanteenApi } from './api/smartCanteenApi';
 
@@ -26,7 +25,7 @@ const agentMetricsEnabled = computed(() => {
 });
 const scope = ref<CanteenScope>(scopeFromSession(session.value));
 // Kill switch for the pilot write entry. Production can disable the Agent menu
-// without removing the legacy page paths by setting VITE_AGENT_MENU_ENABLED=false.
+// by setting VITE_AGENT_MENU_ENABLED=false.
 const agentMenuEnabled = import.meta.env.VITE_AGENT_MENU_ENABLED !== 'false';
 const assistantEnabled = import.meta.env.VITE_ASSISTANT_ENABLED !== 'false'
   && (import.meta.env.DEV || import.meta.env.VITE_ASSISTANT_ENABLED === 'true');
@@ -71,7 +70,6 @@ function scopeFromSession(value: AuthSession | null): CanteenScope {
     <AgentMenuApprovalWorkspace v-if="agentMenuEnabled" :api="api" :scope="scope" />
     <ProcurementPlanWorkspace :api="api" :scope="scope" />
     <PurchaseOrderWorkspace :api="api" :scope="scope" />
-    <WorkflowDashboard :api="api" :scope="scope" />
     <SafetyGovernanceWorkspace :api="api" :scope="scope" />
   </main>
 </template>

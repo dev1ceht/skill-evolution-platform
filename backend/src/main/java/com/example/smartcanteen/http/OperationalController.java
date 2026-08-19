@@ -15,6 +15,7 @@ import com.example.smartcanteen.domain.DashboardSummary;
 import com.example.smartcanteen.domain.Ingredient;
 import com.example.smartcanteen.domain.IngredientUnit;
 import com.example.smartcanteen.domain.InventoryLine;
+import com.example.smartcanteen.domain.MenuId;
 import com.example.smartcanteen.domain.Nutrition;
 import com.example.smartcanteen.domain.OperationalLedgerRecord;
 import com.example.smartcanteen.domain.PageResult;
@@ -192,7 +193,7 @@ public class OperationalController {
         roles.requireAny(request, Role.SYSTEM_ADMIN, Role.SCHOOL_ADMIN, Role.CANTEEN_STAFF);
         CanteenScope scope = scopes.require(request, schoolId, canteenId);
         boolean create = body.menuId() == null || body.menuId().isBlank();
-        String menuId = create ? "MENU-" + UUID.randomUUID() : body.menuId();
+        String menuId = create ? MenuId.generate() : body.menuId();
         return ApiResponse.ok(dailyMenus.save(scope, body.toDomain(menuId), create));
     }
 
@@ -609,7 +610,7 @@ public class OperationalController {
         if (value instanceof AuthPrincipal principal) {
             return principal.userId();
         }
-        return "legacy-http";
+        throw new IllegalStateException("Authenticated actor is required");
     }
 
     public record SupplierRequest(

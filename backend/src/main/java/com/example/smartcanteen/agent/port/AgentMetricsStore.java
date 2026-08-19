@@ -23,24 +23,6 @@ public interface AgentMetricsStore {
             events = List.copyOf(events == null ? List.of() : events);
         }
 
-        /** Compatibility constructor for in-memory adapters that use one Run list. */
-        public Snapshot(
-                List<RunRecord> runs,
-                List<StepRecord> steps,
-                List<EventRecord> events,
-                long authorizationDeniedCount) {
-            this(
-                    runs,
-                    runs,
-                    steps,
-                    events,
-                    authorizationDeniedCount,
-                    runs == null
-                            ? 0
-                            : runs.stream()
-                                    .filter(run -> "WAITING_CONFIRMATION".equals(run.status()))
-                                    .count());
-        }
     }
 
     record RunRecord(String runId, String status, Instant createdAt, Instant updatedAt) {

@@ -171,6 +171,14 @@ def normalize_openapi(source: str | dict[str, Any]) -> dict[str, Any]:
 
 
 def _ts_type(schema: dict[str, Any], type_names: dict[str, str] | None = None) -> str:
+    if "allOf" in schema:
+        parts = [
+            _ts_type(part, type_names)
+            for part in schema.get("allOf", [])
+            if isinstance(part, dict)
+        ]
+        rendered = " & ".join(parts) if parts else "unknown"
+        return f"{rendered} | null" if schema.get("nullable") else rendered
     if "$ref" in schema:
         source_name = str(schema["$ref"]).rsplit("/", 1)[-1]
         return (type_names or {}).get(source_name, _ts_type_name(source_name))

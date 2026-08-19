@@ -26,10 +26,7 @@ public record DailyMenu(
     }
 
     public DailyMenu {
-        if (id == null || id.isBlank()) {
-            throw new IllegalArgumentException("menuId is required");
-        }
-        id = id.trim();
+        id = MenuId.normalize(id);
         if (menuDate == null) {
             throw new IllegalArgumentException("menuDate is required");
         }

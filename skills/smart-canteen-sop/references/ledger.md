@@ -15,5 +15,5 @@
 ## Evidence
 
 - Requirements: `LEDGER-001`、`LEDGER-002`、`LEDGER-003`、`LEDGER-004`。
-- Implementation: `LedgerMonitoring`、`ConfigurableLedgerService`、`ledger_*` 表。
-- Verification: `LedgerAlertServiceTest`、`LedgerCycleHttpTest`、持久化重启测试。
+- Implementation: `ConfigurableLedgerService`、`JdbcOperationalStore`、`ledger_*` 表。
+- Verification: `ConfigurableLedgerHttpTest`、配置台账 HTTP 幂等和版本并发测试。

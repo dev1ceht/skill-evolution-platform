@@ -30,13 +30,6 @@ function run(status = 'SUCCEEDED'): AgentRun {
 
 function apiWith(startAgentTraceability: SmartCanteenApiPort['startAgentTraceability']): SmartCanteenApiPort {
   return {
-    getCurrentLedgerAlert: vi.fn(),
-    submitMenu: vi.fn(),
-    importMenuRecipe: vi.fn(),
-    decideMenuApproval: vi.fn(),
-    generateProcurementPlan: vi.fn(),
-    receiveInventory: vi.fn(),
-    completeLedgerRecord: vi.fn(),
     startAgentTraceability,
   };
 }

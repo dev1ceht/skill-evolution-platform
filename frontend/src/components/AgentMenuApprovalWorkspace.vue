@@ -153,7 +153,7 @@ function reset(): void {
 
     <form class="menu-form" @submit.prevent="start">
       <label for="agent-menu-id">日菜单 ID</label>
-      <input id="agent-menu-id" v-model="menuId" placeholder="例如 MENU-001" :disabled="loading || hasPlan" />
+      <input id="agent-menu-id" v-model="menuId" placeholder="例如 M001" :disabled="loading || hasPlan" />
       <div class="form-grid">
         <label>菜单版本 <input v-model.number="menuVersion" type="number" min="0" :disabled="loading || hasPlan" /></label>
         <label>操作

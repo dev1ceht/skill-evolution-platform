@@ -7,13 +7,6 @@ const scope = { schoolId: 'SCHOOL-001', canteenId: 'CANTEEN-001' };
 
 function apiWith(sendAssistantMessage: SmartCanteenApiPort['sendAssistantMessage']): SmartCanteenApiPort {
   return {
-    getCurrentLedgerAlert: vi.fn(),
-    submitMenu: vi.fn(),
-    importMenuRecipe: vi.fn(),
-    decideMenuApproval: vi.fn(),
-    generateProcurementPlan: vi.fn(),
-    receiveInventory: vi.fn(),
-    completeLedgerRecord: vi.fn(),
     sendAssistantMessage,
   };
 }
@@ -66,17 +59,17 @@ describe('AssistantWorkspace', () => {
       conversationId: 'CONV-HISTORY',
       status: 'ACTIVE',
       turns: [{
-        userMessage: '查询 MENU-001 的菜单',
+        userMessage: '查询 M001 的菜单',
         response: {
           conversationId: 'CONV-HISTORY',
           turnId: 'TURN-HISTORY',
           sequence: 1,
           kind: 'RESULT',
-          message: '已查询菜单 MENU-001',
+          message: '已查询菜单 M001',
           intent: 'menu.query',
           runId: 'RUN-HISTORY',
           runStatus: 'SUCCEEDED',
-          result: { id: 'MENU-001', status: 'PUBLISHED', items: [] },
+          result: { id: 'M001', status: 'PUBLISHED', items: [] },
           missingFields: [],
           createdAt: '2026-08-17T05:00:00Z',
         },
@@ -88,7 +81,7 @@ describe('AssistantWorkspace', () => {
     await flushPromises();
 
     expect(history).toHaveBeenCalled();
-    expect(wrapper.text()).toContain('查询 MENU-001 的菜单');
-    expect(wrapper.text()).toContain('已查询菜单 MENU-001');
+    expect(wrapper.text()).toContain('查询 M001 的菜单');
+    expect(wrapper.text()).toContain('已查询菜单 M001');
   });
 });

@@ -19,13 +19,6 @@ function order(status: string) {
 
 function apiStub(overrides: Partial<SmartCanteenApiPort> = {}): SmartCanteenApiPort {
   return {
-    getCurrentLedgerAlert: vi.fn(),
-    submitMenu: vi.fn(),
-    importMenuRecipe: vi.fn(),
-    decideMenuApproval: vi.fn(),
-    generateProcurementPlan: vi.fn(),
-    receiveInventory: vi.fn(),
-    completeLedgerRecord: vi.fn(),
     listPurchaseOrders: vi.fn().mockResolvedValue([order('DRAFT')]),
     transitionPurchaseOrder: vi.fn().mockResolvedValue(order('SUBMITTED')),
     receivePurchaseOrder: vi.fn().mockResolvedValue({

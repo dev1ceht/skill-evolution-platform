@@ -36,7 +36,7 @@ class RuleBasedAssistantIntentResolverTest {
 
     @Test
     void does_not_treat_a_menu_id_as_a_traceability_code() {
-        AssistantResolution result = resolver.resolve("查询 MENU-001 的食品溯源");
+        AssistantResolution result = resolver.resolve("查询 M001 的食品溯源");
 
         assertThat(result.type()).isEqualTo(AssistantResolution.Type.CLARIFICATION);
         assertThat(result.missingFields()).containsExactly("traceCode");
@@ -53,11 +53,11 @@ class RuleBasedAssistantIntentResolverTest {
 
     @Test
     void resolves_a_menu_query_with_a_menu_id() {
-        AssistantResolution result = resolver.resolve("请查询 MENU-001 的午餐菜单");
+        AssistantResolution result = resolver.resolve("请查询 M001 的午餐菜单");
 
         assertThat(result.type()).isEqualTo(AssistantResolution.Type.MENU_QUERY);
         assertThat(result.intent()).isEqualTo("menu.query");
-        assertThat(result.menuId()).isEqualTo("MENU-001");
+        assertThat(result.menuId()).isEqualTo("M001");
     }
 
     @Test
@@ -66,16 +66,16 @@ class RuleBasedAssistantIntentResolverTest {
 
         assertThat(result.type()).isEqualTo(AssistantResolution.Type.CLARIFICATION);
         assertThat(result.missingFields()).containsExactly("menuId");
-        assertThat(result.message()).contains("MENU-001");
+        assertThat(result.message()).contains("M001");
     }
 
     @Test
     void resolves_a_menu_publish_request_without_executing_it() {
-        AssistantResolution result = resolver.resolve("请发布 MENU-001");
+        AssistantResolution result = resolver.resolve("请发布 M001");
 
         assertThat(result.type()).isEqualTo(AssistantResolution.Type.MENU_PUBLISH_REQUEST);
         assertThat(result.intent()).isEqualTo("menu.publish");
-        assertThat(result.menuId()).isEqualTo("MENU-001");
+        assertThat(result.menuId()).isEqualTo("M001");
     }
 
     @Test
@@ -107,11 +107,11 @@ class RuleBasedAssistantIntentResolverTest {
                 Instant.parse("2026-08-17T05:00:00Z"),
                 Instant.parse("2026-08-17T05:00:00Z"));
 
-        AssistantResolution result = resolver.resolve("MENU-001", Optional.of(pending));
+        AssistantResolution result = resolver.resolve("M001", Optional.of(pending));
 
         assertThat(result.type()).isEqualTo(AssistantResolution.Type.MENU_PUBLISH_REQUEST);
         assertThat(result.intent()).isEqualTo("menu.publish");
-        assertThat(result.menuId()).isEqualTo("MENU-001");
+        assertThat(result.menuId()).isEqualTo("M001");
     }
 
     @Test
@@ -153,7 +153,7 @@ class RuleBasedAssistantIntentResolverTest {
                         "menu.publish",
                         "RUN-001",
                         0,
-                        "MENU-001",
+                        "M001",
                         3,
                         "a".repeat(64),
                         Instant.parse("2026-08-17T05:00:00Z"),

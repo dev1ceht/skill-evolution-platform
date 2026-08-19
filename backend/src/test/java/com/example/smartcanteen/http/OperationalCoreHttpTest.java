@@ -57,7 +57,6 @@ class OperationalCoreHttpTest {
     @BeforeEach
     void resetScope() {
         jdbc.update("DELETE FROM traceability_records WHERE school_id = ?", SCHOOL);
-        jdbc.update("DELETE FROM inventory_receipts WHERE school_id = ?", SCHOOL);
         jdbc.update("DELETE FROM inventory WHERE school_id = ?", SCHOOL);
         jdbc.update("DELETE FROM stock_out_items WHERE school_id = ?", SCHOOL);
         jdbc.update("DELETE FROM stock_out_records WHERE school_id = ?", SCHOOL);
@@ -235,31 +234,6 @@ class OperationalCoreHttpTest {
                 .hasMessageContaining("Idempotency-Key");
     }
 
-    @Test
-    void ledger_record_is_idempotent_and_publshed_menu_is_immutable() throws Exception {
-        startLedgerCycle();
-        mvc.perform(post("/api/v1/ledger/records?" + SCOPE)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"cycleId":"CYCLE-PHASE5","ledgerCode":"PURCHASE_ACCEPTANCE",
-                                "content":{"temperature":4.2},"photos":["https://example.test/photo.jpg"]}
-                                """))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.status").value("COMPLETED"));
-        mvc.perform(post("/api/v1/ledger/records?" + SCOPE)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"cycleId":"CYCLE-PHASE5","ledgerCode":"PURCHASE_ACCEPTANCE",
-                                "content":{"temperature":4.2},"photos":["https://example.test/photo.jpg"]}
-                                """))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.recordId").isNotEmpty());
-        mvc.perform(get("/api/v1/ledger/stats?" + SCOPE
-                        + "&startDate=" + LocalDate.now() + "&endDate=" + LocalDate.now()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.completed").value(1));
-    }
-
     private void createIngredient() throws Exception {
         mvc.perform(post("/api/v1/ingredients?" + SCOPE)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -320,13 +294,4 @@ class OperationalCoreHttpTest {
                 .andExpect(status().isOk());
     }
 
-    private void startLedgerCycle() throws Exception {
-        mvc.perform(post("/api/v1/ledger-cycles")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"schoolId":"SCHOOL-PHASE5-HTTP","canteenId":"CANTEEN-PHASE5-HTTP",
-                                "cycleId":"CYCLE-PHASE5","ledgerCodes":["PURCHASE_ACCEPTANCE"]}
-                                """))
-                .andExpect(status().isOk());
-    }
 }

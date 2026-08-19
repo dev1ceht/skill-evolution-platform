@@ -631,9 +631,10 @@ public class AssistantConversationService {
 
     private static String pendingLabel(AssistantPendingAction pending) {
         if ("menu.publish".equals(pending.intent())) {
-            return "菜单发布计划 " + pending.menuId() + "（版本 " + pending.menuVersion() + "）";
+            return "菜单发布计划 " + pending.resourceId()
+                    + "（版本 " + pending.resourceVersion() + "）";
         }
-        return pending.intent() + " / " + pending.menuId();
+        return pending.intent() + " / " + pending.resourceId();
     }
 
     private String writeJson(Object value) {

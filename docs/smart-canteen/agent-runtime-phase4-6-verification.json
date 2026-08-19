@@ -80,7 +80,7 @@
     "scope-limited Agent Runtime metrics query and frontend dashboard"
   ],
   "known_limits": [
-    "Real MySQL migration/concurrency and claim-lease foundation acceptance passed in the isolated gate; legacy menus compatibility migration is not yet closed.",
+    "Real MySQL migration/concurrency and claim-lease foundation acceptance passed in the isolated gate; V25 removes the old menus/recipe_requirements tables and V26 renames pending-action resource columns.",
     "The 2026-08-18 isolated MySQL rerun passed the final database-clock/transaction-fencing hardening; CI should continue running the gate before production release.",
     "Execution uses optimistic version authority and explicit resume/reconciliation; claim lease, heartbeat, stale-run recovery and the default-off allowlisted scheduler seam are present, but production multi-instance gray rollout and kill-switch evidence are not complete.",
     "In-process deadline enforcement classifies completed late calls; JDBC query timeout and cancellation are still adapter-specific.",

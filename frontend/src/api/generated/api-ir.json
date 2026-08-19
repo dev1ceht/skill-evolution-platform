@@ -1,7 +1,7 @@
 {
   "title": "Smart Canteen Workflow API",
   "version": "1.0.0",
-  "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+  "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
   "schemas": {
     "AssistantMessageRequest": {
       "type": "object",
@@ -26,15 +26,13 @@
       "additionalProperties": false,
       "properties": {
         "menuId": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 64
+          "$ref": "#/components/schemas/MenuId"
         }
       }
     },
     "AssistantTurn": {
       "type": "object",
-      "description": "助手响应；菜单发布写入必须先返回确认计划，之后仅由明确确认或取消推进 Agent Run。",
+      "description": "助手响应；菜单发布以及采购、库存、预警写入必须先返回确认计划，之后仅由明确确认或取消推进 Agent Run。写入入口仍受部署灰度开关、scope、权限和幂等策略约束。",
       "required": [
         "conversationId",
         "turnId",
@@ -223,8 +221,7 @@
       "additionalProperties": false,
       "properties": {
         "menuId": {
-          "type": "string",
-          "minLength": 1
+          "$ref": "#/components/schemas/MenuId"
         },
         "menuVersion": {
           "type": "integer",
@@ -1965,6 +1962,13 @@
         }
       }
     },
+    "MenuId": {
+      "type": "string",
+      "pattern": "^M([0-9]{3}|[A-Fa-f0-9]{6})$",
+      "minLength": 4,
+      "maxLength": 7,
+      "description": "短格式日菜单 ID，例如 M001 或 MABC123。"
+    },
     "DailyMenuItem": {
       "type": "object",
       "required": [
@@ -1999,7 +2003,7 @@
       ],
       "properties": {
         "id": {
-          "type": "string"
+          "$ref": "#/components/schemas/MenuId"
         },
         "menuDate": {
           "type": "string",
@@ -2089,7 +2093,11 @@
       ],
       "properties": {
         "menuId": {
-          "type": "string",
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/MenuId"
+            }
+          ],
           "nullable": true
         },
         "menuDate": {
@@ -3367,150 +3375,6 @@
         }
       }
     },
-    "Menu": {
-      "type": "object",
-      "required": [
-        "id",
-        "status"
-      ],
-      "properties": {
-        "id": {
-          "type": "string"
-        },
-        "status": {
-          "type": "string",
-          "enum": [
-            "DRAFT",
-            "PENDING_APPROVAL",
-            "APPROVED",
-            "REJECTED"
-          ]
-        },
-        "decisionComment": {
-          "type": "string",
-          "nullable": true
-        }
-      }
-    },
-    "ApprovalDecision": {
-      "type": "object",
-      "required": [
-        "decision",
-        "comment"
-      ],
-      "properties": {
-        "decision": {
-          "type": "string",
-          "enum": [
-            "APPROVE",
-            "REJECT"
-          ]
-        },
-        "comment": {
-          "type": "string"
-        }
-      }
-    },
-    "GenerateProcurementRequest": {
-      "type": "object",
-      "required": [
-        "menuId"
-      ],
-      "properties": {
-        "menuId": {
-          "type": "string"
-        }
-      }
-    },
-    "RecipeImportRequest": {
-      "type": "object",
-      "required": [
-        "requirements"
-      ],
-      "properties": {
-        "requirements": {
-          "type": "array",
-          "minItems": 1,
-          "items": {
-            "$ref": "#/components/schemas/RecipeRequirement"
-          }
-        }
-      }
-    },
-    "RecipeRequirement": {
-      "type": "object",
-      "required": [
-        "materialId",
-        "quantity",
-        "unit"
-      ],
-      "properties": {
-        "materialId": {
-          "type": "string"
-        },
-        "quantity": {
-          "type": "number",
-          "exclusiveMinimum": true,
-          "minimum": 0
-        },
-        "unit": {
-          "type": "string",
-          "enum": [
-            "kg",
-            "g",
-            "L",
-            "ml",
-            "count"
-          ]
-        }
-      }
-    },
-    "ProcurementItem": {
-      "type": "object",
-      "required": [
-        "materialId",
-        "requiredBaseQuantity",
-        "shortageBaseQuantity",
-        "baseUnit"
-      ],
-      "properties": {
-        "materialId": {
-          "type": "string"
-        },
-        "requiredBaseQuantity": {
-          "type": "number"
-        },
-        "shortageBaseQuantity": {
-          "type": "number"
-        },
-        "baseUnit": {
-          "type": "string",
-          "enum": [
-            "g",
-            "ml",
-            "count"
-          ]
-        }
-      }
-    },
-    "ProcurementPlan": {
-      "type": "object",
-      "required": [
-        "menuId",
-        "items"
-      ],
-      "properties": {
-        "menuId": {
-          "type": "string"
-        },
-        "items": {
-          "type": "array",
-          "items": {
-            "$ref": "#/components/schemas/ProcurementItem"
-          }
-        }
-      }
-    },
     "ProcurementPlanAggregateItem": {
       "type": "object",
       "required": [
@@ -3718,34 +3582,6 @@
         }
       }
     },
-    "InventoryReceipt": {
-      "type": "object",
-      "required": [
-        "materialId",
-        "quantity",
-        "unit"
-      ],
-      "properties": {
-        "materialId": {
-          "type": "string"
-        },
-        "quantity": {
-          "type": "number",
-          "minimum": 0,
-          "exclusiveMinimum": true
-        },
-        "unit": {
-          "type": "string",
-          "enum": [
-            "kg",
-            "g",
-            "L",
-            "ml",
-            "count"
-          ]
-        }
-      }
-    },
     "AlertReportRequest": {
       "type": "object",
       "required": [
@@ -3809,89 +3645,12 @@
         }
       }
     },
-    "ExternalAlertReportRequest": {
-      "type": "object",
-      "required": [
-        "schoolId",
-        "warnHappenTime",
-        "alarmEventId"
-      ],
-      "description": "Compatibility input; when thirdWarnId is absent, a stable ID is derived from source, school, canteen, device identity, event ID and normalized occurrence time, excluding mutable content.",
-      "properties": {
-        "source": {
-          "type": "string",
-          "enum": [
-            "DISTRICT_PLATFORM",
-            "BRIGHT_KITCHEN",
-            "MORNING_INSPECTION",
-            "LEDGER",
-            "COMPLIANCE"
-          ]
-        },
-        "thirdWarnId": {
-          "type": "string",
-          "nullable": true
-        },
-        "schoolId": {
-          "type": "string"
-        },
-        "schoolName": {
-          "type": "string",
-          "nullable": true
-        },
-        "areaCode": {
-          "type": "string",
-          "nullable": true
-        },
-        "deviceId": {
-          "type": "string",
-          "nullable": true
-        },
-        "deviceName": {
-          "type": "string",
-          "nullable": true
-        },
-        "canteenId": {
-          "type": "string",
-          "nullable": true
-        },
-        "warnHappenTime": {
-          "type": "string",
-          "description": "ISO-8601 或 yyyy-MM-dd HH:mm:ss"
-        },
-        "alarmEventId": {
-          "type": "string"
-        },
-        "warnFullPic": {
-          "type": "string",
-          "nullable": true
-        },
-        "warnContent": {
-          "type": "string",
-          "nullable": true
-        }
-      }
-    },
     "AlertDisposalRequest": {
       "type": "object",
       "required": [
         "processStatus"
       ],
       "properties": {
-        "source": {
-          "type": "string",
-          "enum": [
-            "DISTRICT_PLATFORM",
-            "BRIGHT_KITCHEN",
-            "MORNING_INSPECTION",
-            "LEDGER",
-            "COMPLIANCE"
-          ]
-        },
-        "thirdWarnId": {
-          "type": "string",
-          "nullable": true
-        },
         "processStatus": {
           "type": "integer",
           "enum": [
@@ -3903,56 +3662,6 @@
           "type": "string",
           "format": "date-time",
           "nullable": true
-        },
-        "processUser": {
-          "type": "string",
-          "nullable": true
-        },
-        "processContent": {
-          "type": "string",
-          "nullable": true
-        },
-        "processFile": {
-          "type": "string",
-          "nullable": true
-        }
-      }
-    },
-    "ExternalAlertDisposalRequest": {
-      "type": "object",
-      "required": [
-        "processStatus"
-      ],
-      "properties": {
-        "source": {
-          "type": "string",
-          "enum": [
-            "DISTRICT_PLATFORM",
-            "BRIGHT_KITCHEN",
-            "MORNING_INSPECTION",
-            "LEDGER",
-            "COMPLIANCE"
-          ]
-        },
-        "thirdWarnId": {
-          "type": "string",
-          "nullable": true
-        },
-        "warnId": {
-          "type": "string",
-          "nullable": true
-        },
-        "processStatus": {
-          "type": "integer",
-          "enum": [
-            0,
-            1
-          ]
-        },
-        "processTime": {
-          "type": "string",
-          "nullable": true,
-          "description": "ISO-8601 或 yyyy-MM-dd HH:mm:ss"
         },
         "processUser": {
           "type": "string",
@@ -4137,190 +3846,6 @@
         }
       }
     },
-    "Receipt": {
-      "type": "object",
-      "required": [
-        "materialId",
-        "quantityBase",
-        "baseUnit"
-      ],
-      "properties": {
-        "materialId": {
-          "type": "string"
-        },
-        "quantityBase": {
-          "type": "number"
-        },
-        "baseUnit": {
-          "type": "string"
-        }
-      }
-    },
-    "LedgerRecord": {
-      "type": "object",
-      "required": [
-        "ledgerCode"
-      ],
-      "properties": {
-        "ledgerCode": {
-          "type": "string",
-          "enum": [
-            "PERSONNEL_MORNING_CHECK",
-            "FACILITY_DISINFECTION",
-            "FOOD_PROCESSING",
-            "SAMPLE_RETENTION",
-            "ACCOMPANYING_MEAL_EVALUATION",
-            "PURCHASE_ACCEPTANCE"
-          ]
-        }
-      }
-    },
-    "LedgerCycleRequest": {
-      "type": "object",
-      "required": [
-        "schoolId",
-        "canteenId",
-        "cycleId",
-        "ledgerCodes"
-      ],
-      "properties": {
-        "schoolId": {
-          "type": "string"
-        },
-        "canteenId": {
-          "type": "string"
-        },
-        "cycleId": {
-          "type": "string"
-        },
-        "ledgerCodes": {
-          "type": "array",
-          "minItems": 1,
-          "items": {
-            "type": "string",
-            "enum": [
-              "PERSONNEL_MORNING_CHECK",
-              "FACILITY_DISINFECTION",
-              "FOOD_PROCESSING",
-              "SAMPLE_RETENTION",
-              "ACCOMPANYING_MEAL_EVALUATION",
-              "PURCHASE_ACCEPTANCE"
-            ]
-          }
-        },
-        "periodStart": {
-          "type": "string",
-          "format": "date"
-        },
-        "periodEnd": {
-          "type": "string",
-          "format": "date"
-        }
-      }
-    },
-    "ScopedLedgerRecord": {
-      "type": "object",
-      "required": [
-        "schoolId",
-        "canteenId",
-        "ledgerCode"
-      ],
-      "properties": {
-        "schoolId": {
-          "type": "string"
-        },
-        "canteenId": {
-          "type": "string"
-        },
-        "ledgerCode": {
-          "type": "string",
-          "enum": [
-            "PERSONNEL_MORNING_CHECK",
-            "FACILITY_DISINFECTION",
-            "FOOD_PROCESSING",
-            "SAMPLE_RETENTION",
-            "ACCOMPANYING_MEAL_EVALUATION",
-            "PURCHASE_ACCEPTANCE"
-          ]
-        }
-      }
-    },
-    "LedgerAlert": {
-      "type": "object",
-      "required": [
-        "schoolId",
-        "canteenId",
-        "cycleId",
-        "status",
-        "cleared",
-        "missingLedgerCodes"
-      ],
-      "properties": {
-        "schoolId": {
-          "type": "string"
-        },
-        "canteenId": {
-          "type": "string"
-        },
-        "cycleId": {
-          "type": "string"
-        },
-        "status": {
-          "type": "string",
-          "enum": [
-            "OPEN",
-            "CLEARED"
-          ]
-        },
-        "cleared": {
-          "type": "boolean"
-        },
-        "missingLedgerCodes": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        }
-      }
-    },
-    "MenuResponse": {
-      "type": "object",
-      "required": [
-        "code",
-        "message",
-        "data"
-      ],
-      "properties": {
-        "code": {
-          "type": "integer"
-        },
-        "message": {
-          "type": "string"
-        },
-        "data": {
-          "$ref": "#/components/schemas/Menu"
-        }
-      }
-    },
-    "ProcurementPlanResponse": {
-      "type": "object",
-      "required": [
-        "code",
-        "message",
-        "data"
-      ],
-      "properties": {
-        "code": {
-          "type": "integer"
-        },
-        "message": {
-          "type": "string"
-        },
-        "data": {
-          "$ref": "#/components/schemas/ProcurementPlan"
-        }
-      }
-    },
     "ProcurementPlanAggregateResponse": {
       "type": "object",
       "required": [
@@ -4410,81 +3935,6 @@
           "items": {
             "$ref": "#/components/schemas/IngredientUnit"
           }
-        }
-      }
-    },
-    "RecipeResponse": {
-      "type": "object",
-      "required": [
-        "code",
-        "message",
-        "data"
-      ],
-      "properties": {
-        "code": {
-          "type": "integer"
-        },
-        "message": {
-          "type": "string"
-        },
-        "data": {
-          "$ref": "#/components/schemas/Recipe"
-        }
-      }
-    },
-    "Recipe": {
-      "type": "object",
-      "required": [
-        "menuId",
-        "requirements"
-      ],
-      "properties": {
-        "menuId": {
-          "type": "string"
-        },
-        "requirements": {
-          "type": "array",
-          "items": {
-            "$ref": "#/components/schemas/RecipeRequirement"
-          }
-        }
-      }
-    },
-    "ReceiptResponse": {
-      "type": "object",
-      "required": [
-        "code",
-        "message",
-        "data"
-      ],
-      "properties": {
-        "code": {
-          "type": "integer"
-        },
-        "message": {
-          "type": "string"
-        },
-        "data": {
-          "$ref": "#/components/schemas/Receipt"
-        }
-      }
-    },
-    "LedgerAlertResponse": {
-      "type": "object",
-      "required": [
-        "code",
-        "message",
-        "data"
-      ],
-      "properties": {
-        "code": {
-          "type": "integer"
-        },
-        "message": {
-          "type": "string"
-        },
-        "data": {
-          "$ref": "#/components/schemas/LedgerAlert"
         }
       }
     },
@@ -5910,225 +5360,6 @@
   },
   "operations": [
     {
-      "operationId": "reportExternalAlert",
-      "method": "POST",
-      "path": "/alarmApi/warn/report",
-      "tags": [
-        "alert-center-compatibility"
-      ],
-      "parameters": [],
-      "requestBody": {
-        "required": true,
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/ExternalAlertReportRequest"
-            }
-          }
-        }
-      },
-      "responses": {
-        "200": {
-          "description": "预警记录",
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AlertResponse"
-              }
-            }
-          }
-        },
-        "400": {
-          "$ref": "#/components/responses/BusinessError"
-        }
-      },
-      "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
-        "pointer": "/paths/~1alarmApi~1warn~1report/post"
-      }
-    },
-    {
-      "operationId": "disposeExternalAlert",
-      "method": "POST",
-      "path": "/alarmApi/warnResult/report",
-      "tags": [
-        "alert-center-compatibility"
-      ],
-      "parameters": [],
-      "requestBody": {
-        "required": true,
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/ExternalAlertDisposalRequest"
-            }
-          }
-        }
-      },
-      "responses": {
-        "200": {
-          "description": "更新后的预警记录",
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AlertResponse"
-              }
-            }
-          }
-        },
-        "400": {
-          "$ref": "#/components/responses/BusinessError"
-        }
-      },
-      "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
-        "pointer": "/paths/~1alarmApi~1warnResult~1report/post"
-      }
-    },
-    {
-      "operationId": "queryExternalAlerts",
-      "method": "GET",
-      "path": "/alarmWarn/school/queryPage",
-      "tags": [
-        "alert-center-compatibility"
-      ],
-      "parameters": [
-        {
-          "name": "schoolId",
-          "in": "query",
-          "required": false,
-          "description": "学校范围；必须与 canteenId 成对提供，省略时使用兼容默认范围。",
-          "schema": {
-            "type": "string"
-          }
-        },
-        {
-          "name": "canteenId",
-          "in": "query",
-          "required": false,
-          "description": "食堂范围；必须与 schoolId 成对提供，省略时使用兼容默认范围。",
-          "schema": {
-            "type": "string"
-          }
-        },
-        {
-          "name": "source",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "type": "string",
-            "enum": [
-              "DISTRICT_PLATFORM",
-              "BRIGHT_KITCHEN",
-              "MORNING_INSPECTION",
-              "LEDGER",
-              "COMPLIANCE"
-            ]
-          }
-        },
-        {
-          "name": "status",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "type": "string",
-            "enum": [
-              "UNPROCESSED",
-              "PROCESSED"
-            ]
-          }
-        },
-        {
-          "name": "alarmEventId",
-          "in": "query",
-          "required": false,
-          "description": "警情类型 ID，例如未戴帽子、手温异常或食材价格预警。",
-          "schema": {
-            "type": "string"
-          }
-        },
-        {
-          "name": "warnStatus",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "type": "string",
-            "enum": [
-              "UNPROCESSED",
-              "PROCESSED"
-            ]
-          }
-        },
-        {
-          "name": "deviceName",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "type": "string"
-          }
-        },
-        {
-          "name": "startDate",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
-        {
-          "name": "endDate",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
-        {
-          "name": "pageNum",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "type": "integer",
-            "minimum": 1,
-            "default": 1
-          }
-        },
-        {
-          "name": "pageSize",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 100,
-            "default": 20
-          }
-        }
-      ],
-      "requestBody": null,
-      "responses": {
-        "200": {
-          "description": "分页预警记录",
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AlertPageResponse"
-              }
-            }
-          }
-        },
-        "400": {
-          "$ref": "#/components/responses/BusinessError"
-        }
-      },
-      "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
-        "pointer": "/paths/~1alarmWarn~1school~1queryPage/get"
-      }
-    },
-    {
       "operationId": "getAgentMetrics",
       "method": "GET",
       "path": "/api/v1/agent/metrics",
@@ -6206,7 +5437,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1agent~1metrics/get"
       }
     },
@@ -6286,7 +5517,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1agent~1runs/post"
       }
     },
@@ -6360,7 +5591,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1agent~1runs~1{runId}/get"
       }
     },
@@ -6446,7 +5677,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1agent~1runs~1{runId}~1cancel/post"
       }
     },
@@ -6535,7 +5766,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1agent~1runs~1{runId}~1decisions/post"
       }
     },
@@ -6603,7 +5834,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1agent~1runs~1{runId}~1events/get"
       }
     },
@@ -6689,7 +5920,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1agent~1runs~1{runId}~1resume/post"
       }
     },
@@ -6715,7 +5946,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1agent~1skills/get"
       }
     },
@@ -6731,7 +5962,7 @@
           "name": "schoolId",
           "in": "query",
           "required": false,
-          "description": "学校范围；必须与 canteenId 成对提供，省略时使用兼容默认范围。",
+          "description": "学校范围；与 canteenId 一起提供时限定到具体食堂。",
           "schema": {
             "type": "string"
           }
@@ -6740,7 +5971,7 @@
           "name": "canteenId",
           "in": "query",
           "required": false,
-          "description": "食堂范围；必须与 schoolId 成对提供，省略时使用兼容默认范围。",
+          "description": "食堂范围；与 schoolId 一起提供时限定到具体食堂。",
           "schema": {
             "type": "string"
           }
@@ -6846,7 +6077,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1alerts/get"
       }
     },
@@ -6884,7 +6115,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1alerts/post"
       }
     },
@@ -6931,7 +6162,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1alerts~1{warnId}~1disposal/post"
       }
     },
@@ -7014,7 +6245,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1assistant~1conversations~1{conversationId}~1messages/get"
       }
     },
@@ -7104,7 +6335,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1assistant~1conversations~1{conversationId}~1messages/post"
       }
     },
@@ -7145,7 +6376,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1audit-logs/get"
       }
     },
@@ -7183,7 +6414,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1auth~1login/post"
       }
     },
@@ -7218,7 +6449,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1auth~1logout/post"
       }
     },
@@ -7247,7 +6478,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1auth~1me/get"
       }
     },
@@ -7285,7 +6516,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1auth~1refresh-token/post"
       }
     },
@@ -7362,7 +6593,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1canteen-showcases/get"
       }
     },
@@ -7419,7 +6650,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1canteen-showcases/post"
       }
     },
@@ -7475,7 +6706,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1canteen-showcases~1{showcaseId}/get"
       }
     },
@@ -7540,7 +6771,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1canteen-showcases~1{showcaseId}/put"
       }
     },
@@ -7596,7 +6827,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1canteen-showcases~1{showcaseId}~1history/get"
       }
     },
@@ -7661,7 +6892,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1canteen-showcases~1{showcaseId}~1publish/post"
       }
     },
@@ -7726,7 +6957,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1canteen-showcases~1{showcaseId}~1review/post"
       }
     },
@@ -7791,7 +7022,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1canteen-showcases~1{showcaseId}~1revoke/post"
       }
     },
@@ -7856,7 +7087,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1canteen-showcases~1{showcaseId}~1submit/post"
       }
     },
@@ -7921,7 +7152,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1canteen-showcases~1{showcaseId}~1versions/post"
       }
     },
@@ -7976,7 +7207,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1canteens/get"
       }
     },
@@ -8014,7 +7245,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1canteens/post"
       }
     },
@@ -8062,7 +7293,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1canteens~1{canteenId}/put"
       }
     },
@@ -8110,7 +7341,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1canteens~1{canteenId}~1status/post"
       }
     },
@@ -8205,7 +7436,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1compliance-records/get"
       }
     },
@@ -8262,7 +7493,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1compliance-records/post"
       }
     },
@@ -8319,7 +7550,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1compliance-records~1expiry-scan/post"
       }
     },
@@ -8375,7 +7606,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1compliance-records~1{recordId}/get"
       }
     },
@@ -8440,7 +7671,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1compliance-records~1{recordId}/put"
       }
     },
@@ -8496,7 +7727,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1compliance-records~1{recordId}~1history/get"
       }
     },
@@ -8561,7 +7792,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1compliance-records~1{recordId}~1review/post"
       }
     },
@@ -8626,7 +7857,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1compliance-records~1{recordId}~1submit/post"
       }
     },
@@ -8708,7 +7939,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1daily-menus/get"
       }
     },
@@ -8762,7 +7993,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1daily-menus/post"
       }
     },
@@ -8779,7 +8010,7 @@
           "in": "path",
           "required": true,
           "schema": {
-            "type": "string"
+            "$ref": "#/components/schemas/MenuId"
           }
         },
         {
@@ -8815,7 +8046,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1daily-menus~1{menuId}/get"
       }
     },
@@ -8832,7 +8063,7 @@
           "in": "path",
           "required": true,
           "schema": {
-            "type": "string"
+            "$ref": "#/components/schemas/MenuId"
           }
         },
         {
@@ -8877,7 +8108,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1daily-menus~1{menuId}~1decision/post"
       }
     },
@@ -8894,7 +8125,7 @@
           "in": "path",
           "required": true,
           "schema": {
-            "type": "string"
+            "$ref": "#/components/schemas/MenuId"
           }
         },
         {
@@ -8930,7 +8161,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1daily-menus~1{menuId}~1publish/post"
       }
     },
@@ -8947,7 +8178,7 @@
           "in": "path",
           "required": true,
           "schema": {
-            "type": "string"
+            "$ref": "#/components/schemas/MenuId"
           }
         },
         {
@@ -8993,7 +8224,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1daily-menus~1{menuId}~1submit/post"
       }
     },
@@ -9046,7 +8277,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1dashboard~1risk/get"
       }
     },
@@ -9099,7 +8330,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1dashboard~1summary/get"
       }
     },
@@ -9179,7 +8410,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1dishes/get"
       }
     },
@@ -9233,7 +8464,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1dishes/post"
       }
     },
@@ -9295,7 +8526,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1dishes~1{dishId}/put"
       }
     },
@@ -9375,7 +8606,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1ingredients/get"
       }
     },
@@ -9429,7 +8660,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1ingredients/post"
       }
     },
@@ -9491,7 +8722,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1ingredients~1{ingredientId}/put"
       }
     },
@@ -9547,7 +8778,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1ingredients~1{ingredientId}~1units/get"
       }
     },
@@ -9628,74 +8859,8 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1inventory/get"
-      }
-    },
-    {
-      "operationId": "receiveInventory",
-      "method": "POST",
-      "path": "/api/v1/inventory/receipts",
-      "tags": [
-        "inventory"
-      ],
-      "parameters": [
-        {
-          "name": "Idempotency-Key",
-          "in": "header",
-          "required": true,
-          "description": "防止入库单重复提交",
-          "schema": {
-            "type": "string"
-          }
-        },
-        {
-          "name": "schoolId",
-          "in": "query",
-          "required": false,
-          "description": "学校范围；必须与 canteenId 成对提供，省略时使用兼容默认范围。",
-          "schema": {
-            "type": "string"
-          }
-        },
-        {
-          "name": "canteenId",
-          "in": "query",
-          "required": false,
-          "description": "食堂范围；必须与 schoolId 成对提供，省略时使用兼容默认范围。",
-          "schema": {
-            "type": "string"
-          }
-        }
-      ],
-      "requestBody": {
-        "required": true,
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/InventoryReceipt"
-            }
-          }
-        }
-      },
-      "responses": {
-        "200": {
-          "description": "入库后的基础单位库存",
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ReceiptResponse"
-              }
-            }
-          }
-        },
-        "400": {
-          "$ref": "#/components/responses/BusinessError"
-        }
-      },
-      "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
-        "pointer": "/paths/~1api~1v1~1inventory~1receipts/post"
       }
     },
     {
@@ -9757,34 +8922,8 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1inventory~1stock-outs/post"
-      }
-    },
-    {
-      "operationId": "getCurrentLedgerAlert",
-      "method": "GET",
-      "path": "/api/v1/ledger-alerts/current",
-      "tags": [
-        "ledger"
-      ],
-      "parameters": [],
-      "requestBody": null,
-      "responses": {
-        "200": {
-          "description": "当前待补台账和预警状态",
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/LedgerAlertResponse"
-              }
-            }
-          }
-        }
-      },
-      "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
-        "pointer": "/paths/~1api~1v1~1ledger-alerts~1current/get"
       }
     },
     {
@@ -9840,7 +8979,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1ledger-configurations/get"
       }
     },
@@ -9897,7 +9036,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1ledger-configurations/post"
       }
     },
@@ -9962,46 +9101,8 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1ledger-configurations~1{configurationId}/put"
-      }
-    },
-    {
-      "operationId": "startLedgerCycle",
-      "method": "POST",
-      "path": "/api/v1/ledger-cycles",
-      "tags": [
-        "ledger"
-      ],
-      "parameters": [],
-      "requestBody": {
-        "required": true,
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/LedgerCycleRequest"
-            }
-          }
-        }
-      },
-      "responses": {
-        "200": {
-          "description": "台账周期和当前预警状态",
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/LedgerAlertResponse"
-              }
-            }
-          }
-        },
-        "400": {
-          "$ref": "#/components/responses/BusinessError"
-        }
-      },
-      "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
-        "pointer": "/paths/~1api~1v1~1ledger-cycles/post"
       }
     },
     {
@@ -10057,7 +9158,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1ledger-cycles~1configured~1current/post"
       }
     },
@@ -10122,147 +9223,8 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1ledger-cycles~1configured~1{cycleId}~1records/post"
-      }
-    },
-    {
-      "operationId": "getScopedLedgerAlert",
-      "method": "GET",
-      "path": "/api/v1/ledger-cycles/{cycleId}/alerts/current",
-      "tags": [
-        "ledger"
-      ],
-      "parameters": [
-        {
-          "name": "cycleId",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "type": "string"
-          }
-        },
-        {
-          "name": "schoolId",
-          "in": "query",
-          "required": true,
-          "schema": {
-            "type": "string"
-          }
-        },
-        {
-          "name": "canteenId",
-          "in": "query",
-          "required": true,
-          "schema": {
-            "type": "string"
-          }
-        }
-      ],
-      "requestBody": null,
-      "responses": {
-        "200": {
-          "description": "指定学校食堂周期的当前预警状态",
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/LedgerAlertResponse"
-              }
-            }
-          }
-        },
-        "400": {
-          "$ref": "#/components/responses/BusinessError"
-        }
-      },
-      "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
-        "pointer": "/paths/~1api~1v1~1ledger-cycles~1{cycleId}~1alerts~1current/get"
-      }
-    },
-    {
-      "operationId": "completeScopedLedgerRecord",
-      "method": "POST",
-      "path": "/api/v1/ledger-cycles/{cycleId}/records",
-      "tags": [
-        "ledger"
-      ],
-      "parameters": [
-        {
-          "name": "cycleId",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "type": "string"
-          }
-        }
-      ],
-      "requestBody": {
-        "required": true,
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/ScopedLedgerRecord"
-            }
-          }
-        }
-      },
-      "responses": {
-        "200": {
-          "description": "完成台账后的当前预警状态",
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/LedgerAlertResponse"
-              }
-            }
-          }
-        },
-        "400": {
-          "$ref": "#/components/responses/BusinessError"
-        }
-      },
-      "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
-        "pointer": "/paths/~1api~1v1~1ledger-cycles~1{cycleId}~1records/post"
-      }
-    },
-    {
-      "operationId": "completeLedgerRecord",
-      "method": "POST",
-      "path": "/api/v1/ledger-records",
-      "tags": [
-        "ledger"
-      ],
-      "parameters": [],
-      "requestBody": {
-        "required": true,
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/LedgerRecord"
-            }
-          }
-        }
-      },
-      "responses": {
-        "200": {
-          "description": "台账完成后的预警状态",
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/LedgerAlertResponse"
-              }
-            }
-          }
-        },
-        "400": {
-          "$ref": "#/components/responses/BusinessError"
-        }
-      },
-      "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
-        "pointer": "/paths/~1api~1v1~1ledger-records/post"
       }
     },
     {
@@ -10364,7 +9326,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1ledger~1records/get"
       }
     },
@@ -10418,7 +9380,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1ledger~1records/post"
       }
     },
@@ -10479,7 +9441,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1ledger~1stats/get"
       }
     },
@@ -10574,7 +9536,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1meal-suspensions/get"
       }
     },
@@ -10631,7 +9593,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1meal-suspensions/post"
       }
     },
@@ -10697,7 +9659,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1meal-suspensions~1stats/get"
       }
     },
@@ -10762,7 +9724,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1meal-suspensions~1{suspensionId}~1cancel/post"
       }
     },
@@ -10818,7 +9780,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1meal-suspensions~1{suspensionId}~1history/get"
       }
     },
@@ -10883,194 +9845,8 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1meal-suspensions~1{suspensionId}~1review/post"
-      }
-    },
-    {
-      "operationId": "decideMenuApproval",
-      "method": "POST",
-      "path": "/api/v1/menu-approvals/{menuId}/decision",
-      "tags": [
-        "menu-approval"
-      ],
-      "parameters": [
-        {
-          "name": "menuId",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "type": "string"
-          }
-        },
-        {
-          "name": "schoolId",
-          "in": "query",
-          "required": false,
-          "description": "学校范围；必须与 canteenId 成对提供，省略时使用兼容默认范围。",
-          "schema": {
-            "type": "string"
-          }
-        },
-        {
-          "name": "canteenId",
-          "in": "query",
-          "required": false,
-          "description": "食堂范围；必须与 schoolId 成对提供，省略时使用兼容默认范围。",
-          "schema": {
-            "type": "string"
-          }
-        }
-      ],
-      "requestBody": {
-        "required": true,
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/ApprovalDecision"
-            }
-          }
-        }
-      },
-      "responses": {
-        "200": {
-          "description": "审批结果",
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/MenuResponse"
-              }
-            }
-          }
-        },
-        "400": {
-          "$ref": "#/components/responses/BusinessError"
-        }
-      },
-      "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
-        "pointer": "/paths/~1api~1v1~1menu-approvals~1{menuId}~1decision/post"
-      }
-    },
-    {
-      "operationId": "importMenuRecipe",
-      "method": "POST",
-      "path": "/api/v1/menus/{menuId}/recipe",
-      "tags": [
-        "recipe"
-      ],
-      "parameters": [
-        {
-          "name": "menuId",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "type": "string"
-          }
-        },
-        {
-          "name": "schoolId",
-          "in": "query",
-          "required": false,
-          "description": "学校范围；必须与 canteenId 成对提供，省略时使用兼容默认范围。",
-          "schema": {
-            "type": "string"
-          }
-        },
-        {
-          "name": "canteenId",
-          "in": "query",
-          "required": false,
-          "description": "食堂范围；必须与 schoolId 成对提供，省略时使用兼容默认范围。",
-          "schema": {
-            "type": "string"
-          }
-        }
-      ],
-      "requestBody": {
-        "required": true,
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/RecipeImportRequest"
-            }
-          }
-        }
-      },
-      "responses": {
-        "200": {
-          "description": "鑿滃崟椋熻氨瀵煎叆缁撴灉",
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RecipeResponse"
-              }
-            }
-          }
-        },
-        "400": {
-          "$ref": "#/components/responses/BusinessError"
-        }
-      },
-      "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
-        "pointer": "/paths/~1api~1v1~1menus~1{menuId}~1recipe/post"
-      }
-    },
-    {
-      "operationId": "submitMenu",
-      "method": "POST",
-      "path": "/api/v1/menus/{menuId}/submit",
-      "tags": [
-        "menu-approval"
-      ],
-      "parameters": [
-        {
-          "name": "menuId",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "type": "string"
-          }
-        },
-        {
-          "name": "schoolId",
-          "in": "query",
-          "required": false,
-          "description": "学校范围；必须与 canteenId 成对提供，省略时使用兼容默认范围。",
-          "schema": {
-            "type": "string"
-          }
-        },
-        {
-          "name": "canteenId",
-          "in": "query",
-          "required": false,
-          "description": "食堂范围；必须与 schoolId 成对提供，省略时使用兼容默认范围。",
-          "schema": {
-            "type": "string"
-          }
-        }
-      ],
-      "requestBody": null,
-      "responses": {
-        "200": {
-          "description": "菜单已提交审批",
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/MenuResponse"
-              }
-            }
-          }
-        },
-        "400": {
-          "$ref": "#/components/responses/BusinessError"
-        }
-      },
-      "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
-        "pointer": "/paths/~1api~1v1~1menus~1{menuId}~1submit/post"
       }
     },
     {
@@ -11095,7 +9871,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1permissions/get"
       }
     },
@@ -11178,65 +9954,8 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1procurement-plans/get"
-      }
-    },
-    {
-      "operationId": "generateProcurementPlan",
-      "method": "POST",
-      "path": "/api/v1/procurement-plans/generate",
-      "tags": [
-        "procurement"
-      ],
-      "parameters": [
-        {
-          "name": "schoolId",
-          "in": "query",
-          "required": false,
-          "description": "学校范围；必须与 canteenId 成对提供，省略时使用兼容默认范围。",
-          "schema": {
-            "type": "string"
-          }
-        },
-        {
-          "name": "canteenId",
-          "in": "query",
-          "required": false,
-          "description": "食堂范围；必须与 schoolId 成对提供，省略时使用兼容默认范围。",
-          "schema": {
-            "type": "string"
-          }
-        }
-      ],
-      "requestBody": {
-        "required": true,
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/GenerateProcurementRequest"
-            }
-          }
-        }
-      },
-      "responses": {
-        "200": {
-          "description": "基于已审批菜单和当前库存生成的采购缺口",
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ProcurementPlanResponse"
-              }
-            }
-          }
-        },
-        "400": {
-          "$ref": "#/components/responses/BusinessError"
-        }
-      },
-      "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
-        "pointer": "/paths/~1api~1v1~1procurement-plans~1generate/post"
       }
     },
     {
@@ -11301,7 +10020,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1procurement-plans~1generate-range/post"
       }
     },
@@ -11357,7 +10076,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1procurement-plans~1{planId}/get"
       }
     },
@@ -11413,7 +10132,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1procurement-plans~1{planId}~1cancel/post"
       }
     },
@@ -11469,7 +10188,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1procurement-plans~1{planId}~1confirm/post"
       }
     },
@@ -11534,7 +10253,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1procurement-plans~1{planId}~1items/put"
       }
     },
@@ -11608,7 +10327,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1procurement-plans~1{planId}~1purchase-orders/post"
       }
     },
@@ -11681,7 +10400,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1purchase-orders/get"
       }
     },
@@ -11744,7 +10463,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1purchase-orders/post"
       }
     },
@@ -11815,7 +10534,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1purchase-orders~1{orderId}~1receive/post"
       }
     },
@@ -11877,7 +10596,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1purchase-orders~1{orderId}~1status/post"
       }
     },
@@ -11903,7 +10622,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1roles/get"
       }
     },
@@ -11950,7 +10669,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1roles~1{roleCode}~1permissions/put"
       }
     },
@@ -11997,7 +10716,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1schools/get"
       }
     },
@@ -12035,7 +10754,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1schools/post"
       }
     },
@@ -12083,7 +10802,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1schools~1{schoolId}/put"
       }
     },
@@ -12131,7 +10850,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1schools~1{schoolId}~1status/post"
       }
     },
@@ -12216,7 +10935,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1supplier-complaints/get"
       }
     },
@@ -12273,7 +10992,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1supplier-complaints/post"
       }
     },
@@ -12329,7 +11048,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1supplier-complaints~1{complaintId}/get"
       }
     },
@@ -12394,7 +11113,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1supplier-complaints~1{complaintId}~1close/post"
       }
     },
@@ -12450,7 +11169,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1supplier-complaints~1{complaintId}~1history/get"
       }
     },
@@ -12515,7 +11234,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1supplier-complaints~1{complaintId}~1process/post"
       }
     },
@@ -12580,7 +11299,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1supplier-complaints~1{complaintId}~1reply/post"
       }
     },
@@ -12645,7 +11364,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1supplier-complaints~1{complaintId}~1review/post"
       }
     },
@@ -12718,7 +11437,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1suppliers/get"
       }
     },
@@ -12772,7 +11491,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1suppliers/post"
       }
     },
@@ -12828,7 +11547,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1traceability~1{traceCode}/get"
       }
     },
@@ -12879,7 +11598,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1users/get"
       }
     },
@@ -12917,7 +11636,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1users/post"
       }
     },
@@ -12965,7 +11684,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1users~1{userId}/put"
       }
     },
@@ -13013,7 +11732,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1users~1{userId}~1roles/put"
       }
     },
@@ -13061,7 +11780,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1users~1{userId}~1scopes/put"
       }
     },
@@ -13109,7 +11828,7 @@
         }
       },
       "provenance": {
-        "documentHash": "7c5072f3ff773df4a0b256ec0a769db0d0a2466c85f6ff53a59f3ef82c8295db",
+        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
         "pointer": "/paths/~1api~1v1~1users~1{userId}~1status/post"
       }
     }

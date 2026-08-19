@@ -337,16 +337,6 @@ public class JdbcProcurementPlanStore implements ProcurementPlanStore {
             String planId,
             long expectedVersion,
             String orderId,
-            String idempotencyKey) {
-        return linkOrder(scope, planId, expectedVersion, orderId, idempotencyKey, null);
-    }
-
-    @Override
-    public ProcurementPlan linkOrder(
-            CanteenScope scope,
-            String planId,
-            long expectedVersion,
-            String orderId,
             String idempotencyKey,
             String payloadHash) {
         try {
