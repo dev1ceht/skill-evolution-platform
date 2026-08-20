@@ -15,7 +15,10 @@ const session = ref<AuthSession | null>(api.getSession());
 const authenticated = computed(() => session.value !== null);
 const activeView = ref<AppRouteId>(routeFromLocation());
 const sidebarOpen = ref(false);
-const scope = ref<CanteenScope>({ schoolId: 'SCHOOL-001', canteenId: 'CANTEEN-001' });
+const scope = ref<CanteenScope>({
+  schoolId: import.meta.env.VITE_SCHOOL_ID ?? 'SCHOOL-001',
+  canteenId: import.meta.env.VITE_CANTEEN_ID ?? 'CANTEEN-001',
+});
 
 type NavigationItem = { id: AppRouteId; label: string; icon: string };
 type NavigationGroup = { label: string; items: NavigationItem[] };

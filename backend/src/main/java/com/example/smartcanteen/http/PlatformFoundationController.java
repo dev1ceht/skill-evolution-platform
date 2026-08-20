@@ -2,9 +2,11 @@ package com.example.smartcanteen.http;
 
 import com.example.smartcanteen.application.AuthorizationService;
 import com.example.smartcanteen.application.OrganizationService;
+import com.example.smartcanteen.application.SingleCanteenContext;
 import com.example.smartcanteen.application.UserAdministrationService;
 import com.example.smartcanteen.application.port.AuditStore;
 import com.example.smartcanteen.domain.Canteen;
+import com.example.smartcanteen.domain.CanteenScope;
 import com.example.smartcanteen.domain.ManagedUser;
 import com.example.smartcanteen.domain.PermissionDefinition;
 import com.example.smartcanteen.domain.RoleDefinition;
@@ -42,18 +44,21 @@ public class PlatformFoundationController {
     private final AuthorizationService authorization;
     private final RoleAccess roles;
     private final AuditStore audits;
+    private final SingleCanteenContext canteen;
 
     public PlatformFoundationController(
             OrganizationService organization,
             UserAdministrationService users,
             AuthorizationService authorization,
             RoleAccess roles,
-            AuditStore audits) {
+            AuditStore audits,
+            SingleCanteenContext canteen) {
         this.organization = organization;
         this.users = users;
         this.authorization = authorization;
         this.roles = roles;
         this.audits = audits;
+        this.canteen = canteen;
     }
 
     @GetMapping("/schools")
@@ -62,8 +67,12 @@ public class PlatformFoundationController {
             @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "false") boolean includeInactive) {
         roles.requirePermission(request, "ORG_READ");
+        Set<String> allowedSchoolIds = authorization.allowedSchoolIds(principal(request));
+        if (canteen.isSingleCanteenMode()) {
+            allowedSchoolIds = Set.of(canteen.scope().schoolId());
+        }
         return ApiResponse.ok(organization.listSchools(
-                authorization.allowedSchoolIds(principal(request)), keyword, includeInactive));
+                allowedSchoolIds, keyword, includeInactive));
     }
 
     @PostMapping("/schools")
@@ -73,6 +82,7 @@ public class PlatformFoundationController {
         School school = new School(
                 body.id() == null || body.id().isBlank() ? "SCHOOL-" + UUID.randomUUID() : body.id(),
                 body.name(), body.regionCode(), body.active() == null || body.active());
+        ensureSingleSchool(school.id());
         return ApiResponse.ok(organization.createSchool(school, principal(request).userId()));
     }
 
@@ -82,6 +92,7 @@ public class PlatformFoundationController {
             @PathVariable String schoolId,
             @Valid @RequestBody SchoolRequest body) {
         roles.requirePermission(request, "ORG_WRITE");
+        ensureSingleSchool(schoolId);
         requireSchoolAccess(request, schoolId);
         School current = organization.findSchool(schoolId)
                 .orElseThrow(() -> new IllegalArgumentException("school not found: " + schoolId));
@@ -100,6 +111,7 @@ public class PlatformFoundationController {
             @PathVariable String schoolId,
             @Valid @RequestBody StatusRequest body) {
         roles.requirePermission(request, "ORG_WRITE");
+        ensureSingleSchool(schoolId);
         requireSchoolAccess(request, schoolId);
         return ApiResponse.ok(organization.updateSchoolStatus(
                 schoolId, body.active(), principal(request).userId()));
@@ -112,12 +124,22 @@ public class PlatformFoundationController {
             @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "false") boolean includeInactive) {
         roles.requirePermission(request, "ORG_READ");
+        if (canteen.isSingleCanteenMode()) {
+            CanteenScope active = canteen.resolve(schoolId, null);
+            schoolId = active.schoolId();
+        }
         if (schoolId != null && !schoolId.isBlank()) {
             requireSchoolAccess(request, schoolId);
         }
+        Set<String> allowedSchoolIds = authorization.allowedSchoolIds(principal(request));
+        Set<String> allowedCanteenIds = authorization.allowedCanteenIds(principal(request), schoolId);
+        if (canteen.isSingleCanteenMode()) {
+            allowedSchoolIds = Set.of(canteen.scope().schoolId());
+            allowedCanteenIds = Set.of(canteen.scope().canteenId());
+        }
         return ApiResponse.ok(organization.listCanteens(
-                authorization.allowedSchoolIds(principal(request)),
-                authorization.allowedCanteenIds(principal(request), schoolId),
+                allowedSchoolIds,
+                allowedCanteenIds,
                 schoolId, keyword, includeInactive));
     }
 
@@ -125,11 +147,15 @@ public class PlatformFoundationController {
     public ApiResponse<Canteen> createCanteen(
             HttpServletRequest request, @Valid @RequestBody CanteenRequest body) {
         roles.requirePermission(request, "ORG_WRITE");
+        ensureSingleSchool(body.schoolId());
+        String canteenId = body.id() == null || body.id().isBlank()
+                ? "CANTEEN-" + UUID.randomUUID() : body.id();
+        ensureSingleCanteen(body.schoolId(), canteenId);
         requireSchoolAccess(request, body.schoolId());
         School school = organization.findSchool(body.schoolId())
                 .orElseThrow(() -> new IllegalArgumentException("school not found: " + body.schoolId()));
         Canteen canteen = new Canteen(
-                body.id() == null || body.id().isBlank() ? "CANTEEN-" + UUID.randomUUID() : body.id(),
+                canteenId,
                 body.schoolId(), body.name(), body.address(), school.regionCode(),
                 body.active() == null || body.active());
         return ApiResponse.ok(organization.createCanteen(canteen, principal(request).userId()));
@@ -141,11 +167,13 @@ public class PlatformFoundationController {
             @PathVariable String canteenId,
             @Valid @RequestBody CanteenRequest body) {
         roles.requirePermission(request, "ORG_WRITE");
+        ensureSingleCanteen(null, canteenId);
         Canteen current = organization.findCanteen(canteenId)
                 .orElseThrow(() -> new IllegalArgumentException("canteen not found: " + canteenId));
         requireSchoolAccess(request, current.schoolId());
         String schoolId = body.schoolId() == null || body.schoolId().isBlank()
                 ? current.schoolId() : body.schoolId();
+        ensureSingleSchool(schoolId);
         if (!schoolId.equals(current.schoolId())) {
             throw new IllegalArgumentException("canteen cannot move between schools");
         }
@@ -165,6 +193,7 @@ public class PlatformFoundationController {
             @PathVariable String canteenId,
             @Valid @RequestBody StatusRequest body) {
         roles.requirePermission(request, "ORG_WRITE");
+        ensureSingleCanteen(null, canteenId);
         Canteen current = organization.findCanteen(canteenId)
                 .orElseThrow(() -> new IllegalArgumentException("canteen not found: " + canteenId));
         requireSchoolAccess(request, current.schoolId());
@@ -202,6 +231,11 @@ public class PlatformFoundationController {
             @RequestParam(required = false) String canteenId,
             @RequestParam(required = false) Boolean active) {
         roles.requirePermission(request, "USER_READ");
+        if (canteen.isSingleCanteenMode()) {
+            CanteenScope activeScope = canteen.resolve(schoolId, canteenId);
+            schoolId = activeScope.schoolId();
+            canteenId = activeScope.canteenId();
+        }
         if (schoolId != null && !schoolId.isBlank()) {
             requireSchoolAccess(request, schoolId);
         }
@@ -235,6 +269,7 @@ public class PlatformFoundationController {
             throw new ForbiddenException("Only system administrators can assign SYSTEM_ADMIN");
         }
         requireOptionalSchoolAccess(request, body.schoolId());
+        ensureSingleScope(body.schoolId(), body.canteenId());
         requireActiveSchool(body.schoolId());
         requireActiveCanteen(body.schoolId(), body.canteenId());
         List<ScopeGrant> grants = toGrants(principal(request).userId(), body.scopeGrants());
@@ -348,6 +383,7 @@ public class PlatformFoundationController {
 
     private void requireOptionalSchoolAccess(HttpServletRequest request, String schoolId) {
         if (schoolId != null && !schoolId.isBlank()) {
+            ensureSingleSchool(schoolId);
             requireSchoolAccess(request, schoolId);
         } else if (!authorization.hasRole(principal(request), Role.SYSTEM_ADMIN)) {
             throw new IllegalArgumentException("schoolId is required for non-system users");
@@ -355,6 +391,7 @@ public class PlatformFoundationController {
     }
 
     private void requireTargetUserAccess(HttpServletRequest request, ManagedUser target) {
+        ensureSingleScope(target.schoolId(), target.canteenId());
         if (authorization.hasRole(principal(request), Role.SYSTEM_ADMIN)) {
             return;
         }
@@ -371,6 +408,7 @@ public class PlatformFoundationController {
         if (schoolId == null || schoolId.isBlank()) {
             return;
         }
+        ensureSingleSchool(schoolId);
         School school = organization.findSchool(schoolId)
                 .orElseThrow(() -> new IllegalArgumentException("school not found: " + schoolId));
         if (!school.active()) {
@@ -382,6 +420,7 @@ public class PlatformFoundationController {
         if (canteenId == null || canteenId.isBlank()) {
             return;
         }
+        ensureSingleScope(schoolId, canteenId);
         if (schoolId == null || schoolId.isBlank()) {
             throw new IllegalArgumentException("schoolId is required when canteenId is provided");
         }
@@ -397,8 +436,7 @@ public class PlatformFoundationController {
     }
 
     private void requireCanteenAccess(HttpServletRequest request, String schoolId, String canteenId) {
-        com.example.smartcanteen.domain.CanteenScope scope =
-                new com.example.smartcanteen.domain.CanteenScope(schoolId, canteenId);
+        CanteenScope scope = canteen.resolve(schoolId, canteenId);
         if (!authorization.canAccess(principal(request), scope)) {
             throw new ForbiddenException("User is outside the requested canteen scope");
         }
@@ -408,11 +446,15 @@ public class PlatformFoundationController {
         boolean systemAdmin = authorization.hasRole(principal(request), Role.SYSTEM_ADMIN);
         for (ScopeGrant grant : grants) {
             if (grant.type() == ScopeGrantType.REGION) {
+                if (canteen.isSingleCanteenMode()) {
+                    throw new ForbiddenException("Region scope is not available in a single-canteen deployment");
+                }
                 if (!systemAdmin) {
                     throw new ForbiddenException("Only system administrators can assign region scope");
                 }
                 continue;
             }
+            ensureSingleScope(grant.schoolId(), grant.canteenId());
             requireActiveSchool(grant.schoolId());
             if (!systemAdmin && (grant.schoolId() == null
                     || !authorization.canAccessSchool(principal(request), grant.schoolId()))) {
@@ -423,6 +465,22 @@ public class PlatformFoundationController {
                 requireCanteenAccess(request, grant.schoolId(), grant.canteenId());
             }
         }
+    }
+
+    private void ensureSingleSchool(String schoolId) {
+        if (canteen.isSingleCanteenMode()) {
+            canteen.resolve(schoolId, null);
+        }
+    }
+
+    private void ensureSingleCanteen(String schoolId, String canteenId) {
+        if (canteen.isSingleCanteenMode()) {
+            canteen.resolve(schoolId, canteenId);
+        }
+    }
+
+    private void ensureSingleScope(String schoolId, String canteenId) {
+        ensureSingleCanteen(schoolId, canteenId);
     }
 
     private static AuthPrincipal principal(HttpServletRequest request) {

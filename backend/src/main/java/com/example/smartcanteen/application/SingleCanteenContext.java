@@ -16,14 +16,14 @@ import org.springframework.stereotype.Component;
 @Component
 public final class SingleCanteenContext {
 
-    private final boolean fixed;
+    private final boolean singleCanteenMode;
     private final CanteenScope scope;
 
     public SingleCanteenContext(
-            @Value("${smart-canteen.canteen.single-mode:true}") boolean fixed,
+            @Value("${smart-canteen.canteen.single-mode:true}") boolean singleCanteenMode,
             @Value("${smart-canteen.canteen.school-id:SCHOOL-001}") String schoolId,
             @Value("${smart-canteen.canteen.id:CANTEEN-001}") String canteenId) {
-        this.fixed = fixed;
+        this.singleCanteenMode = singleCanteenMode;
         this.scope = new CanteenScope(
                 Objects.requireNonNull(schoolId, "schoolId"),
                 Objects.requireNonNull(canteenId, "canteenId"));
@@ -33,17 +33,24 @@ public final class SingleCanteenContext {
         return scope;
     }
 
+    public boolean isSingleCanteenMode() {
+        return singleCanteenMode;
+    }
+
     /** Resolves an HTTP/Agent supplied scope without allowing cross-canteen access in production. */
     public CanteenScope resolve(String schoolId, String canteenId) {
-        if (!fixed) {
+        if (!singleCanteenMode) {
             return new CanteenScope(
-                    Objects.requireNonNull(schoolId, "schoolId"),
-                    Objects.requireNonNull(canteenId, "canteenId"));
+                    schoolId == null || schoolId.isBlank() ? scope.schoolId() : schoolId,
+                    canteenId == null || canteenId.isBlank() ? scope.canteenId() : canteenId);
         }
-        if (schoolId == null || schoolId.isBlank() || canteenId == null || canteenId.isBlank()) {
+        boolean missingSchool = schoolId == null || schoolId.isBlank();
+        boolean missingCanteen = canteenId == null || canteenId.isBlank();
+        if (missingSchool && missingCanteen) {
             return scope;
         }
-        if (!scope.schoolId().equals(schoolId) || !scope.canteenId().equals(canteenId)) {
+        if ((!missingSchool && !scope.schoolId().equals(schoolId))
+                || (!missingCanteen && !scope.canteenId().equals(canteenId))) {
             throw new ForbiddenException("This deployment operates one fixed canteen only");
         }
         return scope;

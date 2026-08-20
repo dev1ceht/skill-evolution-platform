@@ -51,4 +51,12 @@ class AssistantRolloutPolicyTest {
         assertDoesNotThrow(() -> policy.requireEnabled(
                 new CanteenScope("SCHOOL-OTHER", "CANTEEN-OTHER")));
     }
+
+    @Test
+    void business_write_kill_switch_blocks_pending_write_execution() {
+        AssistantRolloutPolicy policy = new AssistantRolloutPolicy(
+                true, "SCHOOL-PILOT/CANTEEN-PILOT", false);
+
+        assertThrows(ForbiddenException.class, policy::requireBusinessWrites);
+    }
 }

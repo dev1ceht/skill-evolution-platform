@@ -494,6 +494,9 @@ public class AssistantConversationService {
             AssistantPendingAction pending,
             String idempotencyKey,
             ExecutionContext context) {
+        if (!"menu.publish".equals(pending.intent())) {
+            rollout.requireBusinessWrites();
+        }
         requirePendingActionMatches(resolution, pending);
         AgentRun current = runtime.find(pending.runId()).orElseThrow(() ->
                 new IllegalStateException("Pending business write Run no longer exists"));

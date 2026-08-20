@@ -48,7 +48,7 @@ smart-canteen:
     username: ${SMART_CANTEEN_BOOTSTRAP_USERNAME:admin}
     password: ${SMART_CANTEEN_BOOTSTRAP_PASSWORD:}
   canteen:
-    single-mode: ${SMART_CANTEEN_SINGLE_MODE:true}
+    single-mode: true
     school-id: ${SMART_CANTEEN_SCHOOL_ID:SCHOOL-001}
     id: ${SMART_CANTEEN_ID:CANTEEN-001}
   assistant:
