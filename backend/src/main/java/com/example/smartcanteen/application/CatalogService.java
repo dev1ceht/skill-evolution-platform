@@ -72,6 +72,16 @@ public class CatalogService {
         return ingredientUnits.listIngredientUnits(scope, ingredientId);
     }
 
+    @Transactional
+    public List<IngredientUnit> replaceIngredientUnits(
+            CanteenScope scope, String ingredientId, List<IngredientUnit> configuredUnits) {
+        Ingredient ingredient = store.findIngredient(scope, ingredientId)
+                .orElseThrow(() -> new IllegalArgumentException("Ingredient not found: " + ingredientId));
+        ingredientUnits.replaceIngredientUnits(
+                scope, ingredientId, normalizeUnits(ingredient, configuredUnits));
+        return ingredientUnits.listIngredientUnits(scope, ingredientId);
+    }
+
     @Transactional(readOnly = true)
     public PageResult<Dish> listDishes(
             CanteenScope scope, String keyword, String category, int page, int size) {

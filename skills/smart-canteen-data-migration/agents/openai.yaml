@@ -1,4 +1,0 @@
-interface:
-  display_name: "Smart Canteen Data Migration"
-  short_description: "Plan safe Flyway and tenant-data migrations"
-  default_prompt: "Use $smart-canteen-data-migration to design and verify a safe Flyway migration for this scoped business-data change."

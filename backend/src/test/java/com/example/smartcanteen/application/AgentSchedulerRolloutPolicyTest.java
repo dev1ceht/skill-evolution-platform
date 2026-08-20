@@ -2,6 +2,7 @@ package com.example.smartcanteen.application;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.example.smartcanteen.domain.CanteenScope;
 import com.example.smartcanteen.security.ForbiddenException;
@@ -28,6 +29,16 @@ class AgentSchedulerRolloutPolicyTest {
         assertThatThrownBy(() -> new AgentSchedulerRolloutPolicy(true, ""))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("allowed-scopes");
+    }
+
+    @Test
+    void allows_every_scope_when_the_wildcard_is_configured() {
+        AgentSchedulerRolloutPolicy policy = new AgentSchedulerRolloutPolicy(true, "*");
+
+        assertThatCode(() -> policy.requireEnabled(
+                new CanteenScope("SCHOOL-OTHER", "CANTEEN-OTHER")))
+                .doesNotThrowAnyException();
+        assertThat(policy.isUnrestricted()).isTrue();
     }
 
     @Test

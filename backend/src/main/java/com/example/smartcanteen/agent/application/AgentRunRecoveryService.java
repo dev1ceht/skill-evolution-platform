@@ -72,8 +72,10 @@ public class AgentRunRecoveryService {
             throw new IllegalStateException(
                     "Agent stale-run recovery requires a store with durable execution claims");
         }
-        List<AgentRun> stale = runs.findStaleExecuting(
-                clock.instant().minus(staleAfter), batchSize, rollout.allowedScopes());
+        List<AgentRun> stale = rollout.isUnrestricted()
+                ? runs.findStaleExecuting(clock.instant().minus(staleAfter), batchSize)
+                : runs.findStaleExecuting(
+                        clock.instant().minus(staleAfter), batchSize, rollout.allowedScopes());
         int recovered = 0;
         for (AgentRun run : stale) {
             try {

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Canteen Ledger"
+  short_description: "检查食堂台账周期缺项并生成完成或预警状态结果与责任人通知"
+  default_prompt: "Use $canteen-ledger to check this canteen ledger cycle, list missing records, and determine whether alerts can be cleared."

@@ -45,9 +45,9 @@ The default configuration leaves the write pilot disabled and both allowlists em
 For a one-canteen pilot, set all three values explicitly (never use a wildcard):
 
 ```text
-SMART_CANTEEN_AGENT_WRITE_ENABLED=true
-SMART_CANTEEN_AGENT_WRITE_ALLOWED_SCOPES=SCHOOL-001/CANTEEN-001
-SMART_CANTEEN_AGENT_WRITE_ALLOWED_INTENTS=inventory.stock-out
+AGENT_WRITE_ENABLED=true
+AGENT_WRITE_ALLOWED_SCOPES=SCHOOL-001/CANTEEN-001
+AGENT_WRITE_ALLOWED_INTENTS=inventory.stock-out
 ```
 
 ## Production activation checklist

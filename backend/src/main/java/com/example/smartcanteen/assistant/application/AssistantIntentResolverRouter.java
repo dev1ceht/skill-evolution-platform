@@ -31,7 +31,7 @@ public class AssistantIntentResolverRouter implements AssistantIntentResolver {
     public AssistantIntentResolverRouter(
             RuleBasedAssistantIntentResolver rules,
             AssistantModelResolver model,
-            @Value("${smart-canteen.assistant.model.enabled:false}") boolean modelEnabled) {
+            @Value("${smart-canteen.assistant.model.enabled:true}") boolean modelEnabled) {
         this.rules = Objects.requireNonNull(rules, "rules");
         this.model = Objects.requireNonNull(model, "model");
         this.modelEnabled = modelEnabled;

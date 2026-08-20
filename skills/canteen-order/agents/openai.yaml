@@ -1,0 +1,4 @@
+interface:
+  display_name: "Canteen Order"
+  short_description: "生成食堂采购单并准备可确认的批量下单结果记录与确认状态"
+  default_prompt: "Use $canteen-order to calculate a canteen order from the published menu, inventory, and confirmed product mappings."

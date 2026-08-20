@@ -45,7 +45,7 @@ async function login(): Promise<void> {
           {{ loading ? '登录中…' : '登录运营台' }}
         </button>
       </form>
-      <small>请由部署人员通过 SMART_CANTEEN_BOOTSTRAP_ADMIN_PASSWORD 配置首个管理员。</small>
+      <small>请由部署人员通过 BOOTSTRAP_ADMIN_PASSWORD 配置首个管理员。</small>
     </section>
   </main>
 </template>

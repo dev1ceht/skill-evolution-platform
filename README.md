@@ -8,7 +8,9 @@
 - `frontend/`：Vue 3 + TypeScript + Vite，承载运营人员的登录、审批、采购、库存和安全治理操作。
 - `contracts/`：智慧食堂 OpenAPI 契约、API IR、生成客户端和契约测试。
 - `infra/`：MySQL、Redis、RabbitMQ 的本地 Docker 编排和运行验收脚本。
-- `skills/smart-canteen-sop/`：主业务 Skill，声明触发条件、权限、风险、审批、幂等、超时、回滚、Adapter 边界和证据要求。
+- `skills/`：面向运营人员的业务 Skill，包括菜单、采购、库存、台账、食品安全、溯源和跨业务闭环。
+- `skills/canteen-order/`：从食谱、人数和库存生成采购单，并准备确认后的批量下单记录。
+- `skills/smart-canteen-sop/`：组合菜单、采购、库存、台账、预警和溯源的业务闭环入口。
 - `docs/smart-canteen/`：阶段计划、需求追踪、架构决策和验证证据。
 - `docs/smart-canteen/agent-runtime-execution-plan.md`：Agent / Skill 运行时的完整构建计划、MVP 切片和验收标准。
 - `sop-runs/`：一次“菜单到溯源”组合流程的运行记录样例。
@@ -62,7 +64,7 @@ mvn spring-boot:run
 http://localhost:8080/actuator/health
 ```
 
-本地管理员由 `SMART_CANTEEN_BOOTSTRAP_ADMIN_USERNAME` 和 `SMART_CANTEEN_BOOTSTRAP_ADMIN_PASSWORD` 配置；生产环境应通过部署环境变量或密钥管理系统覆盖本地默认值。
+本地管理员由 `BOOTSTRAP_ADMIN_USERNAME` 和 `BOOTSTRAP_ADMIN_PASSWORD` 配置；生产环境应通过部署环境变量或密钥管理系统覆盖本地默认值。
 
 ### 3. 启动前端
 
@@ -89,9 +91,8 @@ python -m pip install -e ".[dev]"
 python -m pytest
 python skills/smart-canteen-sop/scripts/validate_sop_manifest.py `
   --run sop-runs/menu-to-traceability.yaml
-python skills/frontend-api-integration/scripts/normalize_openapi.py `
-  contracts/smart-canteen.openapi.yaml `
-  -o contracts/generated/api-ir.json
+python skills/canteen-order/scripts/generate_order.py --help
+python skills/canteen-order/scripts/batch_order.py --help
 ```
 
 分别验证应用：
@@ -113,13 +114,22 @@ docker compose --env-file .env.example config --quiet
 
 ## 业务 Skill 入口
 
-使用 [`skills/smart-canteen-sop/SKILL.md`](skills/smart-canteen-sop/SKILL.md) 时，给 Agent 提供用户意图、学校/食堂范围、操作者角色以及必要的业务输入。例如：
+根据用户任务选择直接的业务 Skill：
+
+- [`canteen-menu`](skills/canteen-menu/SKILL.md)：菜单校验、提交、审批和发布；
+- [`canteen-order`](skills/canteen-order/SKILL.md)：采购量计算、食材匹配和批量下单准备；
+- [`canteen-inventory`](skills/canteen-inventory/SKILL.md)：收货、单位换算、批次入库准备；
+- [`canteen-ledger`](skills/canteen-ledger/SKILL.md)：台账周期、缺项和预警清除判断；
+- [`canteen-safety`](skills/canteen-safety/SKILL.md)：食品安全事件受理、去重和处置；
+- [`canteen-traceability`](skills/canteen-traceability/SKILL.md)：订单到批次、出库的溯源查询；
+- [`smart-canteen-sop`](skills/smart-canteen-sop/SKILL.md)：需要串联多个业务环节时使用。
+
+例如采购人员可以直接调用：
 
 ```text
-$smart-canteen-sop
-请为 SCHOOL-001/CANTEEN-001 执行“发布 2026-08-17 午餐食谱”，
-当前操作者是 CANTEEN_STAFF。先检查菜品、配方和审批前置条件，
-只在满足审批规则时发布，并输出状态变化、幂等结果和证据路径。
+$canteen-order
+请根据 SCHOOL-001/CANTEEN-001 的已发布午餐食谱、库存快照和商品映射，
+计算本周采购缺口，列出未匹配食材，并在我确认后准备批量下单记录。
 ```
 
-Skill 只负责业务流程的触发、判断、执行边界与证据要求；最终写入仍由后端服务和受控 Adapter 完成。
+每个 Skill 都会先读取业务规则和输入快照，输出可确认的业务文件或后端调用计划；真实库存、订单和外部平台写入仍必须经过后端服务或受控 Adapter。

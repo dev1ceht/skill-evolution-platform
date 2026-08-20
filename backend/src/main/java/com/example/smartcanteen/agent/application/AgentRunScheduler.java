@@ -73,7 +73,9 @@ public class AgentRunScheduler {
             throw new IllegalStateException(
                     "Agent scheduler requires a store with durable execution claims");
         }
-        List<AgentRun> planned = runs.findPlanned(batchSize, rollout.allowedScopes());
+        List<AgentRun> planned = rollout.isUnrestricted()
+                ? runs.findPlanned(batchSize)
+                : runs.findPlanned(batchSize, rollout.allowedScopes());
         int processed = 0;
         for (AgentRun run : planned) {
             try {

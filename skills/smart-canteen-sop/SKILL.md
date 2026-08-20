@@ -3,9 +3,18 @@ name: smart-canteen-sop
 description: 将智慧食堂菜单、采购、库存、台账、预警和食品溯源业务 SOP 封装为可触发、可执行、可验证且可审计的 Skill 流程。Use when执行或设计智慧食堂业务操作、定义前置条件和状态迁移、处理幂等重试与回滚、编排跨模块闭环、接入外部 Adapter，或需要输出 SOP 运行记录与验证证据时。
 ---
 
-# Smart Canteen SOP
+# Smart Canteen Business Operations
 
-把一次业务操作当作一个有边界的 SOP run，而不是一段无状态的说明。先解析业务触发意图，再校验范围、角色、状态和幂等条件，最后记录结果与证据。
+这是跨业务闭环入口。单项操作优先使用对应的业务 Skill；需要把菜单、采购、库存、台账、预警和溯源串起来时，使用本 Skill 组合一次有边界、可验证、可审计的业务运行。
+
+## Business skill routing
+
+- 菜单创建、审批和发布：[`canteen-menu`](../canteen-menu/SKILL.md)
+- 食谱、库存到采购单和批量下单：[`canteen-order`](../canteen-order/SKILL.md)
+- 收货、单位换算和批次入库：[`canteen-inventory`](../canteen-inventory/SKILL.md)
+- 台账周期和缺项检查：[`canteen-ledger`](../canteen-ledger/SKILL.md)
+- 食品安全事件和预警处置：[`canteen-safety`](../canteen-safety/SKILL.md)
+- 订单、收货、批次到出库溯源：[`canteen-traceability`](../canteen-traceability/SKILL.md)
 
 ## Resolve the SOP
 

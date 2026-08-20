@@ -1,6 +1,7 @@
 package com.example.smartcanteen.application;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
 import com.example.smartcanteen.domain.CanteenScope;
 import com.example.smartcanteen.security.ForbiddenException;
@@ -30,5 +31,14 @@ class AgentWriteRolloutPolicyTest {
                 .isInstanceOf(ForbiddenException.class);
         assertThatThrownBy(() -> policy.requireEnabled(scope, "alert.dispose"))
                 .isInstanceOf(ForbiddenException.class);
+    }
+
+    @Test
+    void allows_every_scope_and_intent_when_wildcards_are_configured() {
+        AgentWriteRolloutPolicy policy = new AgentWriteRolloutPolicy(true, "*", "*");
+
+        assertThatCode(() -> policy.requireEnabled(
+                new CanteenScope("SCHOOL-OTHER", "CANTEEN-OTHER"), "alert.dispose"))
+                .doesNotThrowAnyException();
     }
 }

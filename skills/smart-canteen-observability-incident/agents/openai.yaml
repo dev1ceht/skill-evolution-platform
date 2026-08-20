@@ -1,4 +1,0 @@
-interface:
-  display_name: "Smart Canteen Observability and Incident"
-  short_description: "Instrument workflows and diagnose production incidents"
-  default_prompt: "Use $smart-canteen-observability-incident to instrument this workflow or diagnose the incident from fresh operational evidence."

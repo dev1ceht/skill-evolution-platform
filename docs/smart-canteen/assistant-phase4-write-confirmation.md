@@ -49,4 +49,4 @@ ACTIVE
 - 规则解析器只识别固定的发布、确认和取消表达式；默认 port-only 的模型适配器不能产生写意图。
 - 当前只开放 `menu.publish`，采购、库存、预警、台账等写操作仍未接入自然语言入口。
 - 真实外部模型、外部供应商和生产灰度仍需合同、凭据、网络策略、指标和人工接管验收。
-- `SMART_CANTEEN_ASSISTANT_ENABLED=false` 或既有 kill switch 关闭时，旧业务页面路径不受影响。
+- `ASSISTANT_ENABLED=false` 或既有 kill switch 关闭时，旧业务页面路径不受影响。

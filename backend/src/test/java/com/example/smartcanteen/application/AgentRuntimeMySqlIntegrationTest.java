@@ -36,7 +36,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /** Real MySQL gate for Agent idempotency, durable evidence, and application restart recovery. */
-@EnabledIfEnvironmentVariable(named = "SMART_CANTEEN_MYSQL_IT", matches = "true")
+@EnabledIfEnvironmentVariable(named = "MYSQL_IT", matches = "true")
 class AgentRuntimeMySqlIntegrationTest {
 
     private static final String ACTOR_ID = "MYSQL-AGENT-IT-USER";
@@ -262,11 +262,11 @@ class AgentRuntimeMySqlIntegrationTest {
         return new SpringApplicationBuilder(SmartCanteenApplication.class)
                 .web(WebApplicationType.NONE)
                 .run(
-                        "--spring.datasource.url=" + requiredEnvironment("SMART_CANTEEN_DB_URL"),
+                        "--spring.datasource.url=" + requiredEnvironment("DB_URL"),
                         "--spring.datasource.username="
-                                + requiredEnvironment("SMART_CANTEEN_DB_USERNAME"),
+                                + requiredEnvironment("DB_USERNAME"),
                         "--spring.datasource.password="
-                                + requiredEnvironment("SMART_CANTEEN_DB_PASSWORD"),
+                                + requiredEnvironment("DB_PASSWORD"),
                         "--spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver",
                         "--spring.flyway.enabled=true");
     }

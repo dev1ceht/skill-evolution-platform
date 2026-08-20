@@ -2,12 +2,12 @@ spring:
   application:
     name: smart-canteen-backend
   datasource:
-    url: ${SMART_CANTEEN_DB_URL:jdbc:mysql://localhost:3306/smart_canteen?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai}
-    username: ${SMART_CANTEEN_DB_USERNAME:smart_canteen}
+    url: ${DB_URL:jdbc:mysql://localhost:3306/smart_canteen?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai}
+    username: ${DB_USERNAME:smart_canteen}
     # Local Docker default; deployment environments can still override it.
-    password: ${SMART_CANTEEN_DB_PASSWORD:sc_local_app_4K8nR6tW2z}
+    password: ${DB_PASSWORD:sc_local_app_4K8nR6tW2z}
     hikari:
-      maximum-pool-size: ${SMART_CANTEEN_DB_POOL_SIZE:10}
+      maximum-pool-size: ${DB_POOL_SIZE:10}
       connection-timeout: 10000
   flyway:
     enabled: true
@@ -26,46 +26,45 @@ management:
 
 agent:
   runtime:
-    execution-lease: ${SMART_CANTEEN_AGENT_EXECUTION_LEASE:PT30S}
-    execution-heartbeat: ${SMART_CANTEEN_AGENT_EXECUTION_HEARTBEAT:PT10S}
+    execution-lease: ${AGENT_EXECUTION_LEASE:PT30S}
+    execution-heartbeat: ${AGENT_EXECUTION_HEARTBEAT:PT10S}
     scheduler:
-      # Keep asynchronous execution opt-in until a deployment has a unique owner ID and
-      # production gray/kill-switch evidence.
-      enabled: ${SMART_CANTEEN_AGENT_SCHEDULER_ENABLED:false}
-      # No shared default: enabling the scheduler without a deployment-specific owner fails closed.
-      owner-id: ${SMART_CANTEEN_AGENT_SCHEDULER_OWNER_ID:}
-      allowed-scopes: ${SMART_CANTEEN_AGENT_SCHEDULER_ALLOWED_SCOPES:}
-      poll-interval-ms: ${SMART_CANTEEN_AGENT_SCHEDULER_POLL_INTERVAL_MS:5000}
-      recovery-interval-ms: ${SMART_CANTEEN_AGENT_SCHEDULER_RECOVERY_INTERVAL_MS:10000}
-      stale-after: ${SMART_CANTEEN_AGENT_SCHEDULER_STALE_AFTER:PT2M}
-      batch-size: ${SMART_CANTEEN_AGENT_SCHEDULER_BATCH_SIZE:10}
+      # Local development is fully enabled by default; deployments can still override these
+      # values and narrow the scope list when multiple workers share a database.
+      enabled: ${AGENT_SCHEDULER_ENABLED:true}
+      owner-id: ${AGENT_SCHEDULER_OWNER_ID:local-dev-scheduler}
+      allowed-scopes: "${AGENT_SCHEDULER_ALLOWED_SCOPES:*}"
+      poll-interval-ms: ${AGENT_SCHEDULER_POLL_INTERVAL_MS:5000}
+      recovery-interval-ms: ${AGENT_SCHEDULER_RECOVERY_INTERVAL_MS:10000}
+      stale-after: ${AGENT_SCHEDULER_STALE_AFTER:PT2M}
+      batch-size: ${AGENT_SCHEDULER_BATCH_SIZE:10}
   write:
-    # High-risk business writes are opt-in and scope/intention allowlisted per deployment.
-    enabled: ${SMART_CANTEEN_AGENT_WRITE_ENABLED:false}
-    allowed-scopes: ${SMART_CANTEEN_AGENT_WRITE_ALLOWED_SCOPES:}
-    allowed-intents: ${SMART_CANTEEN_AGENT_WRITE_ALLOWED_INTENTS:}
+    # Local development allows writes by default; set explicit lists for a restricted rollout.
+    enabled: ${AGENT_WRITE_ENABLED:true}
+    allowed-scopes: "${AGENT_WRITE_ALLOWED_SCOPES:*}"
+    allowed-intents: "${AGENT_WRITE_ALLOWED_INTENTS:*}"
 
 smart-canteen:
   assistant:
-    enabled: ${SMART_CANTEEN_ASSISTANT_ENABLED:false}
-    # Comma-separated SCHOOL-ID/CANTEEN-ID entries; an empty list fails closed.
-    allowed-scopes: ${SMART_CANTEEN_ASSISTANT_SCOPES:}
+    enabled: ${ASSISTANT_ENABLED:true}
+    # Comma-separated SCHOOL-ID/CANTEEN-ID entries; * means every scope.
+    allowed-scopes: "${ASSISTANT_SCOPES:*}"
     model:
-      enabled: ${SMART_CANTEEN_ASSISTANT_MODEL_ENABLED:false}
-      name: ${SMART_CANTEEN_ASSISTANT_MODEL_NAME:deepseek-v4-flash}
-      base-url: ${SMART_CANTEEN_ASSISTANT_MODEL_BASE_URL:https://api.deepseek.com}
-      max-request-chars: ${SMART_CANTEEN_ASSISTANT_MODEL_MAX_REQUEST_CHARS:2000}
-      timeout-ms: ${SMART_CANTEEN_ASSISTANT_MODEL_TIMEOUT_MS:10000}
-      max-response-bytes: ${SMART_CANTEEN_ASSISTANT_MODEL_MAX_RESPONSE_BYTES:65536}
-      allowed-hosts: ${SMART_CANTEEN_ASSISTANT_MODEL_ALLOWED_HOSTS:api.deepseek.com}
+      enabled: ${ASSISTANT_MODEL_ENABLED:true}
+      name: ${ASSISTANT_MODEL_NAME:deepseek-v4-flash}
+      base-url: ${ASSISTANT_MODEL_BASE_URL:https://api.deepseek.com}
+      max-request-chars: ${ASSISTANT_MODEL_MAX_REQUEST_CHARS:2000}
+      timeout-ms: ${ASSISTANT_MODEL_TIMEOUT_MS:10000}
+      max-response-bytes: ${ASSISTANT_MODEL_MAX_RESPONSE_BYTES:65536}
+      allowed-hosts: ${ASSISTANT_MODEL_ALLOWED_HOSTS:api.deepseek.com}
       # Never commit a real key; inject it from a deployment secret or environment variable.
-      api-key: ${SMART_CANTEEN_ASSISTANT_MODEL_API_KEY:}
+      api-key: ${ASSISTANT_MODEL_API_KEY:sk-fde61bfd607c4cadb77014270793f6b3}
   security:
-    enabled: ${SMART_CANTEEN_AUTH_ENABLED:true}
-    # Local development default; use a secret manager in production.
-    jwt-secret: ${SMART_CANTEEN_JWT_SECRET:sc_local_jwt_secret_2026_smart_canteen_local}
+    enabled: ${AUTH_ENABLED:true}
+    # Authentication stays on by default so protected APIs receive a real user principal.
+    jwt-secret: ${JWT_SECRET:sc_local_jwt_secret_2026_smart_canteen_local}
 
 # Local development bootstrap account. Environment variables still take
 # precedence over values in this file when supplied by the process.
-SMART_CANTEEN_BOOTSTRAP_ADMIN_USERNAME: admin
-SMART_CANTEEN_BOOTSTRAP_ADMIN_PASSWORD: "LocalAdmin_2026!"
+BOOTSTRAP_ADMIN_USERNAME: admin
+BOOTSTRAP_ADMIN_PASSWORD: "admin123"

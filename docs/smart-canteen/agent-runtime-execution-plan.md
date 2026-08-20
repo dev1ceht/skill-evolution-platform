@@ -474,10 +474,12 @@ Manifest 必须作为构建产物进入 Java classpath。生产启动路径不�
 
 ### Python
 
-Python 不作为生产业务运行时，但当前可以保留为开发与质量工具：
+Python 不作为生产业务运行时，但业务 Skill 可以用它处理用户提供的文件和生成可确认的业务结果：
 
 - `skills/smart-canteen-sop/scripts/validate_sop_manifest.py`：校验 SOP Manifest 和运行证据；
-- `src/smart_canteen_contracts/`：OpenAPI 契约规范化、差异比较和生成工具；
+- `skills/canteen-order/scripts/`：从菜单、库存和商品映射生成采购单并准备批量下单记录；
+- `skills/canteen-menu/scripts/`、`skills/canteen-inventory/scripts/`、`skills/canteen-ledger/scripts/`、`skills/canteen-safety/scripts/`、`skills/canteen-traceability/scripts/`：处理对应的食堂业务文件；
+- `src/smart_canteen_contracts/`：后端/前端契约的项目辅助库，不作为业务 Skill 入口；
 - `tests/*.py`：契约和 Skill 校验测试。
 
 如果未来明确要求完全 Java 化，再单独迁移这些工具，不应与 Agent Runtime 首期建设混在一起。

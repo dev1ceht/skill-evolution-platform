@@ -646,6 +646,31 @@ paths:
                 $ref: '#/components/schemas/IngredientUnitListResponse'
         '400':
           $ref: '#/components/responses/BusinessError'
+    put:
+      operationId: replaceIngredientUnits
+      tags: [catalog]
+      parameters:
+        - name: ingredientId
+          in: path
+          required: true
+          schema: { type: string }
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IngredientUnitsRequest'
+      responses:
+        '200':
+          description: 食材业务单位配置已替换
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IngredientUnitListResponse'
+        '400':
+          $ref: '#/components/responses/BusinessError'
   /api/v1/dishes:
     get:
       operationId: listDishes
@@ -3112,6 +3137,15 @@ components:
         baseUnit: { type: string, minLength: 1 }
         toBaseFactor: { type: number, format: double, exclusiveMinimum: true, minimum: 0 }
         active: { type: boolean, default: true }
+    IngredientUnitsRequest:
+      type: object
+      required: [units]
+      properties:
+        units:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/IngredientUnitRequest'
     DishIngredient:
       type: object
       required: [ingredientId, quantity, unit]

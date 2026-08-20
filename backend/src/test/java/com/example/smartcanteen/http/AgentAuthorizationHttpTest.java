@@ -21,7 +21,7 @@ import org.springframework.test.web.servlet.MvcResult;
 @AutoConfigureMockMvc
 @TestPropertySource(properties = {
         "smart-canteen.security.enabled=true",
-        "SMART_CANTEEN_BOOTSTRAP_ADMIN_PASSWORD="
+        "BOOTSTRAP_ADMIN_PASSWORD="
 })
 class AgentAuthorizationHttpTest {
 

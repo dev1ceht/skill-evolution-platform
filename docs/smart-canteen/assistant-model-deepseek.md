@@ -7,18 +7,18 @@ default API base URL is `https://api.deepseek.com`.
 Configure the backend process with deployment secrets; do not commit the API key:
 
 ```text
-SMART_CANTEEN_ASSISTANT_MODEL_ENABLED=true
-SMART_CANTEEN_ASSISTANT_MODEL_NAME=deepseek-v4-flash
-SMART_CANTEEN_ASSISTANT_MODEL_BASE_URL=https://api.deepseek.com
-SMART_CANTEEN_ASSISTANT_MODEL_MAX_REQUEST_CHARS=2000
-SMART_CANTEEN_ASSISTANT_MODEL_TIMEOUT_MS=10000
-SMART_CANTEEN_ASSISTANT_MODEL_MAX_RESPONSE_BYTES=65536
-SMART_CANTEEN_ASSISTANT_MODEL_ALLOWED_HOSTS=api.deepseek.com
-SMART_CANTEEN_ASSISTANT_MODEL_API_KEY=<secret>
+ASSISTANT_MODEL_ENABLED=true
+ASSISTANT_MODEL_NAME=deepseek-v4-flash
+ASSISTANT_MODEL_BASE_URL=https://api.deepseek.com
+ASSISTANT_MODEL_MAX_REQUEST_CHARS=2000
+ASSISTANT_MODEL_TIMEOUT_MS=10000
+ASSISTANT_MODEL_MAX_RESPONSE_BYTES=65536
+ASSISTANT_MODEL_ALLOWED_HOSTS=api.deepseek.com
+ASSISTANT_MODEL_API_KEY=<secret>
 ```
 
 The adapter requires HTTPS, rejects URLs with embedded credentials, allows only hosts listed in
-`SMART_CANTEEN_ASSISTANT_MODEL_ALLOWED_HOSTS`, and applies bounded connect/read timeouts and
+`ASSISTANT_MODEL_ALLOWED_HOSTS`, and applies bounded connect/read timeouts and
 response buffering. If an internal HTTPS proxy is used, add its host explicitly to the allowlist.
 
 The model is a fallback classifier only. Deterministic rules run first, and the router accepts

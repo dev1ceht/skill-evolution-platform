@@ -10,7 +10,7 @@
 - 不完整的溯源或菜单请求会进入持久化 `WAITING_CLARIFICATION` 会话状态；
 - 用户在同一会话补充 `TRACE-...` 或 `MENU-...` 标识后，系统合并上下文并继续原有只读 Runtime 链路；
 - 无效补充会继续澄清，不会调用工具；成功结果或明确不支持请求会清除待澄清状态；
-- `AssistantModelResolver` 是可替换端口，模型输出必须经过意图和资源 ID 白名单校验；默认 `SMART_CANTEEN_ASSISTANT_MODEL_ENABLED=false`，本阶段快照实现为 port-only，不伪装外部模型已接通。
+- `AssistantModelResolver` 是可替换端口，模型输出必须经过意图和资源 ID 白名单校验；默认 `ASSISTANT_MODEL_ENABLED=false`，本阶段快照实现为 port-only，不伪装外部模型已接通。
 
 ## 使用方式
 

@@ -45,7 +45,7 @@
     }
   ],
   "known_limits": [
-    "MySQL acceptance remains environment-gated by SMART_CANTEEN_MYSQL_IT",
+    "MySQL acceptance remains environment-gated by MYSQL_IT",
     "scope-aware menu/recipe/inventory tables are not part of this phase"
   ]
 }

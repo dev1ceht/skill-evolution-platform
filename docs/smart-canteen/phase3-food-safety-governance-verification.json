@@ -42,7 +42,7 @@
     "P3-S4 OpenAPI/API IR/generated client synchronization, Axios adapter and Vue governance workspace"
   ],
   "known_limits": [
-    "MySQL acceptance remains environment-gated by SMART_CANTEEN_MYSQL_IT",
+    "MySQL acceptance remains environment-gated by MYSQL_IT",
     "real SMS/WeChat, object storage, OCR, municipal reporting and external device adapters remain deferred by the phase boundary"
   ]
 }

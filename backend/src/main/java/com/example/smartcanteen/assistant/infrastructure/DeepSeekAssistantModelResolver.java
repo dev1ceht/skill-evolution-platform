@@ -102,7 +102,7 @@ public class DeepSeekAssistantModelResolver implements AssistantModelResolver {
             @Value("${smart-canteen.assistant.model.base-url:https://api.deepseek.com}") String baseUrl,
             @Value("${smart-canteen.assistant.model.name:deepseek-v4-flash}") String modelName,
             @Value("${smart-canteen.assistant.model.api-key:}") String apiKey,
-            @Value("${smart-canteen.assistant.model.enabled:false}") boolean enabled,
+            @Value("${smart-canteen.assistant.model.enabled:true}") boolean enabled,
             @Value("${smart-canteen.assistant.model.max-request-chars:2000}") int maxRequestChars,
             @Value("${smart-canteen.assistant.model.timeout-ms:10000}") int timeoutMs,
             @Value("${smart-canteen.assistant.model.max-response-bytes:65536}") int maxResponseBytes,

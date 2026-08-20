@@ -19,9 +19,9 @@
 - `AgentRunRecoveryService` 将这类结果转为 `RECONCILIATION_REQUIRED`，使用独立事务和内部恢复上下文，并在 Store 不具备 claim capability 时 fail-closed；
 - stale recovery 使用 `agent-recovery-<runId>-v<version>` 幂等键，并将标记写入 Run Event/Audit 证据；expected version 作为重复恢复的状态转换 fence；
 - `AgentRunScheduler` 以默认关闭的 `@Scheduled` 轮询驱动已有 `PLANNED` Run，按 Run 快照重建 Skill、操作者和食堂范围上下文；单个 claim 冲突或坏 Run 不阻塞同批后续 Run；
-- 调度器和恢复器共享 `SMART_CANTEEN_AGENT_SCHEDULER_ENABLED` 开关；启用前必须配置唯一 `SMART_CANTEEN_AGENT_SCHEDULER_OWNER_ID`、非空 `SMART_CANTEEN_AGENT_SCHEDULER_ALLOWED_SCOPES` 白名单；白名单由 Store 查询在 `LIMIT` 前过滤，避免非试点 Run 长期占满批次；并完成生产灰度/kill-switch 证据；
+- 调度器和恢复器共享 `AGENT_SCHEDULER_ENABLED` 开关；启用前必须配置唯一 `AGENT_SCHEDULER_OWNER_ID`、非空 `AGENT_SCHEDULER_ALLOWED_SCOPES` 白名单；白名单由 Store 查询在 `LIMIT` 前过滤，避免非试点 Run 长期占满批次；并完成生产灰度/kill-switch 证据；
 - `AgentExecutionService.executeClaimed` 不再调用普通 `update/updateStep/appendEvent`，claim 丢失时直接抛出并禁止无 fencing 降级；
-- worker 默认租约为 `PT30S`，可通过 `SMART_CANTEEN_AGENT_EXECUTION_LEASE` 配置；heartbeat 默认 `PT10S`，可通过 `SMART_CANTEEN_AGENT_EXECUTION_HEARTBEAT` 配置且必须短于租约；
+- worker 默认租约为 `PT30S`，可通过 `AGENT_EXECUTION_LEASE` 配置；heartbeat 默认 `PT10S`，可通过 `AGENT_EXECUTION_HEARTBEAT` 配置且必须短于租约；
 - claim 在终态检查点前丢失时，worker 只抛出 claim-loss 信号，不用旧 token 强行写 `RECONCILIATION_REQUIRED`；Run 可能暂留 `EXECUTING`，由后续 stale-run recovery/人工接管决定结果未知状态；
 - H2 持久化测试与真实 MySQL 门禁覆盖并发单领取、释放、续租、过期接管和旧 token fencing。
 

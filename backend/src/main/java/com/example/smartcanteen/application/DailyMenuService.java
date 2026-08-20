@@ -105,6 +105,11 @@ public class DailyMenuService {
                     "The menu submitter cannot approve or reject the same menu");
         }
         String normalizedDecision = decision == null ? "" : decision.trim().toUpperCase();
+        normalizedDecision = switch (normalizedDecision) {
+            case "APPROVED" -> "APPROVE";
+            case "REJECTED" -> "REJECT";
+            default -> normalizedDecision;
+        };
         if (!Set.of("APPROVE", "REJECT").contains(normalizedDecision)) {
             throw new IllegalArgumentException("Unsupported menu decision: " + decision);
         }

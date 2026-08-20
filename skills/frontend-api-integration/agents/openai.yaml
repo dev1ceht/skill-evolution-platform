@@ -1,4 +1,0 @@
-interface:
-  display_name: "Frontend API Integration"
-  short_description: "Automate frontend API integration workflows"
-  default_prompt: "Use $frontend-api-integration to parse this API contract and produce a tested frontend integration plan."

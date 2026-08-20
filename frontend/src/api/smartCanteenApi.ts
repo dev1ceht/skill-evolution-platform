@@ -75,6 +75,27 @@ import type {
   AssistantConversationHistoryResponse,
   AssistantTurn,
   AssistantTurnResponse,
+  Ingredient,
+  IngredientRequest,
+  IngredientPageResponse,
+  IngredientResponse,
+  IngredientUnit,
+  IngredientUnitListResponse,
+  Dish,
+  DishRequest,
+  DishPageResponse,
+  DishResponse,
+  DailyMenuPageResponse,
+  DailyMenuRequest,
+  DailyMenuDecisionRequest,
+  LedgerRecordPageResponse,
+  LedgerRecordRequest,
+  LedgerStatsResponse,
+  TraceabilityResponse,
+  SupplierRequest,
+  PurchaseOrderRequest,
+  StockOutRequest,
+  StockOutResponse,
 } from './generated/client';
 
 interface ApiEnvelope<T> {
@@ -114,6 +135,46 @@ function unwrap<T>(response: AxiosResponse<ApiEnvelope<T>>): T {
 }
 
 export interface SmartCanteenApiPort {
+  listIngredients?(scope: CanteenScope, keyword?: string, category?: string): Promise<Ingredient[]>;
+  createIngredient?(request: IngredientRequest, scope: CanteenScope): Promise<Ingredient>;
+  updateIngredient?(
+    ingredientId: string,
+    request: IngredientRequest,
+    scope: CanteenScope,
+  ): Promise<Ingredient>;
+  listIngredientUnits?(ingredientId: string, scope: CanteenScope): Promise<IngredientUnit[]>;
+  replaceIngredientUnits?(
+    ingredientId: string,
+    units: IngredientUnit[],
+    scope: CanteenScope,
+  ): Promise<IngredientUnit[]>;
+  listDishes?(scope: CanteenScope, keyword?: string, category?: string): Promise<Dish[]>;
+  createDish?(request: DishRequest, scope: CanteenScope): Promise<Dish>;
+  updateDish?(dishId: string, request: DishRequest, scope: CanteenScope): Promise<Dish>;
+  listDailyMenus?(
+    scope: CanteenScope,
+    from?: string,
+    to?: string,
+    status?: string,
+  ): Promise<import('./generated/client').DailyMenu[]>;
+  saveDailyMenu?(
+    request: DailyMenuRequest,
+    scope: CanteenScope,
+  ): Promise<import('./generated/client').DailyMenu>;
+  submitDailyMenu?(
+    menuId: string,
+    version: number,
+    scope: CanteenScope,
+  ): Promise<import('./generated/client').DailyMenu>;
+  decideDailyMenu?(
+    menuId: string,
+    request: DailyMenuDecisionRequest,
+    scope: CanteenScope,
+  ): Promise<import('./generated/client').DailyMenu>;
+  publishDailyMenu?(
+    menuId: string,
+    scope: CanteenScope,
+  ): Promise<import('./generated/client').DailyMenu>;
   getDailyMenu?(menuId: string, scope: CanteenScope): Promise<DailyMenu>;
   startAgentTraceability?(
     traceCode: string,
@@ -197,7 +258,13 @@ export interface SmartCanteenApiPort {
   getDashboardRisk?(scope: CanteenScope, date?: string): Promise<RiskAssessment>;
   listInventory?(scope: CanteenScope, warningOnly?: boolean): Promise<InventoryLine[]>;
   listSuppliers?(scope: CanteenScope, keyword?: string): Promise<Supplier[]>;
+  createSupplier?(request: SupplierRequest, scope: CanteenScope): Promise<Supplier>;
   listPurchaseOrders?(scope: CanteenScope, status?: string): Promise<PurchaseOrder[]>;
+  createPurchaseOrder?(
+    request: PurchaseOrderRequest,
+    idempotencyKey: string,
+    scope: CanteenScope,
+  ): Promise<PurchaseOrder>;
   transitionPurchaseOrder?(
     orderId: string,
     status: string,
@@ -209,6 +276,11 @@ export interface SmartCanteenApiPort {
     request: ReceiveRequest,
     scope: CanteenScope,
   ): Promise<ReceiveResult>;
+  stockOut?(
+    request: StockOutRequest,
+    idempotencyKey: string,
+    scope: CanteenScope,
+  ): Promise<import('./generated/client').StockOutResult>;
   listProcurementPlans?(scope: CanteenScope, status?: string): Promise<ProcurementPlanAggregate[]>;
   generateProcurementPlanRange?(
     periodStart: string,
@@ -239,6 +311,20 @@ export interface SmartCanteenApiPort {
     request: ConfiguredLedgerRecordRequest,
     scope: CanteenScope,
   ): Promise<import('./generated/client').LedgerRecordView>;
+  listLedgerRecords?(
+    scope: CanteenScope,
+    filters?: { cycleId?: string; ledgerCode?: string; status?: string },
+  ): Promise<import('./generated/client').LedgerRecordView[]>;
+  saveLedgerRecord?(
+    request: LedgerRecordRequest,
+    scope: CanteenScope,
+  ): Promise<import('./generated/client').LedgerRecordView>;
+  getLedgerStats?(
+    scope: CanteenScope,
+    from?: string,
+    to?: string,
+  ): Promise<import('./generated/client').LedgerStats>;
+  traceability?(traceCode: string, scope: CanteenScope): Promise<import('./generated/client').TraceabilityResult>;
   listComplianceRecords?(
     scope: CanteenScope,
     filters?: {
@@ -597,6 +683,157 @@ export class SmartCanteenApi implements SmartCanteenApiPort {
     return unwrap(response);
   }
 
+  async listIngredients(
+    scope: CanteenScope,
+    keyword?: string,
+    category?: string,
+  ): Promise<Ingredient[]> {
+    const response = await this.client.get<IngredientPageResponse>('/api/v1/ingredients', {
+      params: {
+        ...scope,
+        page: 1,
+        size: 200,
+        ...(keyword ? { keyword } : {}),
+        ...(category ? { category } : {}),
+      },
+    });
+    return unwrap(response).records;
+  }
+
+  async createIngredient(request: IngredientRequest, scope: CanteenScope): Promise<Ingredient> {
+    const response = await this.client.post<IngredientResponse>('/api/v1/ingredients', request, {
+      params: scope,
+    });
+    return unwrap(response);
+  }
+
+  async updateIngredient(
+    ingredientId: string,
+    request: IngredientRequest,
+    scope: CanteenScope,
+  ): Promise<Ingredient> {
+    const response = await this.client.put<IngredientResponse>(
+      `/api/v1/ingredients/${encodeURIComponent(ingredientId)}`,
+      request,
+      { params: scope },
+    );
+    return unwrap(response);
+  }
+
+  async listIngredientUnits(ingredientId: string, scope: CanteenScope): Promise<IngredientUnit[]> {
+    const response = await this.client.get<IngredientUnitListResponse>(
+      `/api/v1/ingredients/${encodeURIComponent(ingredientId)}/units`,
+      { params: scope },
+    );
+    return unwrap(response);
+  }
+
+  async replaceIngredientUnits(
+    ingredientId: string,
+    units: IngredientUnit[],
+    scope: CanteenScope,
+  ): Promise<IngredientUnit[]> {
+    const response = await this.client.put<IngredientUnitListResponse>(
+      `/api/v1/ingredients/${encodeURIComponent(ingredientId)}/units`,
+      { units },
+      { params: scope },
+    );
+    return unwrap(response);
+  }
+
+  async listDishes(scope: CanteenScope, keyword?: string, category?: string): Promise<Dish[]> {
+    const response = await this.client.get<DishPageResponse>('/api/v1/dishes', {
+      params: {
+        ...scope,
+        page: 1,
+        size: 200,
+        ...(keyword ? { keyword } : {}),
+        ...(category ? { category } : {}),
+      },
+    });
+    return unwrap(response).records;
+  }
+
+  async createDish(request: DishRequest, scope: CanteenScope): Promise<Dish> {
+    const response = await this.client.post<DishResponse>('/api/v1/dishes', request, {
+      params: scope,
+    });
+    return unwrap(response);
+  }
+
+  async updateDish(dishId: string, request: DishRequest, scope: CanteenScope): Promise<Dish> {
+    const response = await this.client.put<DishResponse>(
+      `/api/v1/dishes/${encodeURIComponent(dishId)}`,
+      request,
+      { params: scope },
+    );
+    return unwrap(response);
+  }
+
+  async listDailyMenus(
+    scope: CanteenScope,
+    from?: string,
+    to?: string,
+    status?: string,
+  ): Promise<DailyMenu[]> {
+    const response = await this.client.get<DailyMenuPageResponse>('/api/v1/daily-menus', {
+      params: {
+        ...scope,
+        page: 1,
+        size: 200,
+        ...(from ? { startDate: from } : {}),
+        ...(to ? { endDate: to } : {}),
+        ...(status ? { status } : {}),
+      },
+    });
+    return unwrap(response).records;
+  }
+
+  async saveDailyMenu(
+    request: DailyMenuRequest,
+    scope: CanteenScope,
+  ): Promise<DailyMenu> {
+    const response = await this.client.post<DailyMenuResponse>('/api/v1/daily-menus', request, {
+      params: scope,
+    });
+    return unwrap(response);
+  }
+
+  async submitDailyMenu(
+    menuId: string,
+    version: number,
+    scope: CanteenScope,
+  ): Promise<DailyMenu> {
+    const response = await this.client.post<DailyMenuResponse>(
+      `/api/v1/daily-menus/${encodeURIComponent(menuId)}/submit`,
+      undefined,
+      { params: { ...scope, version } },
+    );
+    return unwrap(response);
+  }
+
+  async decideDailyMenu(
+    menuId: string,
+    request: DailyMenuDecisionRequest,
+    scope: CanteenScope,
+  ): Promise<DailyMenu> {
+    const response = await this.client.post<DailyMenuResponse>(
+      `/api/v1/daily-menus/${encodeURIComponent(menuId)}/decision`,
+      request,
+      { params: scope },
+    );
+    return unwrap(response);
+  }
+
+  async publishDailyMenu(menuId: string, scope: CanteenScope): Promise<DailyMenu> {
+    const response = await this.client.post<DailyMenuResponse>(
+      `/api/v1/daily-menus/${encodeURIComponent(menuId)}/publish`,
+      undefined,
+      { params: scope },
+    );
+    return unwrap(response);
+  }
+
   async listInventory(scope: CanteenScope, warningOnly = false): Promise<InventoryLine[]> {
     const response = await this.client.get<InventoryPageResponse>('/api/v1/inventory', {
       params: { ...scope, warningOnly, page: 1, size: 100 },
@@ -611,11 +848,33 @@ export class SmartCanteenApi implements SmartCanteenApiPort {
     return unwrap(response).records;
   }
 
+  async createSupplier(request: SupplierRequest, scope: CanteenScope): Promise<Supplier> {
+    const response = await this.client.post<import('./generated/client').SupplierResponse>(
+      '/api/v1/suppliers',
+      request,
+      { params: scope },
+    );
+    return unwrap(response);
+  }
+
   async listPurchaseOrders(scope: CanteenScope, status?: string): Promise<PurchaseOrder[]> {
     const response = await this.client.get<PurchaseOrderPageResponse>('/api/v1/purchase-orders', {
       params: { ...scope, page: 1, size: 100, ...(status ? { status } : {}) },
     });
     return unwrap(response).records;
+  }
+
+  async createPurchaseOrder(
+    request: PurchaseOrderRequest,
+    idempotencyKey: string,
+    scope: CanteenScope,
+  ): Promise<PurchaseOrder> {
+    const response = await this.client.post<PurchaseOrderResponse>(
+      '/api/v1/purchase-orders',
+      request,
+      { headers: { 'Idempotency-Key': idempotencyKey }, params: scope },
+    );
+    return unwrap(response);
   }
 
   async transitionPurchaseOrder(
@@ -639,6 +898,19 @@ export class SmartCanteenApi implements SmartCanteenApiPort {
   ): Promise<ReceiveResult> {
     const response = await this.client.post<ReceiveResponse>(
       `/api/v1/purchase-orders/${encodeURIComponent(orderId)}/receive`,
+      request,
+      { headers: { 'Idempotency-Key': idempotencyKey }, params: scope },
+    );
+    return unwrap(response);
+  }
+
+  async stockOut(
+    request: StockOutRequest,
+    idempotencyKey: string,
+    scope: CanteenScope,
+  ): Promise<import('./generated/client').StockOutResult> {
+    const response = await this.client.post<StockOutResponse>(
+      '/api/v1/inventory/stock-outs',
       request,
       { headers: { 'Idempotency-Key': idempotencyKey }, params: scope },
     );
@@ -749,6 +1021,54 @@ export class SmartCanteenApi implements SmartCanteenApiPort {
     const response = await this.client.post<LedgerRecordResponse>(
       `/api/v1/ledger-cycles/configured/${encodeURIComponent(cycleId)}/records`,
       request,
+      { params: scope },
+    );
+    return unwrap(response);
+  }
+
+  async listLedgerRecords(
+    scope: CanteenScope,
+    filters: { cycleId?: string; ledgerCode?: string; status?: string } = {},
+  ): Promise<import('./generated/client').LedgerRecordView[]> {
+    const response = await this.client.get<LedgerRecordPageResponse>('/api/v1/ledger/records', {
+      params: { ...scope, page: 1, size: 200, ...filters },
+    });
+    return unwrap(response).records;
+  }
+
+  async saveLedgerRecord(
+    request: LedgerRecordRequest,
+    scope: CanteenScope,
+  ): Promise<import('./generated/client').LedgerRecordView> {
+    const response = await this.client.post<LedgerRecordResponse>(
+      '/api/v1/ledger/records',
+      request,
+      { params: scope },
+    );
+    return unwrap(response);
+  }
+
+  async getLedgerStats(
+    scope: CanteenScope,
+    from?: string,
+    to?: string,
+  ): Promise<import('./generated/client').LedgerStats> {
+    const response = await this.client.get<LedgerStatsResponse>('/api/v1/ledger/stats', {
+      params: {
+        ...scope,
+        ...(from ? { startDate: from } : {}),
+        ...(to ? { endDate: to } : {}),
+      },
+    });
+    return unwrap(response);
+  }
+
+  async traceability(
+    traceCode: string,
+    scope: CanteenScope,
+  ): Promise<import('./generated/client').TraceabilityResult> {
+    const response = await this.client.get<TraceabilityResponse>(
+      `/api/v1/traceability/${encodeURIComponent(traceCode)}`,
       { params: scope },
     );
     return unwrap(response);

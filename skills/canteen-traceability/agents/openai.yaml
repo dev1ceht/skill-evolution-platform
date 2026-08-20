@@ -1,0 +1,4 @@
+interface:
+  display_name: "Canteen Traceability"
+  short_description: "根据订单收货批次和出库事实构建溯源链路与缺口查询报告"
+  default_prompt: "Use $canteen-traceability to build a traceability chain from these canteen facts and report any missing links."

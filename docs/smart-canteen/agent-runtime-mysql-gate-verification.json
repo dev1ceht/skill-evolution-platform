@@ -30,7 +30,7 @@
     "evidencePath": "outputs/verification/smart-canteen-mysql-workflow-latest.json"
   },
   "knownLimits": [
-    "SMART_CANTEEN_MYSQL_IT=true and Docker/CI credentials are required for a pass result",
+    "MYSQL_IT=true and Docker/CI credentials are required for a pass result",
     "the 2026-08-18 rerun covers the final database-clock/transaction-fencing hardening, active-claim stale-scan exclusion, and recovery re-check fence; CI should continue running the gate before production release",
     "complete worker claim scheduling and long-term metrics retention/alerts remain separate release gates"
   ]

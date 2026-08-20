@@ -9,29 +9,33 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
- * Kill switch and explicit canteen allowlist for the natural-language assistant pilot.
+ * Kill switch and canteen rollout policy for the natural-language assistant.
  *
- * <p>An enabled process still denies every scope unless the deployment explicitly lists a
- * canteen. This makes enabling the pilot fail closed for production rollout configuration.</p>
+ * <p>The {@code *} scope entry enables every canteen. Deployments can still provide an explicit
+ * comma-separated list when they need a narrower rollout.</p>
  */
 @Component
 public class AssistantRolloutPolicy {
 
+    private static final String ALL_SCOPES = "*";
+
     private final boolean enabled;
     private final Set<String> allowedScopes;
+    private final boolean allScopes;
 
     public AssistantRolloutPolicy(
-            @Value("${smart-canteen.assistant.enabled:false}") boolean enabled,
+            @Value("${smart-canteen.assistant.enabled:true}") boolean enabled,
             @Value("${smart-canteen.assistant.allowed-scopes:}") String configuredScopes) {
         this.enabled = enabled;
         this.allowedScopes = parseScopes(configuredScopes);
+        this.allScopes = allowedScopes.contains(ALL_SCOPES);
     }
 
     public void requireEnabled(CanteenScope scope) {
         if (!enabled) {
             throw new ForbiddenException("Assistant pilot is disabled");
         }
-        if (!allowedScopes.contains(key(scope))) {
+        if (!allScopes && !allowedScopes.contains(key(scope))) {
             throw new ForbiddenException("Assistant pilot is disabled for this scope");
         }
     }
@@ -44,6 +48,9 @@ public class AssistantRolloutPolicy {
                 .map(String::trim)
                 .filter(value -> !value.isEmpty())
                 .map(value -> {
+                    if (ALL_SCOPES.equals(value)) {
+                        return ALL_SCOPES;
+                    }
                     validateScopeEntry(value);
                     return value;
                 })

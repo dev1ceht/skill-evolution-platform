@@ -52,6 +52,6 @@
     "H2 persistence/restart coverage",
     "OpenAPI normalize/generate/contract tests",
     "frontend typecheck, component tests and production build",
-    "real MySQL workflow when SMART_CANTEEN_DB_* is available"
+    "real MySQL workflow when DB_* is available"
   ]
 }

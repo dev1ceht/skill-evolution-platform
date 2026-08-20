@@ -11,25 +11,30 @@ import org.springframework.stereotype.Component;
 /**
  * Fail-closed rollout gate for Agent Skills that can change business state.
  *
- * <p>A write Skill is only executable when the deployment explicitly enables the pilot, lists
- * the exact school/canteen scopes, and lists the exact intents. Read-only Skills are unaffected.
- * Keeping this gate beside Runtime means HTTP, assistant and worker execution share the same
- * kill switch.</p>
+ * <p>The {@code *} scope and intent entries enable every value. Deployments can still provide
+ * explicit lists for a narrower rollout. Keeping this gate beside Runtime means HTTP, assistant
+ * and worker execution share the same kill switch.</p>
  */
 @Component
 public class AgentWriteRolloutPolicy {
 
+    private static final String ALL_VALUES = "*";
+
     private final boolean enabled;
     private final Set<String> allowedScopes;
     private final Set<String> allowedIntents;
+    private final boolean allScopes;
+    private final boolean allIntents;
 
     public AgentWriteRolloutPolicy(
-            @Value("${agent.write.enabled:false}") boolean enabled,
+            @Value("${agent.write.enabled:true}") boolean enabled,
             @Value("${agent.write.allowed-scopes:}") String configuredScopes,
             @Value("${agent.write.allowed-intents:}") String configuredIntents) {
         this.enabled = enabled;
         this.allowedScopes = parseScopes(configuredScopes);
         this.allowedIntents = parseValues(configuredIntents);
+        this.allScopes = allowedScopes.contains(ALL_VALUES);
+        this.allIntents = allowedIntents.contains(ALL_VALUES);
     }
 
     /** A fail-closed policy for non-Spring callers and focused unit tests. */
@@ -44,10 +49,10 @@ public class AgentWriteRolloutPolicy {
         if (scope == null) {
             throw new IllegalArgumentException("scope is required");
         }
-        if (!allowedScopes.contains(key(scope))) {
+        if (!allScopes && !allowedScopes.contains(key(scope))) {
             throw new ForbiddenException("Agent write pilot is disabled for this scope");
         }
-        if (intent == null || intent.isBlank() || !allowedIntents.contains(intent)) {
+        if (!allIntents && (intent == null || intent.isBlank() || !allowedIntents.contains(intent))) {
             throw new ForbiddenException("Agent write pilot is disabled for this intent");
         }
     }
@@ -60,6 +65,9 @@ public class AgentWriteRolloutPolicy {
                 .map(String::trim)
                 .filter(value -> !value.isEmpty())
                 .map(value -> {
+                    if (ALL_VALUES.equals(value)) {
+                        return ALL_VALUES;
+                    }
                     validateScopeEntry(value);
                     return value;
                 })

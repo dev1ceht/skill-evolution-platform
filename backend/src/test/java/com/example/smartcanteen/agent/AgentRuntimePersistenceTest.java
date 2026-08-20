@@ -28,7 +28,7 @@ import org.springframework.test.context.TestPropertySource;
 @SpringBootTest
 @TestPropertySource(properties = {
         "smart-canteen.security.enabled=false",
-        "SMART_CANTEEN_BOOTSTRAP_ADMIN_PASSWORD="
+        "BOOTSTRAP_ADMIN_PASSWORD="
 })
 class AgentRuntimePersistenceTest {
 

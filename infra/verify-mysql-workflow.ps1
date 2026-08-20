@@ -48,10 +48,10 @@ $dropSql = "DROP DATABASE IF EXISTS ``$databaseName``;"
 
 $previousEnvironment = @{}
 $testEnvironment = @{
-    SMART_CANTEEN_MYSQL_IT = "true"
-    SMART_CANTEEN_DB_URL = "jdbc:mysql://127.0.0.1:$mysqlPort/$databaseName`?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&connectTimeout=5000&socketTimeout=30000"
-    SMART_CANTEEN_DB_USERNAME = $mysqlUser
-    SMART_CANTEEN_DB_PASSWORD = $mysqlPassword
+    MYSQL_IT = "true"
+    DB_URL = "jdbc:mysql://127.0.0.1:$mysqlPort/$databaseName`?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&connectTimeout=5000&socketTimeout=30000"
+    DB_USERNAME = $mysqlUser
+    DB_PASSWORD = $mysqlPassword
 }
 
 $runError = $null

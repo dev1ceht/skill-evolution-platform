@@ -54,7 +54,7 @@
     }
   ],
   "known_limits": [
-    "MySQL acceptance remains environment-gated by SMART_CANTEEN_MYSQL_IT",
+    "MySQL acceptance remains environment-gated by MYSQL_IT",
     "Phase 4 external platform and device adapters are intentionally not implemented"
   ]
 }

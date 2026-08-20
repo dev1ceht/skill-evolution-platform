@@ -106,7 +106,7 @@ public class ProcurementPlanController {
             @PathVariable String planId,
             @RequestParam String schoolId,
             @RequestParam String canteenId) {
-        roles.requireAny(request, Role.SYSTEM_ADMIN, Role.SCHOOL_ADMIN, Role.CANTEEN_STAFF);
+        roles.requireAny(request, Role.SYSTEM_ADMIN, Role.SCHOOL_ADMIN);
         return ApiResponse.ok(plans.confirm(
                 scopes.require(request, schoolId, canteenId), planId));
     }
@@ -117,7 +117,7 @@ public class ProcurementPlanController {
             @PathVariable String planId,
             @RequestParam String schoolId,
             @RequestParam String canteenId) {
-        roles.requireAny(request, Role.SYSTEM_ADMIN, Role.SCHOOL_ADMIN, Role.CANTEEN_STAFF);
+        roles.requireAny(request, Role.SYSTEM_ADMIN, Role.SCHOOL_ADMIN);
         return ApiResponse.ok(plans.cancel(
                 scopes.require(request, schoolId, canteenId), planId));
     }

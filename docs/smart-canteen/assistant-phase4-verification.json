@@ -25,7 +25,7 @@
   "current_model_adapter": {
     "implementation": "backend/src/main/java/com/example/smartcanteen/assistant/infrastructure/DeepSeekAssistantModelResolver.java",
     "default_enabled": false,
-    "configuration": "SMART_CANTEEN_ASSISTANT_MODEL_* environment variables",
+    "configuration": "ASSISTANT_MODEL_* environment variables",
     "note": "This verification file is a phase-4 historical snapshot; see assistant-model-deepseek.md for the current adapter."
   },
   "commands": {

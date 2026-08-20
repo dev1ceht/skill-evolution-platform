@@ -45,9 +45,10 @@ class AssistantRolloutPolicyTest {
     }
 
     @Test
-    void rejects_a_wildcard_scope_configuration() {
-        assertThrows(
-                IllegalArgumentException.class,
-                () -> new AssistantRolloutPolicy(true, "*"));
+    void allows_every_scope_when_the_wildcard_is_configured() {
+        AssistantRolloutPolicy policy = new AssistantRolloutPolicy(true, "*");
+
+        assertDoesNotThrow(() -> policy.requireEnabled(
+                new CanteenScope("SCHOOL-OTHER", "CANTEEN-OTHER")));
     }
 }

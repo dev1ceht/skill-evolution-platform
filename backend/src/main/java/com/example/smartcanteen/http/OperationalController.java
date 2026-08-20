@@ -132,6 +132,20 @@ public class OperationalController {
                 scopes.require(request, schoolId, canteenId), ingredientId));
     }
 
+    @PutMapping("/ingredients/{ingredientId}/units")
+    public ApiResponse<List<IngredientUnit>> replaceIngredientUnits(
+            HttpServletRequest request,
+            @PathVariable String ingredientId,
+            @RequestParam String schoolId,
+            @RequestParam String canteenId,
+            @Valid @RequestBody IngredientUnitsRequest body) {
+        roles.requireAny(request, Role.SYSTEM_ADMIN, Role.SCHOOL_ADMIN, Role.CANTEEN_STAFF);
+        return ApiResponse.ok(catalog.replaceIngredientUnits(
+                scopes.require(request, schoolId, canteenId),
+                ingredientId,
+                body.units().stream().map(IngredientUnitRequest::toDomain).toList()));
+    }
+
     @GetMapping("/dishes")
     public ApiResponse<PageView<Dish>> listDishes(
             HttpServletRequest request,
@@ -315,7 +329,11 @@ public class OperationalController {
             @RequestParam String schoolId,
             @RequestParam String canteenId,
             @Valid @RequestBody StatusRequest body) {
-        roles.requireAny(request, Role.SYSTEM_ADMIN, Role.SCHOOL_ADMIN, Role.CANTEEN_STAFF);
+        if ("CANCELLED".equalsIgnoreCase(body.status())) {
+            roles.requireAny(request, Role.SYSTEM_ADMIN, Role.SCHOOL_ADMIN);
+        } else {
+            roles.requireAny(request, Role.SYSTEM_ADMIN, Role.SCHOOL_ADMIN, Role.CANTEEN_STAFF);
+        }
         return ApiResponse.ok(procurement.transition(
                 scopes.require(request, schoolId, canteenId), orderId, body.status()));
     }
@@ -539,6 +557,10 @@ public class OperationalController {
                     toBaseFactor,
                     active == null || active);
         }
+    }
+
+    public record IngredientUnitsRequest(
+            @NotEmpty List<@Valid IngredientUnitRequest> units) {
     }
 
     public record DishRequest(

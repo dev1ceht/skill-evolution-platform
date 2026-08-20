@@ -7,12 +7,13 @@
 - [Smart Canteen Domain](./CONTEXT.md)：学校、食堂、食材、食谱、采购、库存、台账、预警和溯源的统一业务语言。
 - [Backend](./backend)：落实领域不变量、权限范围、事务和持久化。
 - [Frontend](./frontend)：承载操作人员的业务操作和状态反馈。
-- [Business SOP Skill](./skills/smart-canteen-sop/SKILL.md)：把用户意图转换为受约束的业务 SOP 运行。
+- [Business Skills](./skills)：菜单、采购、库存、台账、食品安全和溯源的直接业务操作入口。
+- [Business SOP Skill](./skills/smart-canteen-sop/SKILL.md)：把多个业务 Skill 组合为受约束的业务闭环运行。
 
 ## 关系
 
 - **用户/运营人员 → Agent**：以自然语言或页面操作提出业务意图、范围和必要输入。
-- **Agent → Business Skill**：选择匹配 SOP，检查触发条件、角色、风险、审批和前置状态。
+- **Agent → Business Skill**：根据用户任务选择菜单、采购、库存、台账、食品安全或溯源 Skill，检查触发条件、角色、风险、审批和前置状态。
 - **Business Skill → Backend API / Adapter**：只调用 Manifest 声明的业务端口，遵守幂等、超时、回滚和证据约束。
 - **Backend → MySQL**：在学校/食堂范围内持久化业务事实、审计记录和溯源链路。
 - **External Adapter → Alert/Traceability domain**：先完成认证、规范化和来源唯一性校验，再进入核心领域。

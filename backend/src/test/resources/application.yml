@@ -7,10 +7,25 @@ spring:
   flyway:
     enabled: true
 
+agent:
+  runtime:
+    scheduler:
+      # Do not run a background worker during the test suite.
+      enabled: false
+      owner-id: test-scheduler
+      allowed-scopes: "*"
+  write:
+    # Tests that verify the rollout kill switch opt out explicitly.
+    enabled: false
+    allowed-scopes: "*"
+    allowed-intents: "*"
+
 smart-canteen:
   assistant:
     enabled: true
     allowed-scopes: SCHOOL-ASSIST-HTTP/CANTEEN-ASSIST-HTTP
+    model:
+      enabled: false
   security:
     enabled: false
     jwt-secret: test-only-jwt-secret-change-me-please-32

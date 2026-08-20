@@ -23,9 +23,9 @@
       "evidence": "14 Vitest tests passed; vue-tsc and Vite production build passed"
     },
     {
-      "command": "SMART_CANTEEN_MYSQL_IT=true mvn --batch-mode -Dtest=SmartCanteenMySqlIntegrationTest test",
+      "command": "MYSQL_IT=true mvn --batch-mode -Dtest=SmartCanteenMySqlIntegrationTest test",
       "result": "environment-gated",
-      "evidence": "Requires SMART_CANTEEN_DB_URL, SMART_CANTEEN_DB_USERNAME and SMART_CANTEEN_DB_PASSWORD"
+      "evidence": "Requires DB_URL, DB_USERNAME and DB_PASSWORD"
     }
   ],
   "open_risks": [

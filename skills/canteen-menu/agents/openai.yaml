@@ -1,0 +1,4 @@
+interface:
+  display_name: "Canteen Menu"
+  short_description: "校验食谱菜单并执行提交审批发布状态流转记录与版本审计"
+  default_prompt: "Use $canteen-menu to validate this canteen menu and move it through the requested business approval state."

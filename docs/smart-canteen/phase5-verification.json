@@ -66,7 +66,7 @@
     }
   ],
   "known_limits": [
-    "Real MySQL acceptance remains environment-gated by Docker and SMART_CANTEEN_MYSQL_IT.",
+    "Real MySQL acceptance remains environment-gated by Docker and MYSQL_IT.",
     "Real WeChat OAuth, vendor SSO, bright-kitchen video, morning-inspection devices, district platform and notification delivery remain adapter-boundary work until vendor credentials/contracts are supplied.",
     "Full authority analytics, supplier survey/satisfaction, exports and device control are deferred from this deployable slice."
   ]

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Canteen Safety"
+  short_description: "接收食安事件去重并生成待处置或已受理审计结果与处置状态"
+  default_prompt: "Use $canteen-safety to validate and deduplicate this food-safety event, then prepare an auditable disposal record."

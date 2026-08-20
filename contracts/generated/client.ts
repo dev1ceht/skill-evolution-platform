@@ -479,6 +479,10 @@ export type IngredientUnitRequest = {
   active?: boolean;
 };
 
+export type IngredientUnitsRequest = {
+  units: Array<IngredientUnitRequest>;
+};
+
 export type DishIngredient = {
   ingredientId: string;
   quantity: number;
@@ -2087,6 +2091,20 @@ export async function listIngredientUnits(ingredientId: string, schoolId: string
   if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
   if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
   const response = await fetch(url, { method: 'GET' });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<IngredientUnitListResponse>;
+}
+
+export async function replaceIngredientUnits(ingredientId: string, schoolId: string, canteenId: string, body: IngredientUnitsRequest): Promise<IngredientUnitListResponse> {
+  const encodedIngredientId = encodeURIComponent(String(ingredientId));
+  let path = "/api/v1/ingredients/{ingredientId}/units";
+  path = path.replace("{ingredientId}", encodedIngredientId);
+  const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
+  const headers: Record<string, string> = {};
+  headers["Content-Type"] = "application/json";
+  const response = await fetch(url, { method: 'PUT', headers: headers, body: JSON.stringify(body) });
   if (!response.ok) throw new Error(`API request failed: ${response.status}`);
   return response.json() as Promise<IngredientUnitListResponse>;
 }

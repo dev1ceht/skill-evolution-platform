@@ -40,7 +40,7 @@
     }
   ],
   "known_limits": [
-    "MySQL acceptance remains environment-gated by SMART_CANTEEN_MYSQL_IT",
+    "MySQL acceptance remains environment-gated by MYSQL_IT",
     "vendor network adapters are ports only until credentials and contracts are supplied",
     "source_commit is the immutable phase-4 implementation commit; provenance metadata is finalized in a follow-up commit"
   ]

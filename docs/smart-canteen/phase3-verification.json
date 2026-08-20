@@ -50,7 +50,7 @@
     }
   ],
   "known_limits": [
-    "MySQL acceptance remains environment-gated by SMART_CANTEEN_MYSQL_IT",
+    "MySQL acceptance remains environment-gated by MYSQL_IT",
     "Dynamic unit catalog and product master-data administration are deferred"
   ]
 }

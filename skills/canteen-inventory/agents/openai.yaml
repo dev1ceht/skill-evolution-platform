@@ -1,0 +1,4 @@
+interface:
+  display_name: "Canteen Inventory"
+  short_description: "处理收货单位换算批次入库和溯源码生成结果记录与确认状态"
+  default_prompt: "Use $canteen-inventory to validate this receipt, convert quantities to base units, and prepare inventory batches."

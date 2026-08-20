@@ -417,6 +417,18 @@ describe("Smart Canteen Workflow API contract", () => {
     expect(new URL(requestUrl).pathname).toBe("/api/v1/ingredients/fixture/units");
     expect(options.method).toBe("GET");
   });
+  it("replaceIngredientUnits sends PUT /api/v1/ingredients/{ingredientId}/units", async () => {
+    await client.replaceIngredientUnits('fixture', 'fixture', 'fixture', {
+      units: [{ unitCode: 'kg', baseUnit: 'kg', toBaseFactor: 1 }],
+    });
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/ingredients/fixture/units");
+    expect(options.method).toBe("PUT");
+    expect(options.headers["Content-Type"]).toBe("application/json");
+    expect(JSON.parse(options.body)).toEqual({
+      units: [{ unitCode: 'kg', baseUnit: 'kg', toBaseFactor: 1 }],
+    });
+  });
   it("listInventory sends GET /api/v1/inventory", async () => {
     await client.listInventory('fixture', 'fixture', undefined, undefined, undefined, undefined);
     const [requestUrl, options] = fetchMock.mock.calls[0];

@@ -27,13 +27,13 @@ Content-Type: application/json
 
 响应包含自然语言答复、结构化 `result`、`runId`、运行状态和缺失字段。相同幂等键重放会返回同一轮结果；同一幂等键提交不同消息会被拒绝。
 
-本地开发环境默认显示助手；生产环境需显式设置 `SMART_CANTEEN_ASSISTANT_ENABLED=true` 和构建变量 `VITE_ASSISTANT_ENABLED=true` 才开放试点，任一开关关闭都会阻断/隐藏入口。
+本地开发环境默认显示助手；生产环境需显式设置 `ASSISTANT_ENABLED=true` 和构建变量 `VITE_ASSISTANT_ENABLED=true` 才开放试点，任一开关关闭都会阻断/隐藏入口。
 
 ## 关键边界
 
 - 只读：目前只开放 `traceability.query`，不会创建采购单、菜单或审批动作。
 - 有权限边界：请求必须通过现有学校/食堂范围与技能权限校验。
-- 入口可控：后端 `SMART_CANTEEN_ASSISTANT_ENABLED` 与前端 `VITE_ASSISTANT_ENABLED` 均可关闭试点。
+- 入口可控：后端 `ASSISTANT_ENABLED` 与前端 `VITE_ASSISTANT_ENABLED` 均可关闭试点。
 - 可追踪：成功查询关联 Agent Run；澄清和不支持请求也作为会话轮次保存。
 - 安全输出：工具失败详情保留在受控 Run 状态中，用户消息只返回可操作的通用提示。
 - 可恢复：会话和轮次由 `V16__create_assistant_conversations.sql` 建表，响应以 JSON 快照保存。

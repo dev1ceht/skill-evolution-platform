@@ -26,17 +26,21 @@ jobs:
           cache-dependency-path: pyproject.toml
       - name: Install project validation tools
         run: python -m pip install --editable ".[dev]"
-      - name: Run SOP and contract tests
+      - name: Run business Skill tests
         run: python -m pytest
       - name: Validate the business SOP run
         run: >-
           python skills/smart-canteen-sop/scripts/validate_sop_manifest.py
           --run sop-runs/menu-to-traceability.yaml
-      - name: Normalize the OpenAPI contract
-        run: >-
-          python skills/frontend-api-integration/scripts/normalize_openapi.py
-          contracts/smart-canteen.openapi.yaml
-          -o contracts/generated/api-ir.json
+      - name: Smoke-test direct business Skills
+        run: |
+          python skills/canteen-order/scripts/generate_order.py --help
+          python skills/canteen-order/scripts/batch_order.py --help
+          python skills/canteen-menu/scripts/transition_menu.py --help
+          python skills/canteen-inventory/scripts/receive_goods.py --help
+          python skills/canteen-ledger/scripts/check_cycle.py --help
+          python skills/canteen-safety/scripts/accept_event.py --help
+          python skills/canteen-traceability/scripts/build_trace.py --help
 
   frontend:
     runs-on: ubuntu-latest
