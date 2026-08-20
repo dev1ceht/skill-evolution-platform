@@ -6,8 +6,10 @@ import type {
   DailyMenu,
   DailyMenuRequest,
   Dish,
+  DishCategory,
   DishRequest,
   Ingredient,
+  IngredientCategory,
   IngredientRequest,
   IngredientUnit,
   InventoryLine,
@@ -17,6 +19,12 @@ import type {
   Supplier,
 } from '../api/generated/client';
 import type { CanteenScope, SmartCanteenApiPort } from '../api/smartCanteenApi';
+import {
+  DEFAULT_DISH_CATEGORY,
+  DEFAULT_INGREDIENT_CATEGORY,
+  DISH_CATEGORIES,
+  INGREDIENT_CATEGORIES,
+} from '../constants/catalogCategories';
 
 const props = defineProps<{
   api: SmartCanteenApiPort;
@@ -67,7 +75,7 @@ const dateAfter = (days: number) => {
 const ingredientForm = reactive({
   id: '',
   name: '',
-  category: '蔬菜',
+  category: DEFAULT_INGREDIENT_CATEGORY,
   baseUnit: 'kg',
   specification: '',
   warningThreshold: 10,
@@ -76,7 +84,7 @@ const ingredientForm = reactive({
 const dishForm = reactive({
   id: '',
   name: '',
-  category: '炒菜',
+  category: DEFAULT_DISH_CATEGORY,
   description: '',
   version: 0,
   ingredients: [{ ingredientId: '', quantity: 0.1, unit: 'kg' }],
@@ -93,6 +101,21 @@ const receiveExpiryDate = ref(dateAfter(7));
 const stockOutForm = reactive({ ingredientId: '', quantity: 1, unit: 'kg', reason: '日常加工领用' });
 const ledgerForm = reactive({ cycleId: '', ledgerCode: '', content: '', remark: '' });
 const disposalContent = ref('');
+
+function isCanonicalCategory(categories: readonly string[], value: string): boolean {
+  return categories.includes(value);
+}
+
+const legacyIngredientCategory = computed(() => (
+  ingredientForm.id && !isCanonicalCategory(INGREDIENT_CATEGORIES, ingredientForm.category)
+    ? ingredientForm.category
+    : ''
+));
+const legacyDishCategory = computed(() => (
+  dishForm.id && !isCanonicalCategory(DISH_CATEGORIES, dishForm.category)
+    ? dishForm.category
+    : ''
+));
 
 const selectedPlan = computed(() => plans.value.find((item) => item.id === selectedPlanId.value) ?? plans.value[0]);
 const selectedOrder = computed(() => orders.value.find((item) => item.id === selectedOrderId.value) ?? orders.value[0]);
@@ -209,7 +232,7 @@ async function load(): Promise<void> {
 
 function resetIngredient(): void {
   Object.assign(ingredientForm, {
-    id: '', name: '', category: '蔬菜', baseUnit: 'kg', specification: '', warningThreshold: 10,
+    id: '', name: '', category: DEFAULT_INGREDIENT_CATEGORY, baseUnit: 'kg', specification: '', warningThreshold: 10,
     units: [{ unitCode: 'kg', baseUnit: 'kg', toBaseFactor: 1, active: true }],
   });
 }
@@ -251,7 +274,7 @@ async function saveIngredient(): Promise<void> {
   try {
     const request: IngredientRequest = {
       ingredientId: ingredientForm.id || undefined,
-      name: ingredientForm.name, category: ingredientForm.category, baseUnit: ingredientForm.baseUnit,
+      name: ingredientForm.name, category: ingredientForm.category as IngredientCategory, baseUnit: ingredientForm.baseUnit,
       specification: ingredientForm.specification || undefined,
       warningThreshold: Number(ingredientForm.warningThreshold),
       units: ingredientForm.units.filter((unit) => unit.unitCode.trim()),
@@ -263,7 +286,7 @@ async function saveIngredient(): Promise<void> {
 }
 
 function resetDish(): void {
-  Object.assign(dishForm, { id: '', name: '', category: '炒菜', description: '', version: 0 });
+  Object.assign(dishForm, { id: '', name: '', category: DEFAULT_DISH_CATEGORY, description: '', version: 0 });
   dishForm.ingredients = [{ ingredientId: ingredients.value[0]?.id ?? '', quantity: 0.1, unit: ingredients.value[0]?.baseUnit ?? 'kg' }];
 }
 function editDish(item: Dish): void {
@@ -278,7 +301,7 @@ async function saveDish(): Promise<void> {
   clearMessage();
   try {
     const request: DishRequest = {
-      dishId: dishForm.id || undefined, name: dishForm.name, category: dishForm.category,
+      dishId: dishForm.id || undefined, name: dishForm.name, category: dishForm.category as DishCategory,
       description: dishForm.description || undefined, version: dishForm.version,
       ingredients: dishForm.ingredients.filter((line) => line.ingredientId && Number(line.quantity) > 0),
     };
@@ -469,7 +492,7 @@ watch(alertFilter, () => { if (props.view === 'alerts') void loadAlerts(); });
     <p v-if="loading" class="state">正在加载业务数据…</p><p v-if="error" class="state error">{{ error }}</p><p v-if="notice" class="state success">{{ notice }}</p>
 
     <template v-if="view === 'ingredients'">
-      <div class="workspace-grid"><section class="card"><div class="toolbar"><input v-model="ingredientKeyword" placeholder="搜索食材名称" /><button v-if="canWrite" class="primary-button" type="button" @click="resetIngredient">新建食材</button></div><table><thead><tr><th>编码</th><th>名称</th><th>分类</th><th>基础单位</th><th>阈值</th><th>操作</th></tr></thead><tbody><tr v-for="item in ingredients" :key="item.id"><td class="muted">{{ item.id }}</td><td>{{ item.name }}</td><td>{{ item.category }}</td><td>{{ item.baseUnit }}</td><td>{{ item.warningThreshold }}</td><td><button class="link-button" type="button" @click="editIngredient(item)">编辑</button></td></tr></tbody></table><p v-if="!ingredients.length && !loading" class="empty">暂无食材数据</p></section><section v-if="canWrite" class="card form-card"><h2>{{ ingredientForm.id ? '编辑食材' : '新增食材' }}</h2><div class="form-grid"><label>名称<input v-model="ingredientForm.name" /></label><label>分类<input v-model="ingredientForm.category" /></label><label>基础单位<input v-model="ingredientForm.baseUnit" /></label><label>规格<input v-model="ingredientForm.specification" /></label><label>预警阈值<input v-model.number="ingredientForm.warningThreshold" type="number" min="0" /></label></div><h3>可用单位</h3><div v-for="(unit, index) in ingredientForm.units" :key="index" class="inline-row"><input v-model="unit.unitCode" placeholder="单位" /><input v-model.number="unit.toBaseFactor" type="number" min="0.0001" step="0.0001" placeholder="换算系数" /><button class="link-button danger-link" type="button" @click="ingredientForm.units.splice(index, 1)">移除</button></div><button class="text-button" type="button" @click="addIngredientUnit">+ 添加单位</button><div class="form-actions"><button class="primary-button" type="button" @click="saveIngredient">保存</button><button class="ghost-button" type="button" @click="resetIngredient">清空</button></div></section></div>
+      <div class="workspace-grid"><section class="card"><div class="toolbar"><input v-model="ingredientKeyword" placeholder="搜索食材名称" /><button v-if="canWrite" class="primary-button" type="button" @click="resetIngredient">新建食材</button></div><table><thead><tr><th>编码</th><th>名称</th><th>分类</th><th>基础单位</th><th>阈值</th><th>操作</th></tr></thead><tbody><tr v-for="item in ingredients" :key="item.id"><td class="muted">{{ item.id }}</td><td>{{ item.name }}</td><td>{{ item.category }}</td><td>{{ item.baseUnit }}</td><td>{{ item.warningThreshold }}</td><td><button class="link-button" type="button" @click="editIngredient(item)">编辑</button></td></tr></tbody></table><p v-if="!ingredients.length && !loading" class="empty">暂无食材数据</p></section><section v-if="canWrite" class="card form-card"><h2>{{ ingredientForm.id ? '编辑食材' : '新增食材' }}</h2><div class="form-grid"><label>名称<input v-model="ingredientForm.name" /></label><label>分类<select v-model="ingredientForm.category"><option v-if="legacyIngredientCategory" :value="legacyIngredientCategory" disabled>{{ legacyIngredientCategory }}（历史值，请重新选择）</option><option v-for="category in INGREDIENT_CATEGORIES" :key="category" :value="category">{{ category }}</option></select></label><label>基础单位<input v-model="ingredientForm.baseUnit" /></label><label>规格<input v-model="ingredientForm.specification" /></label><label>预警阈值<input v-model.number="ingredientForm.warningThreshold" type="number" min="0" /></label></div><h3>可用单位</h3><div v-for="(unit, index) in ingredientForm.units" :key="index" class="inline-row"><input v-model="unit.unitCode" placeholder="单位" /><input v-model.number="unit.toBaseFactor" type="number" min="0.0001" step="0.0001" placeholder="换算系数" /><button class="link-button danger-link" type="button" @click="ingredientForm.units.splice(index, 1)">移除</button></div><button class="text-button" type="button" @click="addIngredientUnit">+ 添加单位</button><div class="form-actions"><button class="primary-button" type="button" @click="saveIngredient">保存</button><button class="ghost-button" type="button" @click="resetIngredient">清空</button></div></section></div>
     </template>
 
     <template v-else-if="view === 'units'">
@@ -477,7 +500,7 @@ watch(alertFilter, () => { if (props.view === 'alerts') void loadAlerts(); });
     </template>
 
     <template v-else-if="view === 'dishes' || view === 'recipes'">
-      <div class="workspace-grid"><section class="card"><div class="toolbar"><input v-model="dishKeyword" placeholder="搜索菜品名称" /><button v-if="canWrite" class="primary-button" type="button" @click="resetDish">新建菜品</button></div><table><thead><tr><th>编码</th><th>菜品</th><th>分类</th><th>配方数</th><th>操作</th></tr></thead><tbody><tr v-for="item in dishes" :key="item.id"><td class="muted">{{ item.id }}</td><td>{{ item.name }}</td><td>{{ item.category }}</td><td>{{ item.ingredients.length }}</td><td><button class="link-button" type="button" @click="editDish(item)">编辑配方</button></td></tr></tbody></table><p v-if="!dishes.length" class="empty">暂无菜品数据</p></section><section v-if="canWrite" class="card form-card"><h2>{{ dishForm.id ? '编辑菜品配方' : '新建菜品配方' }}</h2><div class="form-grid"><label>菜品名称<input v-model="dishForm.name" /></label><label>分类<input v-model="dishForm.category" /></label><label class="wide">描述<textarea v-model="dishForm.description" rows="2" /></label></div><h3>配方明细</h3><div v-for="(line, index) in dishForm.ingredients" :key="index" class="recipe-row"><select v-model="line.ingredientId"><option value="" disabled>选择食材</option><option v-for="ingredient in ingredients" :key="ingredient.id" :value="ingredient.id">{{ ingredient.name }}</option></select><input v-model.number="line.quantity" type="number" min="0.0001" step="0.01" /><input v-model="line.unit" placeholder="单位" /><button class="link-button danger-link" type="button" @click="dishForm.ingredients.splice(index, 1)">移除</button></div><button class="text-button" type="button" @click="addDishIngredient">+ 添加食材</button><div class="form-actions"><button class="primary-button" type="button" @click="saveDish">保存菜品</button><button class="ghost-button" type="button" @click="resetDish">清空</button></div></section></div>
+      <div class="workspace-grid"><section class="card"><div class="toolbar"><input v-model="dishKeyword" placeholder="搜索菜品名称" /><button v-if="canWrite" class="primary-button" type="button" @click="resetDish">新建菜品</button></div><table><thead><tr><th>编码</th><th>菜品</th><th>分类</th><th>配方数</th><th>操作</th></tr></thead><tbody><tr v-for="item in dishes" :key="item.id"><td class="muted">{{ item.id }}</td><td>{{ item.name }}</td><td>{{ item.category }}</td><td>{{ item.ingredients.length }}</td><td><button class="link-button" type="button" @click="editDish(item)">编辑配方</button></td></tr></tbody></table><p v-if="!dishes.length" class="empty">暂无菜品数据</p></section><section v-if="canWrite" class="card form-card"><h2>{{ dishForm.id ? '编辑菜品配方' : '新建菜品配方' }}</h2><div class="form-grid"><label>菜品名称<input v-model="dishForm.name" /></label><label>分类<select v-model="dishForm.category"><option v-if="legacyDishCategory" :value="legacyDishCategory" disabled>{{ legacyDishCategory }}（历史值，请重新选择）</option><option v-for="category in DISH_CATEGORIES" :key="category" :value="category">{{ category }}</option></select></label><label class="wide">描述<textarea v-model="dishForm.description" rows="2" /></label></div><h3>配方明细</h3><div v-for="(line, index) in dishForm.ingredients" :key="index" class="recipe-row"><select v-model="line.ingredientId"><option value="" disabled>选择食材</option><option v-for="ingredient in ingredients" :key="ingredient.id" :value="ingredient.id">{{ ingredient.name }}</option></select><input v-model.number="line.quantity" type="number" min="0.0001" step="0.01" /><input v-model="line.unit" placeholder="单位" /><button class="link-button danger-link" type="button" @click="dishForm.ingredients.splice(index, 1)">移除</button></div><button class="text-button" type="button" @click="addDishIngredient">+ 添加食材</button><div class="form-actions"><button class="primary-button" type="button" @click="saveDish">保存菜品</button><button class="ghost-button" type="button" @click="resetDish">清空</button></div></section></div>
     </template>
 
     <template v-else-if="['menus', 'menu-approval', 'menu-published'].includes(view)">

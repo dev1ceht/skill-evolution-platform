@@ -86,6 +86,22 @@ class OperationalCoreHttpTest {
     }
 
     @Test
+    void catalog_writes_require_canonical_categories() throws Exception {
+        mvc.perform(post("/api/v1/ingredients?" + SCOPE)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"ingredientId\":\"INVALID-CATEGORY\",\"name\":\"异常分类食材\",\"category\":\"绿叶菜\",\"baseUnit\":\"kg\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Unsupported ingredient category: 绿叶菜"));
+
+        createIngredient();
+        mvc.perform(post("/api/v1/dishes?" + SCOPE)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"dishId\":\"INVALID-CATEGORY-DISH\",\"name\":\"异常分类菜品\",\"category\":\"热菜\",\"ingredients\":[{\"ingredientId\":\"RICE\",\"quantity\":100,\"unit\":\"g\"}]}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Unsupported dish category: 热菜"));
+    }
+
+    @Test
     void daily_menu_purchase_receipt_inventory_trace_and_dashboard_are_persistent() throws Exception {
         createIngredient();
         createDish();

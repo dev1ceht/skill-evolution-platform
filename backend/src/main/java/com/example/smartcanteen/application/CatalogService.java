@@ -4,8 +4,10 @@ import com.example.smartcanteen.application.port.OperationalStore;
 import com.example.smartcanteen.application.port.IngredientUnitStore;
 import com.example.smartcanteen.domain.CanteenScope;
 import com.example.smartcanteen.domain.Dish;
+import com.example.smartcanteen.domain.DishCategory;
 import com.example.smartcanteen.domain.DishIngredient;
 import com.example.smartcanteen.domain.Ingredient;
+import com.example.smartcanteen.domain.IngredientCategory;
 import com.example.smartcanteen.domain.IngredientUnit;
 import com.example.smartcanteen.domain.PageResult;
 import com.example.smartcanteen.domain.UnitConverter;
@@ -50,6 +52,7 @@ public class CatalogService {
             Ingredient ingredient,
             boolean create,
             List<IngredientUnit> configuredUnits) {
+        IngredientCategory.require(ingredient.category());
         validateIngredientUnit(ingredient.baseUnit());
         if (create) {
             store.createIngredient(scope, ingredient);
@@ -90,6 +93,7 @@ public class CatalogService {
 
     @Transactional
     public Dish saveDish(CanteenScope scope, Dish dish, boolean create) {
+        DishCategory.require(dish.category());
         if (dish.ingredients().isEmpty()) {
             throw new IllegalArgumentException("A dish must contain at least one ingredient");
         }
