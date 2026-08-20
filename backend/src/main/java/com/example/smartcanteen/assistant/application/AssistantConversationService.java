@@ -10,6 +10,7 @@ import com.example.smartcanteen.agent.domain.StartRunCommand;
 import com.example.smartcanteen.agent.port.SkillRegistry;
 import com.example.smartcanteen.application.BusinessAuthorizationPolicy;
 import com.example.smartcanteen.application.DailyMenuService;
+import com.example.smartcanteen.application.AssistantRolloutPolicy;
 import com.example.smartcanteen.assistant.domain.AssistantConversation;
 import com.example.smartcanteen.assistant.domain.AssistantConversationHistory;
 import com.example.smartcanteen.assistant.domain.AssistantClarification;
@@ -54,10 +55,35 @@ public class AssistantConversationService {
     private final SkillRegistry skills;
     private final BusinessAuthorizationPolicy policy;
     private final DailyMenuService menus;
+    private final AssistantRolloutPolicy rollout;
     private final ObjectMapper objectMapper;
     private final Clock clock;
 
     @Autowired
+    public AssistantConversationService(
+            AssistantIntentResolver resolver,
+            AssistantConversationStore conversations,
+            AgentRuntime runtime,
+            AgentExecutionService execution,
+            SkillRegistry skills,
+            BusinessAuthorizationPolicy policy,
+            DailyMenuService menus,
+            ObjectMapper objectMapper,
+            AssistantRolloutPolicy rollout) {
+        this(
+                resolver,
+                conversations,
+                runtime,
+                execution,
+                skills,
+                policy,
+                menus,
+                objectMapper,
+                Clock.systemUTC(),
+                rollout);
+    }
+
+    /** Compatibility constructor for focused tests; production wiring uses the rollout bean. */
     public AssistantConversationService(
             AssistantIntentResolver resolver,
             AssistantConversationStore conversations,
@@ -76,7 +102,8 @@ public class AssistantConversationService {
                 policy,
                 menus,
                 objectMapper,
-                Clock.systemUTC());
+                Clock.systemUTC(),
+                new AssistantRolloutPolicy(true, "*"));
     }
 
     public AssistantConversationService(
@@ -89,6 +116,30 @@ public class AssistantConversationService {
             DailyMenuService menus,
             ObjectMapper objectMapper,
             Clock clock) {
+        this(
+                resolver,
+                conversations,
+                runtime,
+                execution,
+                skills,
+                policy,
+                menus,
+                objectMapper,
+                clock,
+                new AssistantRolloutPolicy(true, "*"));
+    }
+
+    public AssistantConversationService(
+            AssistantIntentResolver resolver,
+            AssistantConversationStore conversations,
+            AgentRuntime runtime,
+            AgentExecutionService execution,
+            SkillRegistry skills,
+            BusinessAuthorizationPolicy policy,
+            DailyMenuService menus,
+            ObjectMapper objectMapper,
+            Clock clock,
+            AssistantRolloutPolicy rollout) {
         this.resolver = Objects.requireNonNull(resolver, "resolver");
         this.conversations = Objects.requireNonNull(conversations, "conversations");
         this.runtime = Objects.requireNonNull(runtime, "runtime");
@@ -96,6 +147,7 @@ public class AssistantConversationService {
         this.skills = Objects.requireNonNull(skills, "skills");
         this.policy = Objects.requireNonNull(policy, "policy");
         this.menus = Objects.requireNonNull(menus, "menus");
+        this.rollout = Objects.requireNonNull(rollout, "rollout");
         this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper");
         this.clock = Objects.requireNonNull(clock, "clock");
     }
@@ -401,6 +453,7 @@ public class AssistantConversationService {
             String idempotencyKey,
             ExecutionContext context,
             AuthPrincipal principal) {
+        rollout.requireBusinessWrites();
         SkillDefinition skill = skills.findByIntent(resolution.intent())
                 .filter(SkillDefinition::isAvailable)
                 .orElseThrow(() -> new IllegalStateException(

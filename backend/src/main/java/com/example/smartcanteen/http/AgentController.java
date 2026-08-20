@@ -10,6 +10,7 @@ import com.example.smartcanteen.agent.domain.SkillDefinition;
 import com.example.smartcanteen.agent.domain.StartRunCommand;
 import com.example.smartcanteen.agent.port.SkillRegistry;
 import com.example.smartcanteen.application.BusinessAuthorizationPolicy;
+import com.example.smartcanteen.application.SingleCanteenContext;
 import com.example.smartcanteen.domain.CanteenScope;
 import com.example.smartcanteen.security.AuthPrincipal;
 import com.example.smartcanteen.security.ForbiddenException;
@@ -43,18 +44,21 @@ public class AgentController {
     private final BusinessAuthorizationPolicy policy;
     private final SkillRegistry skills;
     private final ObjectMapper objectMapper;
+    private final SingleCanteenContext canteen;
 
     public AgentController(
             AgentRuntime runtime,
             AgentExecutionService execution,
             BusinessAuthorizationPolicy policy,
             SkillRegistry skills,
-            ObjectMapper objectMapper) {
+            ObjectMapper objectMapper,
+            SingleCanteenContext canteen) {
         this.runtime = runtime;
         this.execution = execution;
         this.policy = policy;
         this.skills = skills;
         this.objectMapper = objectMapper;
+        this.canteen = canteen;
     }
 
     /**
@@ -74,7 +78,7 @@ public class AgentController {
                 new IllegalArgumentException(
                         "No active Skill is registered for intent: " + body.intent()));
         policy.requireSkillAccess(principal, skill);
-        CanteenScope scope = new CanteenScope(schoolId, canteenId);
+        CanteenScope scope = canteen.resolve(schoolId, canteenId);
         String resolvedRequestId = requestId == null || requestId.isBlank()
                 ? UUID.randomUUID().toString()
                 : requestId;
@@ -102,7 +106,7 @@ public class AgentController {
             @RequestParam String schoolId,
             @RequestParam String canteenId) {
         AuthPrincipal principal = principal(request);
-        CanteenScope scope = new CanteenScope(schoolId, canteenId);
+        CanteenScope scope = canteen.resolve(schoolId, canteenId);
         String resolvedRequestId = requestId == null || requestId.isBlank()
                 ? UUID.randomUUID().toString()
                 : requestId;
@@ -125,7 +129,7 @@ public class AgentController {
             @RequestParam String canteenId,
             @Valid @RequestBody RunDecisionRequest body) {
         AuthPrincipal principal = principal(request);
-        CanteenScope scope = new CanteenScope(schoolId, canteenId);
+        CanteenScope scope = canteen.resolve(schoolId, canteenId);
         ExecutionContext context = policy.establishContext(
                 principal, resolvedRequestId(requestId), scope, true);
         AgentRun run = runtime.decide(
@@ -172,7 +176,7 @@ public class AgentController {
             @Valid @RequestBody RunVersionRequest body) {
         requireIdempotencyKey(idempotencyKey);
         AuthPrincipal principal = principal(request);
-        CanteenScope scope = new CanteenScope(schoolId, canteenId);
+        CanteenScope scope = canteen.resolve(schoolId, canteenId);
         ExecutionContext context = policy.establishContext(
                 principal, resolvedRequestId(requestId), scope, true);
         AgentRun run = runtime.find(runId).orElseThrow(() ->
@@ -197,7 +201,7 @@ public class AgentController {
             @RequestParam String schoolId,
             @RequestParam String canteenId) {
         AuthPrincipal principal = principal(request);
-        CanteenScope scope = new CanteenScope(schoolId, canteenId);
+        CanteenScope scope = canteen.resolve(schoolId, canteenId);
         ExecutionContext context = policy.establishContext(
                 principal, resolvedRequestId(requestId), scope, false);
         AgentRun run = runtime.find(runId).orElseThrow(() ->

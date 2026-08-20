@@ -190,14 +190,14 @@ async function send(): Promise<void> {
       <div>
         <p class="eyebrow">ASSISTANT PILOT · GUARDED ACTIONS</p>
         <h2>智能业务助手</h2>
-        <p class="description">支持食品溯源、日菜单查询，以及采购、库存、预警写入预览。所有写入都必须经过 Agent Run 确认、权限校验和幂等执行；未进入灰度的范围会安全拒绝。</p>
+        <p class="description">支持食品溯源、日菜单查询和菜单发布预览。菜单发布必须经过确认、权限校验和幂等执行；采购、库存、台账和预警请在对应业务页面办理。</p>
       </div>
       <span class="scope">{{ scope.schoolId }} · {{ scope.canteenId }}</span>
     </div>
 
     <div class="messages" aria-live="polite">
       <p v-if="!messages.length" class="empty" data-testid="assistant-empty">
-        试试：查询 TRACE-001 的食品溯源、查询 M001 的菜单；灰度范围内也可说“库存出库 ING-001 2 kg，原因 午餐备料”
+        试试：查询 TRACE-001 的食品溯源、查询 M001 的菜单，或说“发布 M001”生成菜单发布确认单
       </p>
       <article
         v-for="item in messages"
@@ -230,7 +230,7 @@ async function send(): Promise<void> {
           v-model="message"
           rows="2"
           maxlength="2000"
-          placeholder="例如：查询 TRACE-001，生成采购计划 2026-08-18 至 2026-08-24，或库存出库 ING-001 2 kg"
+          placeholder="例如：查询 TRACE-001、查询 M001，或发布 M001"
           :disabled="loading"
         />
         <button type="submit" :disabled="loading">

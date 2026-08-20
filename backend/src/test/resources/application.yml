@@ -21,8 +21,11 @@ agent:
     allowed-intents: "*"
 
 smart-canteen:
+  canteen:
+    single-mode: false
   assistant:
     enabled: true
+    business-writes-enabled: true
     allowed-scopes: SCHOOL-ASSIST-HTTP/CANTEEN-ASSIST-HTTP
     model:
       enabled: false

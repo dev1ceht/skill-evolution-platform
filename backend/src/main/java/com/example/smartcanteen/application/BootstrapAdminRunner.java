@@ -19,8 +19,8 @@ public class BootstrapAdminRunner implements ApplicationRunner {
     public BootstrapAdminRunner(
             AuthStore store,
             PasswordHasher passwords,
-            @Value("${BOOTSTRAP_ADMIN_PASSWORD:}") String password,
-            @Value("${BOOTSTRAP_ADMIN_USERNAME:admin}") String username) {
+            @Value("${smart-canteen.bootstrap.password:}") String password,
+            @Value("${smart-canteen.bootstrap.username:admin}") String username) {
         this.store = store;
         this.passwords = passwords;
         this.password = password;

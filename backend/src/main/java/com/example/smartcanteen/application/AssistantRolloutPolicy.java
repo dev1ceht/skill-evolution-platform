@@ -5,6 +5,7 @@ import com.example.smartcanteen.security.ForbiddenException;
 import java.util.Arrays;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -20,15 +21,25 @@ public class AssistantRolloutPolicy {
     private static final String ALL_SCOPES = "*";
 
     private final boolean enabled;
+    private final boolean businessWritesEnabled;
     private final Set<String> allowedScopes;
     private final boolean allScopes;
 
+    @Autowired
     public AssistantRolloutPolicy(
             @Value("${smart-canteen.assistant.enabled:true}") boolean enabled,
-            @Value("${smart-canteen.assistant.allowed-scopes:}") String configuredScopes) {
+            @Value("${smart-canteen.assistant.allowed-scopes:}") String configuredScopes,
+            @Value("${smart-canteen.assistant.business-writes-enabled:false}")
+                    boolean businessWritesEnabled) {
         this.enabled = enabled;
+        this.businessWritesEnabled = businessWritesEnabled;
         this.allowedScopes = parseScopes(configuredScopes);
         this.allScopes = allowedScopes.contains(ALL_SCOPES);
+    }
+
+    /** Convenience constructor used by focused unit tests and local adapters. */
+    public AssistantRolloutPolicy(boolean enabled, String configuredScopes) {
+        this(enabled, configuredScopes, true);
     }
 
     public void requireEnabled(CanteenScope scope) {
@@ -37,6 +48,13 @@ public class AssistantRolloutPolicy {
         }
         if (!allScopes && !allowedScopes.contains(key(scope))) {
             throw new ForbiddenException("Assistant pilot is disabled for this scope");
+        }
+    }
+
+    public void requireBusinessWrites() {
+        if (!businessWritesEnabled) {
+            throw new ForbiddenException(
+                    "Assistant business writes are disabled; use the operational pages");
         }
     }
 

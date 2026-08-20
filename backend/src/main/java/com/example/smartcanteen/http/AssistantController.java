@@ -3,6 +3,7 @@ package com.example.smartcanteen.http;
 import com.example.smartcanteen.agent.domain.ExecutionContext;
 import com.example.smartcanteen.application.AssistantRolloutPolicy;
 import com.example.smartcanteen.application.BusinessAuthorizationPolicy;
+import com.example.smartcanteen.application.SingleCanteenContext;
 import com.example.smartcanteen.assistant.application.AssistantConversationService;
 import com.example.smartcanteen.assistant.domain.AssistantConversationHistory;
 import com.example.smartcanteen.assistant.domain.AssistantTurn;
@@ -31,14 +32,17 @@ public class AssistantController {
     private final AssistantConversationService conversations;
     private final BusinessAuthorizationPolicy policy;
     private final AssistantRolloutPolicy rollout;
+    private final SingleCanteenContext canteen;
 
     public AssistantController(
             AssistantConversationService conversations,
             BusinessAuthorizationPolicy policy,
-            AssistantRolloutPolicy rollout) {
+            AssistantRolloutPolicy rollout,
+            SingleCanteenContext canteen) {
         this.conversations = conversations;
         this.policy = policy;
         this.rollout = rollout;
+        this.canteen = canteen;
     }
 
     @PostMapping("/conversations/{conversationId}/messages")
@@ -50,7 +54,7 @@ public class AssistantController {
             @RequestParam String schoolId,
             @RequestParam String canteenId,
             @Valid @RequestBody MessageRequest body) {
-        CanteenScope scope = new CanteenScope(schoolId, canteenId);
+        CanteenScope scope = canteen.resolve(schoolId, canteenId);
         rollout.requireEnabled(scope);
         AuthPrincipal principal = principal(request);
         String resolvedRequestId = requestId == null || requestId.isBlank()
@@ -79,7 +83,7 @@ public class AssistantController {
             @RequestParam String canteenId,
             @RequestParam(defaultValue = "50") int limit,
             @RequestHeader(value = "X-Request-Id", required = false) String requestId) {
-        CanteenScope scope = new CanteenScope(schoolId, canteenId);
+        CanteenScope scope = canteen.resolve(schoolId, canteenId);
         rollout.requireEnabled(scope);
         AuthPrincipal principal = principal(request);
         String resolvedRequestId = requestId == null || requestId.isBlank()

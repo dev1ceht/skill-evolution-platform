@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import axios from 'axios';
-import { computed, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import AgentMetricsDashboard from './components/AgentMetricsDashboard.vue';
 import AssistantWorkspace from './components/AssistantWorkspace.vue';
 import CanteenWorkspace from './components/CanteenWorkspace.vue';
@@ -8,15 +8,16 @@ import LoginPanel from './components/LoginPanel.vue';
 import OperationsOverview from './components/OperationsOverview.vue';
 import type { AuthSession, CanteenScope } from './api/smartCanteenApi';
 import { SmartCanteenApi } from './api/smartCanteenApi';
+import { routeFromLocation, type AppRouteId, writeRoute } from './router';
 
 const api = new SmartCanteenApi(axios.create({ timeout: 10_000 }));
 const session = ref<AuthSession | null>(api.getSession());
 const authenticated = computed(() => session.value !== null);
-const activeView = ref('home');
+const activeView = ref<AppRouteId>(routeFromLocation());
 const sidebarOpen = ref(false);
 const scope = ref<CanteenScope>({ schoolId: 'SCHOOL-001', canteenId: 'CANTEEN-001' });
 
-type NavigationItem = { id: string; label: string; icon: string };
+type NavigationItem = { id: AppRouteId; label: string; icon: string };
 type NavigationGroup = { label: string; items: NavigationItem[] };
 const navigation: NavigationGroup[] = [
   { label: '工作台', items: [{ id: 'home', label: '首页', icon: '⌂' }] },
@@ -57,7 +58,7 @@ const activeLabel = computed(() => allNavigationItems.value.find((item) => item.
 
 function signedIn(next: AuthSession): void {
   session.value = next;
-  activeView.value = 'home';
+  navigate('home');
 }
 
 async function signOut(): Promise<void> {
@@ -67,10 +68,18 @@ async function signOut(): Promise<void> {
     session.value = null;
   }
 }
-function navigate(id: string): void {
+function navigate(id: AppRouteId): void {
   activeView.value = id;
+  writeRoute(id);
   sidebarOpen.value = false;
 }
+
+function syncRoute(): void {
+  activeView.value = routeFromLocation();
+}
+
+onMounted(() => window.addEventListener('hashchange', syncRoute));
+onBeforeUnmount(() => window.removeEventListener('hashchange', syncRoute));
 </script>
 
 <template>

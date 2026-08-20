@@ -29,8 +29,7 @@ agent:
     execution-lease: ${AGENT_EXECUTION_LEASE:PT30S}
     execution-heartbeat: ${AGENT_EXECUTION_HEARTBEAT:PT10S}
     scheduler:
-      # Local development is fully enabled by default; deployments can still override these
-      # values and narrow the scope list when multiple workers share a database.
+      # Local development is fully enabled by default.
       enabled: ${AGENT_SCHEDULER_ENABLED:true}
       owner-id: ${AGENT_SCHEDULER_OWNER_ID:local-dev-scheduler}
       allowed-scopes: "${AGENT_SCHEDULER_ALLOWED_SCOPES:*}"
@@ -45,9 +44,17 @@ agent:
     allowed-intents: "${AGENT_WRITE_ALLOWED_INTENTS:*}"
 
 smart-canteen:
+  bootstrap:
+    username: ${SMART_CANTEEN_BOOTSTRAP_USERNAME:admin}
+    password: ${SMART_CANTEEN_BOOTSTRAP_PASSWORD:}
+  canteen:
+    single-mode: ${SMART_CANTEEN_SINGLE_MODE:true}
+    school-id: ${SMART_CANTEEN_SCHOOL_ID:SCHOOL-001}
+    id: ${SMART_CANTEEN_ID:CANTEEN-001}
   assistant:
     enabled: ${ASSISTANT_ENABLED:true}
-    # Comma-separated SCHOOL-ID/CANTEEN-ID entries; * means every scope.
+    business-writes-enabled: ${ASSISTANT_BUSINESS_WRITES_ENABLED:false}
+    # SingleCanteenContext is the source of truth for the active canteen.
     allowed-scopes: "${ASSISTANT_SCOPES:*}"
     model:
       enabled: ${ASSISTANT_MODEL_ENABLED:true}
@@ -57,8 +64,8 @@ smart-canteen:
       timeout-ms: ${ASSISTANT_MODEL_TIMEOUT_MS:10000}
       max-response-bytes: ${ASSISTANT_MODEL_MAX_RESPONSE_BYTES:65536}
       allowed-hosts: ${ASSISTANT_MODEL_ALLOWED_HOSTS:api.deepseek.com}
-      # Never commit a real key; inject it from a deployment secret or environment variable.
-      api-key: ${ASSISTANT_MODEL_API_KEY:sk-fde61bfd607c4cadb77014270793f6b3}
+      # Inject the model key from a deployment secret or environment variable.
+      api-key: ${ASSISTANT_MODEL_API_KEY:}
   security:
     enabled: ${AUTH_ENABLED:true}
     # Authentication stays on by default so protected APIs receive a real user principal.
@@ -66,5 +73,3 @@ smart-canteen:
 
 # Local development bootstrap account. Environment variables still take
 # precedence over values in this file when supplied by the process.
-BOOTSTRAP_ADMIN_USERNAME: admin
-BOOTSTRAP_ADMIN_PASSWORD: "admin123"
