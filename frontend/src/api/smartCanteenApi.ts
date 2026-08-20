@@ -692,7 +692,7 @@ export class SmartCanteenApi implements SmartCanteenApiPort {
       params: {
         ...scope,
         page: 1,
-        size: 200,
+        size: 100,
         ...(keyword ? { keyword } : {}),
         ...(category ? { category } : {}),
       },
@@ -746,7 +746,7 @@ export class SmartCanteenApi implements SmartCanteenApiPort {
       params: {
         ...scope,
         page: 1,
-        size: 200,
+        size: 100,
         ...(keyword ? { keyword } : {}),
         ...(category ? { category } : {}),
       },
@@ -780,7 +780,7 @@ export class SmartCanteenApi implements SmartCanteenApiPort {
       params: {
         ...scope,
         page: 1,
-        size: 200,
+        size: 100,
         ...(from ? { startDate: from } : {}),
         ...(to ? { endDate: to } : {}),
         ...(status ? { status } : {}),
