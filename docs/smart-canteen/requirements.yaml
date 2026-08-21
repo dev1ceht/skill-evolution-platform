@@ -1,0 +1,25 @@
+requirements:
+  - id: MENU-001
+    title: 菜单必须经过版本化审批
+  - id: PROCUREMENT-001
+    title: 采购计划必须基于已发布菜单和库存快照
+  - id: INVENTORY-001
+    title: 库存收发必须记录批次和单位
+  - id: LEDGER-001
+    title: 台账记录必须属于当前周期
+  - id: LEDGER-002
+    title: 台账完成状态必须可追踪
+  - id: LEDGER-003
+    title: 缺失台账项必须可汇总
+  - id: LEDGER-004
+    title: 台账预警必须按规则清除
+  - id: ALERT-001
+    title: 外部预警必须归一化
+  - id: ALERT-002
+    title: 预警处置必须幂等
+  - id: DATA-004
+    title: 业务数据必须保留范围和来源
+  - id: ARCH-005
+    title: 外部系统必须通过适配器接入
+  - id: DASHBOARD-001
+    title: 溯源结果必须返回可核验链路

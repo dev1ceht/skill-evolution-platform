@@ -1,0 +1,13 @@
+{
+  "taskId": "SC-003",
+  "intent": "implement",
+  "currentBehavior": "助手通过规则和可选 DeepSeek HTTP 适配解析意图；解析器不接收角色上下文；项目尚未编译 AgentScope HarnessAgent。",
+  "desiredBehavior": "助手在服务端身份已建立后接收结构化角色上下文，并可通过配置切换到 AgentScope 2.x HarnessAgent 的只读意图解析通道。",
+  "nonGoals": [
+    "不实现完整业务 Tool Catalog",
+    "不把 AgentScope 直接连接数据库",
+    "不启用 SubAgent、MCP、Sandbox 或生产级分布式 Session",
+    "不接真实外部系统"
+  ],
+  "userConfirmation": "用户已确认执行 SC-003，并确认当前为个人学习研究项目。"
+}

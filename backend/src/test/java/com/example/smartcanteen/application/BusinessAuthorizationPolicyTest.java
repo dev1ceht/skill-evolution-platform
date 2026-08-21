@@ -111,6 +111,22 @@ class BusinessAuthorizationPolicyTest {
     }
 
     @Test
+    void diner_persona_can_read_menu_but_cannot_publish_it() {
+        ExecutionContext diner = new ExecutionContext(
+                "request-diner",
+                "USER-DINER",
+                "diner",
+                scope,
+                Set.of(Role.DINER),
+                Set.of("MENU_READ"));
+
+        policy.requireIntentAccess(diner, "menu.query");
+        assertThatThrownBy(() -> policy.requireIntentAccess(diner, "menu.publish"))
+                .isInstanceOf(ForbiddenException.class)
+                .hasMessageContaining("MENU_PUBLISH");
+    }
+
+    @Test
     void domain_approval_reloads_current_roles_before_high_risk_execution() {
         AuthService authentication = mock(AuthService.class);
         BusinessAuthorizationPolicy currentPolicy = new BusinessAuthorizationPolicy(

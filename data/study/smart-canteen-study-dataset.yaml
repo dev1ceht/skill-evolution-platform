@@ -1,0 +1,46 @@
+dataset_id: smart-canteen-study-20260821
+version: 1
+generated_by: llm-initialized-study-dataset
+snapshot_date: 2026-08-21
+scope:
+  school_id: SCHOOL-001
+  canteen_id: CANTEEN-001
+  canteen_name: 一食堂
+entity_counts:
+  ingredients: 9
+  dishes: 5
+  menus: 5
+  suppliers: 3
+  purchase_orders: 2
+  inventory_batches: 9
+  procurement_plans: 1
+  alerts: 2
+  compliance_records: 1
+scenarios:
+  - id: tomorrow-lunch-shortage
+    question: 明天一食堂午餐应该准备多少，哪些原材料不足？
+    menu_id: M822
+    expected_shortage:
+      - ingredient_id: ING-CHICKEN
+        quantity: 6.8
+        unit: kg
+      - ingredient_id: ING-BEEF
+        quantity: 8.4
+        unit: kg
+      - ingredient_id: ING-BROCCOLI
+        quantity: 2
+        unit: kg
+      - ingredient_id: ING-TOMATO
+        quantity: 5.8
+        unit: kg
+      - ingredient_id: ING-EGG
+        quantity: 10
+        unit: count
+    expected_in_transit_order: PO-20260821-001
+  - id: traceability
+    question: 查询鸡肉批次 TRACE-CHICKEN-20260820 的采购和供应商信息
+    trace_code: TRACE-CHICKEN-20260820
+    expected_supplier_id: SUP-001
+  - id: manager-risk-brief
+    question: 当前一食堂有哪些库存和食品安全风险？
+    expected_alerts: [WARN-INV-001, WARN-TEMP-001]

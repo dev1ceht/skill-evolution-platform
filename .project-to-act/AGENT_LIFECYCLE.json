@@ -1,0 +1,226 @@
+{
+  "schemaVersion": 1,
+  "projectId": "smart-canteen",
+  "projectName": "Smart Canteen Business Assistant",
+  "revision": 3,
+  "projectStatus": "active",
+  "currentStage": "6",
+  "updatedAt": "2026-08-21T09:20:07.676Z",
+  "historicalLimitations": [
+    "采用既有智慧食堂代码与学习数据，历史阶段以现有文档和测试为基线；从阶段5继续开发，早期阶段不可追溯部分标记为 legacy_unverified。"
+  ],
+  "stages": [
+    {
+      "id": "0",
+      "name": "立项与风险分级",
+      "status": "legacy_unverified",
+      "expectedArtifacts": [
+        "项目简报",
+        "风险等级",
+        "责任人与停止条件"
+      ],
+      "taskIds": [],
+      "evidenceIds": [],
+      "artifacts": [],
+      "decisions": [],
+      "startedAt": null,
+      "updatedAt": "2026-08-21T08:55:07.922Z"
+    },
+    {
+      "id": "1",
+      "name": "需求调研与问题定义",
+      "status": "legacy_unverified",
+      "expectedArtifacts": [
+        "用户旅程",
+        "任务样本",
+        "现状基线与成功指标"
+      ],
+      "taskIds": [],
+      "evidenceIds": [],
+      "artifacts": [],
+      "decisions": [],
+      "startedAt": null,
+      "updatedAt": "2026-08-21T08:55:07.922Z"
+    },
+    {
+      "id": "2",
+      "name": "AI 能力边界与成功标准",
+      "status": "legacy_unverified",
+      "expectedArtifacts": [
+        "能力边界矩阵",
+        "权限表",
+        "评测计划"
+      ],
+      "taskIds": [],
+      "evidenceIds": [],
+      "artifacts": [],
+      "decisions": [],
+      "startedAt": null,
+      "updatedAt": "2026-08-21T08:55:07.922Z"
+    },
+    {
+      "id": "3",
+      "name": "技术栈选型与可行性试验",
+      "status": "legacy_unverified",
+      "expectedArtifacts": [
+        "技术尖峰",
+        "候选对比",
+        "最小可行原型"
+      ],
+      "taskIds": [],
+      "evidenceIds": [],
+      "artifacts": [],
+      "decisions": [],
+      "startedAt": null,
+      "updatedAt": "2026-08-21T08:55:07.922Z"
+    },
+    {
+      "id": "4",
+      "name": "架构与契约设计",
+      "status": "legacy_unverified",
+      "expectedArtifacts": [
+        "架构与数据流",
+        "Schema 与状态机",
+        "威胁模型与 ADR"
+      ],
+      "taskIds": [],
+      "evidenceIds": [],
+      "artifacts": [],
+      "decisions": [],
+      "startedAt": null,
+      "updatedAt": "2026-08-21T08:55:07.922Z"
+    },
+    {
+      "id": "5",
+      "name": "具体功能与纵向切片开发",
+      "status": "conditional",
+      "expectedArtifacts": [
+        "Task Contract",
+        "纵向切片",
+        "自动测试与运行手册"
+      ],
+      "taskIds": [
+        "SC-003"
+      ],
+      "evidenceIds": [
+        "E-SC003-TESTS",
+        "E-SC003-REVIEW"
+      ],
+      "artifacts": [
+        "docs/smart-canteen/agentscope-runtime.md"
+      ],
+      "decisions": [
+        {
+          "at": "2026-08-21T09:20:07.676Z",
+          "decision": "conditional",
+          "evidenceIds": [
+            "E-SC003-TESTS",
+            "E-SC003-REVIEW"
+          ],
+          "artifacts": [
+            "docs/smart-canteen/agentscope-runtime.md"
+          ],
+          "summary": "SC-003 code, build, regression tests, local MySQL migration, and dual-axis review passed; live AgentScope provider smoke test deferred because no model key is configured.",
+          "nextStage": null
+        }
+      ],
+      "startedAt": "2026-08-21T08:55:12.220Z",
+      "updatedAt": "2026-08-21T09:20:07.676Z"
+    },
+    {
+      "id": "6",
+      "name": "评测、安全测试与调优",
+      "status": "ready",
+      "expectedArtifacts": [
+        "分切片评测",
+        "红队报告",
+        "错误分类与回归集"
+      ],
+      "taskIds": [],
+      "evidenceIds": [],
+      "artifacts": [],
+      "decisions": [],
+      "startedAt": null,
+      "updatedAt": "2026-08-21T09:20:07.676Z"
+    },
+    {
+      "id": "7",
+      "name": "定型发布与产品化",
+      "status": "pending",
+      "expectedArtifacts": [
+        "版本与发布清单",
+        "SLO 与监控",
+        "灰度、停止和回滚方案"
+      ],
+      "taskIds": [],
+      "evidenceIds": [],
+      "artifacts": [],
+      "decisions": [],
+      "startedAt": null,
+      "updatedAt": null
+    },
+    {
+      "id": "8",
+      "name": "运营、学习与退役",
+      "status": "pending",
+      "expectedArtifacts": [
+        "线上健康与漂移报告",
+        "失败回灌与迭代队列",
+        "迁移或退役计划"
+      ],
+      "taskIds": [],
+      "evidenceIds": [],
+      "artifacts": [],
+      "decisions": [],
+      "startedAt": null,
+      "updatedAt": null
+    }
+  ],
+  "transitions": [
+    {
+      "at": "2026-08-21T08:55:07.922Z",
+      "action": "adopt",
+      "fromStage": "legacy",
+      "toStage": "5",
+      "taskId": "SC-003",
+      "decision": "legacy_unverified",
+      "evidenceIds": [
+        "E-SC002-DATA"
+      ],
+      "artifacts": [],
+      "summary": "采用既有智慧食堂代码与学习数据，历史阶段以现有文档和测试为基线；从阶段5继续开发，早期阶段不可追溯部分标记为 legacy_unverified。",
+      "revision": 1
+    },
+    {
+      "at": "2026-08-21T08:55:12.220Z",
+      "action": "start",
+      "fromStage": "5",
+      "toStage": "5",
+      "fromStatus": "ready",
+      "toStatus": "in_progress",
+      "taskId": "SC-003",
+      "decision": null,
+      "evidenceIds": [],
+      "artifacts": [],
+      "summary": "开始实现 AgentScope HarnessAgent 可选适配、角色上下文和 DINER 读权限。",
+      "revision": 2
+    },
+    {
+      "at": "2026-08-21T09:20:07.676Z",
+      "action": "decision",
+      "fromStage": "5",
+      "toStage": "6",
+      "taskId": "SC-003",
+      "decision": "conditional",
+      "evidenceIds": [
+        "E-SC003-TESTS",
+        "E-SC003-REVIEW"
+      ],
+      "artifacts": [
+        "docs/smart-canteen/agentscope-runtime.md"
+      ],
+      "summary": "SC-003 code, build, regression tests, local MySQL migration, and dual-axis review passed; live AgentScope provider smoke test deferred because no model key is configured.",
+      "revision": 3
+    }
+  ]
+}

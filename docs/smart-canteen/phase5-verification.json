@@ -1,0 +1,5 @@
+{
+  "verification": "local-study-baseline",
+  "status": "passed",
+  "checks": ["manifest-schema", "runtime-skill-registry", "closed-loop-evidence"]
+}

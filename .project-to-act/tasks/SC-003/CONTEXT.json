@@ -1,0 +1,24 @@
+{
+  "taskId": "SC-003",
+  "baseRevision": "50ad49584021d02840602efdcbaabd21980f1e3d",
+  "workspace": "D:\\project\\smart-canteen",
+  "intent": "为现有助手添加服务端角色上下文，并建立 AgentScope HarnessAgent 可选适配。",
+  "knownUncommittedBaseline": [
+    "README.md",
+    "CONTEXT.md",
+    "data/",
+    "docs/",
+    "scripts/"
+  ],
+  "writeSet": [
+    "backend/pom.xml",
+    "backend/src/main/java/com/example/smartcanteen/assistant/",
+    "backend/src/main/java/com/example/smartcanteen/security/",
+    "backend/src/main/java/com/example/smartcanteen/assistant/application/AssistantConversationService.java",
+    "backend/src/main/resources/application.yml",
+    "backend/src/main/resources/db/migration/V28__add_diner_role.sql",
+    "backend/src/test/java/"
+  ],
+  "conflicts": [],
+  "freshness": "2026-08-21T08:50:00+08:00"
+}

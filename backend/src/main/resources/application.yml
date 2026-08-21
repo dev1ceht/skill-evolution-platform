@@ -58,6 +58,7 @@ smart-canteen:
     allowed-scopes: "${ASSISTANT_SCOPES:*}"
     model:
       enabled: ${ASSISTANT_MODEL_ENABLED:true}
+      provider: ${ASSISTANT_MODEL_PROVIDER:deepseek-http}
       name: ${ASSISTANT_MODEL_NAME:deepseek-v4-flash}
       base-url: ${ASSISTANT_MODEL_BASE_URL:https://api.deepseek.com}
       max-request-chars: ${ASSISTANT_MODEL_MAX_REQUEST_CHARS:2000}

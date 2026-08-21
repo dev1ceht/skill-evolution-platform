@@ -5,5 +5,6 @@ public enum Role {
     SCHOOL_ADMIN,
     CANTEEN_STAFF,
     REGULATOR,
-    SUPPLIER
+    SUPPLIER,
+    DINER
 }

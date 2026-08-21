@@ -20,6 +20,7 @@
   <properties>
     <java.version>17</java.version>
     <flyway.version>11.20.3</flyway.version>
+    <agentscope.version>2.0.0</agentscope.version>
   </properties>
 
   <dependencies>
@@ -38,6 +39,16 @@
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-actuator</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.agentscope</groupId>
+      <artifactId>agentscope-harness</artifactId>
+      <version>${agentscope.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.agentscope</groupId>
+      <artifactId>agentscope-extensions-model-openai</artifactId>
+      <version>${agentscope.version}</version>
     </dependency>
     <dependency>
       <groupId>com.fasterxml.jackson.dataformat</groupId>

@@ -190,7 +190,7 @@ public class AssistantConversationService {
                 ? pendingActionState.staleAction()
                 : pendingAction;
         AssistantResolution resolution = resolver.resolve(
-                normalizedMessage, pendingClarification, resolutionPendingAction);
+                normalizedMessage, pendingClarification, resolutionPendingAction, context);
         AssistantTurn response;
         if (pendingActionState.wasReconciled()
                 && isPendingActionDecision(resolution)) {

@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Primary;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
@@ -37,6 +38,10 @@ import org.springframework.web.client.RestClientException;
  */
 @Primary
 @Component
+@ConditionalOnProperty(
+        name = "smart-canteen.assistant.model.provider",
+        havingValue = "deepseek-http",
+        matchIfMissing = true)
 public class DeepSeekAssistantModelResolver implements AssistantModelResolver {
 
     private static final Logger log = LoggerFactory.getLogger(DeepSeekAssistantModelResolver.class);

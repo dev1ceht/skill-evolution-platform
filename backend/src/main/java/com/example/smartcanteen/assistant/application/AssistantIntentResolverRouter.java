@@ -1,5 +1,6 @@
 package com.example.smartcanteen.assistant.application;
 
+import com.example.smartcanteen.agent.domain.ExecutionContext;
 import com.example.smartcanteen.assistant.domain.AssistantClarification;
 import com.example.smartcanteen.assistant.domain.AssistantPendingAction;
 import com.example.smartcanteen.assistant.domain.AssistantResolution;
@@ -53,6 +54,15 @@ public class AssistantIntentResolverRouter implements AssistantIntentResolver {
             String message,
             Optional<AssistantClarification> pendingClarification,
             Optional<AssistantPendingAction> pendingAction) {
+        return resolve(message, pendingClarification, pendingAction, null);
+    }
+
+    @Override
+    public AssistantResolution resolve(
+            String message,
+            Optional<AssistantClarification> pendingClarification,
+            Optional<AssistantPendingAction> pendingAction,
+            ExecutionContext context) {
         Optional<AssistantClarification> pending = pendingClarification == null
                 ? Optional.empty()
                 : pendingClarification;
@@ -66,7 +76,10 @@ public class AssistantIntentResolverRouter implements AssistantIntentResolver {
             return deterministic;
         }
         try {
-            return model.resolve(message, pending)
+            Optional<AssistantResolution> modelResult = context == null
+                    ? model.resolve(message, pending)
+                    : model.resolve(message, pending, context);
+            return modelResult
                     .filter(AssistantIntentResolverRouter::isSafeModelResolution)
                     .orElse(deterministic);
         } catch (RuntimeException exception) {

@@ -6,14 +6,42 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.example.smartcanteen.agent.domain.ExecutionContext;
 import com.example.smartcanteen.assistant.application.AssistantIntentResolverRouter;
 import com.example.smartcanteen.assistant.application.RuleBasedAssistantIntentResolver;
 import com.example.smartcanteen.assistant.domain.AssistantResolution;
+import com.example.smartcanteen.domain.CanteenScope;
+import com.example.smartcanteen.security.Role;
 import com.example.smartcanteen.assistant.port.AssistantModelResolver;
 import java.util.Optional;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 class AssistantIntentResolverRouterTest {
+
+    @Test
+    void forwards_server_derived_role_context_to_the_model_fallback() {
+        RuleBasedAssistantIntentResolver rules = new RuleBasedAssistantIntentResolver();
+        AssistantModelResolver model = mock(AssistantModelResolver.class);
+        ExecutionContext context = new ExecutionContext(
+                "request-001",
+                "USER-001",
+                "study-user",
+                new CanteenScope("SCHOOL-001", "CANTEEN-001"),
+                Set.of(Role.DINER),
+                Set.of("MENU_READ"));
+        when(model.resolve("帮我看看今天有什么菜", Optional.empty(), context))
+                .thenReturn(Optional.of(AssistantResolution.menuQuery("M001")));
+
+        AssistantIntentResolverRouter router = new AssistantIntentResolverRouter(
+                rules, model, true);
+
+        AssistantResolution result = router.resolve(
+                "帮我看看今天有什么菜", Optional.empty(), Optional.empty(), context);
+
+        assertThat(result.type()).isEqualTo(AssistantResolution.Type.MENU_QUERY);
+        verify(model).resolve("帮我看看今天有什么菜", Optional.empty(), context);
+    }
 
     @Test
     void uses_the_model_adapter_for_an_unsupported_message_when_explicitly_enabled() {

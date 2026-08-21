@@ -46,7 +46,23 @@ npm run dev
 
 前端地址为 `http://localhost:5173`。Vite 会把 `/api` 请求代理到 `http://localhost:8080`，因此浏览器访问前端地址即可使用后端 API。
 
+### 导入智慧食堂学习数据
+
+项目提供了一批可重复加载的本地研究数据，覆盖菜单、菜品、配方、库存批次、供应商、采购计划、预警和追溯链路。数据定义见 [`data/study/smart-canteen-study-dataset.yaml`](data/study/smart-canteen-study-dataset.yaml)。
+
+确认 MySQL 已启动且后端 Flyway 已完成迁移后，在仓库根目录执行：
+
+```powershell
+.\scripts\load-study-dataset.ps1
+```
+
+脚本默认读取 `infra/.env`；首次使用时先按上文复制 `infra/.env.example` 并配置数据库连接信息。
+
 当前默认开关中，后端鉴权开启，Agent Scheduler、Agent 高风险写入和 Assistant 后端能力关闭；需要启用时通过 `application.yml` 对应的环境变量显式配置。
+
+SC-003 已加入 AgentScope Java 2.0 HarnessAgent 的可选意图解析通道，默认仍使用现有的
+`deepseek-http` 适配器。角色上下文、启用方式和当前边界见
+[`docs/smart-canteen/agentscope-runtime.md`](docs/smart-canteen/agentscope-runtime.md)。
 
 > `infra/verify-stack.ps1` 只负责启动和验收基础设施，不会启动前端或后端。
 

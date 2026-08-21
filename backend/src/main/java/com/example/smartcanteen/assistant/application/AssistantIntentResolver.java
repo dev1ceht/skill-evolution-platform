@@ -1,5 +1,6 @@
 package com.example.smartcanteen.assistant.application;
 
+import com.example.smartcanteen.agent.domain.ExecutionContext;
 import com.example.smartcanteen.assistant.domain.AssistantResolution;
 import com.example.smartcanteen.assistant.domain.AssistantClarification;
 import com.example.smartcanteen.assistant.domain.AssistantPendingAction;
@@ -22,5 +23,14 @@ public interface AssistantIntentResolver {
             Optional<AssistantClarification> pendingClarification,
             Optional<AssistantPendingAction> pendingAction) {
         return resolve(message, pendingClarification);
+    }
+
+    /** Resolves with the server-derived actor and canteen scope. */
+    default AssistantResolution resolve(
+            String message,
+            Optional<AssistantClarification> pendingClarification,
+            Optional<AssistantPendingAction> pendingAction,
+            ExecutionContext context) {
+        return resolve(message, pendingClarification, pendingAction);
     }
 }
