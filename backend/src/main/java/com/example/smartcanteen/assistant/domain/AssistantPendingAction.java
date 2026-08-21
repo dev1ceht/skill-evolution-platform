@@ -23,6 +23,8 @@ public record AssistantPendingAction(
                         "procurement.plan.generate",
                         "procurement.order.create",
                         "procurement.order.receive",
+                        "meal_order.create",
+                        "meal_order.cancel",
                         "inventory.receive",
                         "inventory.stock-out",
                         "alert.dispose").contains(intent)) {

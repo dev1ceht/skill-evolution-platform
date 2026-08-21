@@ -116,6 +116,52 @@ export interface AuthSession {
   userInfo: AuthTokens['userInfo'];
 }
 
+export interface DinerMenuItem {
+  dishId: string;
+  name: string;
+  category: string;
+  description: string;
+  imageUrl: string | null;
+}
+
+export interface DinerMenu {
+  id: string;
+  menuDate: string;
+  mealTime: string;
+  items: DinerMenuItem[];
+}
+
+export interface MealOrderItem {
+  dishId: string;
+  dishName: string;
+  quantity: number;
+  unitPrice: number;
+  amount: number;
+}
+
+export interface MealOrder {
+  id: string;
+  orderNo: string;
+  actorUserId: string;
+  menuId: string;
+  mealDate: string;
+  mealTime: string;
+  status: 'CREATED' | 'CANCELLED' | string;
+  paymentStatus: 'UNPAID' | 'PAID' | 'REFUNDED' | string;
+  totalAmount: number;
+  items: MealOrderItem[];
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MealOrderRequest {
+  menuId?: string;
+  menuDate?: string;
+  mealTime?: string;
+  items: Array<{ dishId: string; quantity: number }>;
+}
+
 export class ApiBusinessError extends Error {
   readonly code: number;
 
@@ -135,6 +181,18 @@ function unwrap<T>(response: AxiosResponse<ApiEnvelope<T>>): T {
 }
 
 export interface SmartCanteenApiPort {
+  listDinerMenus?(
+    scope: CanteenScope,
+    date?: string,
+    mealTime?: string,
+  ): Promise<DinerMenu[]>;
+  listMealOrders?(scope: CanteenScope, status?: string): Promise<MealOrder[]>;
+  createMealOrder?(
+    request: MealOrderRequest,
+    idempotencyKey: string,
+    scope: CanteenScope,
+  ): Promise<MealOrder>;
+  cancelMealOrder?(orderId: string, scope: CanteenScope): Promise<MealOrder>;
   listIngredients?(scope: CanteenScope, keyword?: string, category?: string): Promise<Ingredient[]>;
   createIngredient?(request: IngredientRequest, scope: CanteenScope): Promise<Ingredient>;
   updateIngredient?(
@@ -765,6 +823,56 @@ export class SmartCanteenApi implements SmartCanteenApiPort {
     const response = await this.client.put<DishResponse>(
       `/api/v1/dishes/${encodeURIComponent(dishId)}`,
       request,
+      { params: scope },
+    );
+    return unwrap(response);
+  }
+
+  async listDinerMenus(
+    scope: CanteenScope,
+    date?: string,
+    mealTime?: string,
+  ): Promise<DinerMenu[]> {
+    const response = await this.client.get<ApiEnvelope<{
+      records: DinerMenu[];
+    }>>('/api/v1/diner/menus', {
+      params: {
+        ...scope,
+        page: 1,
+        size: 100,
+        ...(date ? { date } : {}),
+        ...(mealTime ? { mealTime } : {}),
+      },
+    });
+    return unwrap(response).records;
+  }
+
+  async listMealOrders(scope: CanteenScope, status?: string): Promise<MealOrder[]> {
+    const response = await this.client.get<ApiEnvelope<{
+      records: MealOrder[];
+    }>>('/api/v1/meal-orders', {
+      params: { ...scope, page: 1, size: 100, ...(status ? { status } : {}) },
+    });
+    return unwrap(response).records;
+  }
+
+  async createMealOrder(
+    request: MealOrderRequest,
+    idempotencyKey: string,
+    scope: CanteenScope,
+  ): Promise<MealOrder> {
+    const response = await this.client.post<ApiEnvelope<MealOrder>>(
+      '/api/v1/meal-orders',
+      request,
+      { params: scope, headers: { 'Idempotency-Key': idempotencyKey } },
+    );
+    return unwrap(response);
+  }
+
+  async cancelMealOrder(orderId: string, scope: CanteenScope): Promise<MealOrder> {
+    const response = await this.client.post<ApiEnvelope<MealOrder>>(
+      `/api/v1/meal-orders/${encodeURIComponent(orderId)}/cancel`,
+      undefined,
       { params: scope },
     );
     return unwrap(response);

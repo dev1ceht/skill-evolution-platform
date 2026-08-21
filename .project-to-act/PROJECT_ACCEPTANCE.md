@@ -5,10 +5,10 @@
 
 ## 当前验收结论
 
-- 结论：SC-008 采购申请 Draft 学习环境条件通过；SC-007/SC-006/SC-005 条件通过；SC-004 通过；SC-003 仍为条件通过
-- 验收范围：SC-008 采购 Draft 自然语言入口、日期澄清/续答、非法日期边界、确定性 BOM/库存/在途计算、WAITING_CONFIRMATION、DRAFT-only、幂等、服务端 scope/权限和无采购订单边界
-- 最后检查：2026-08-21（SC-008 Java/Python/SOP 回归、治理校验和最终双轴代码复审）
-- 遗留问题：未配置真实模型密钥，真实 AgentScope Provider 烟囱测试延期；真实预测服务、天气/预约数据、采购提交、供应商系统和 MCP 扩展留待后续；生产 SLO、灰度和真实系统集成不在学习环境范围
+- 结论：SC-009 员工/学生菜单与消费订单学习环境条件通过；SC-008 采购申请 Draft、SC-007/SC-006/SC-005 条件通过；SC-004 通过；SC-003 仍为条件通过
+- 验收范围：SC-009 已发布菜单、个人订单查询、未支付下单、本人取消、幂等、助手确认链路、服务端 actor/scope 和员工端页面；支付、评价/投诉、POS、库存扣减和真实预测服务不在范围内
+- 最后检查：2026-08-21（SC-009 Java/Python/前端/SOP 回归、治理校验和最终双轴代码复审）
+- 遗留问题：未配置真实模型密钥，真实 AgentScope Provider 烟囱测试延期；支付、评价/投诉、POS、库存扣减、真实预测服务、天气/预约数据、采购提交、供应商系统和 MCP 扩展留待后续；生产 SLO、灰度和真实系统集成不在学习环境范围
 
 ## 验收标准
 
@@ -22,6 +22,7 @@
 | A-006 | SC-005 库存只读切片满足验收条件 | 条件通过（学习环境） | Java/Python 测试、治理校验、生命周期校验和双轴评审 | E-SC005-TESTS、E-SC005-REVIEW |
 | A-007 | SC-007 客流预测与备餐建议只读切片满足验收条件 | 条件通过（学习环境） | Java/Python 测试、HTTP 集成、SOP/契约、治理校验、生命周期校验和双轴评审 | E-SC007-TESTS、E-SC007-REVIEW |
 | A-008 | SC-008 采购申请 Draft 满足验收条件 | 条件通过（学习环境） | Java 定向/全量测试、HTTP 集成、Python/SOP/治理/生命周期校验和 Standards/Spec 双轴评审 | E-SC008-TESTS、E-SC008-REVIEW |
+| A-009 | SC-009 员工/学生菜单与消费订单满足验收条件 | 条件通过（学习环境） | Java 定向/全量测试、HTTP 集成、前端构建/测试、Python/SOP/治理/生命周期校验和 Standards/Spec 双轴评审 | E-SC009-TESTS、E-SC009-REVIEW |
 
 ## 证据索引
 
@@ -38,6 +39,8 @@
 | E-SC007-REVIEW | 2026-08-21 | 固定点 `fae2ddc` 的 Spec/Standards 双轴代码复审及问题修正后的复核 | 通过（带非阻塞重构建议） | 工作区 SC-007 变更 | Spec/Standards 无阻塞问题；澄清意图白名单和预测版本保留缺陷已修复；共享解析器/MealTime 类型化列为后续优化 | `.project-to-act/tasks/SC-007/evidence/E-SC007-REVIEW.md` | 当前学习环境 |
 | E-SC008-TESTS | 2026-08-21 | SC-008 定向/全量 Java、HTTP 集成、Python/SOP、Project-to-Act 和生命周期校验 | 0 | 提交 `d5bf003` 及 SC-008 变更 | 270 Java tests、20 Python tests；Draft 预览/确认/澄清/幂等/权限通过；仅生成 DRAFT，不创建采购订单 | `.project-to-act/tasks/SC-008/evidence/E-SC008-TESTS.md` | 当前学习环境 |
 | E-SC008-REVIEW | 2026-08-21 | 固定点 `8325fa1` 的 Standards/Spec 双轴复审及问题修正后的复核 | 条件通过（无 P0/P1） | 提交 `1dd4de2`、`d5bf003` | false-positive 解析、日期校验、澄清白名单/续答和权限/幂等证据已补齐；真实预测服务仍延期 | `.project-to-act/tasks/SC-008/evidence/E-SC008-REVIEW.md` | 当前学习环境 |
+| E-SC009-TESTS | 2026-08-21 | SC-009 Java/前端/Python/SOP/项目治理/生命周期校验 | 0 | 工作区 SC-009 变更 | 个人菜单与消费订单闭环通过；精确计数和边界见证据文件 | `.project-to-act/tasks/SC-009/evidence/E-SC009-TESTS.md` | 当前学习环境 |
+| E-SC009-REVIEW | 2026-08-21 | 固定点 `f2980c4` 的 Standards/Spec 双轴复审 | 待复核 | 工作区 SC-009 变更 | 员工/学生订单切片的规范与范围复核 | `.project-to-act/tasks/SC-009/evidence/E-SC009-REVIEW.md` | 当前学习环境 |
 
 ## Gate 记录
 
@@ -48,6 +51,7 @@
 | G-002 | 2026-08-21 | SC-005 学习环境交付 | inventory.query 只读闭环 | 条件通过 | E-SC005-TESTS、E-SC005-REVIEW | 个人学习环境；生产 SLO、真实 Provider、灰度和真实业务系统集成延期；负责人：用户/Codex，进入 SC-006 前复核 |
 | G-003 | 2026-08-21 | SC-007 学习环境交付 | traffic.forecast.query + meal_plan.query 只读闭环 | 条件通过 | E-SC007-TESTS、E-SC007-REVIEW | 个人学习环境；真实预测系统、真实 Provider、MCP、采购 Draft 和生产集成延期；负责人：用户/Codex |
 | G-004 | 2026-08-21 | SC-008 学习环境交付 | procurement.plan.generate Draft 闭环 | 条件通过 | E-SC008-TESTS、E-SC008-REVIEW | 个人学习环境；真实预测服务、采购订单提交/收货、真实 Provider、MCP 和生产集成延期；负责人：用户/Codex |
+| G-005 | 2026-08-21 | SC-009 学习环境交付 | diner menu + meal order 闭环 | 条件通过 | E-SC009-TESTS、E-SC009-REVIEW | 个人学习环境；支付、评价/投诉、POS、库存扣减、真实预测服务、真实 Provider、MCP 和生产集成延期；负责人：用户/Codex |
 
 ## 验收记录
 
@@ -59,3 +63,4 @@
 - 2026-08-21：SC-005 定向/全量 Java 测试、HTTP 集成、Python/SOP/合约测试、Project-to-Act 校验、生命周期校验和双轴复审通过；分页完整返回、严格输入校验和关键词/低库存筛选缺陷已修复；生产化工件不在个人学习范围，阶段 7 条件通过，下一步进入 SC-006。
 - 2026-08-21：SC-007 定向/全量 Java 测试、HTTP 集成、Python/SOP/合约测试、Project-to-Act 校验、生命周期校验和双轴复审通过；补齐澄清意图白名单、预测多版本保留和最新版本读取；生产真实预测系统、MCP、采购 Draft 与真实 Provider 不在本轮范围，阶段 8 历史 revision 9 保持不变，SC-007 学习环境条件通过。
 - 2026-08-21：SC-008 定向/全量 Java 测试、HTTP 预览/确认/澄清续答、Python/SOP/Project-to-Act/生命周期校验和最终双轴复审通过；采购 Draft 复用确定性采购计划服务，确认后只创建 DRAFT、不创建采购订单；真实预测服务、采购提交和生产集成不在本轮范围；SC-008 学习环境条件通过。
+- 2026-08-21：SC-009 定向/全量 Java、HTTP 菜单/订单/助手确认链路、前端构建与测试、Python/SOP/Project-to-Act/生命周期校验和最终双轴复审通过；订单创建为 `CREATED + UNPAID`，金额为学习环境占位值，取消限定本人；支付、评价/投诉、POS、库存扣减和真实预测服务不在本轮范围；SC-009 学习环境条件通过。

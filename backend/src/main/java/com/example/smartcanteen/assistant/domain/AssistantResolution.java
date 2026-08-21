@@ -23,6 +23,8 @@ public record AssistantResolution(
             "procurement.plan.generate",
             "procurement.order.create",
             "procurement.order.receive",
+            "meal_order.create",
+            "meal_order.cancel",
             "inventory.receive",
             "inventory.stock-out",
             "alert.dispose");
@@ -30,6 +32,7 @@ public record AssistantResolution(
     public enum Type {
         TRACEABILITY_QUERY,
         MENU_QUERY,
+        MEAL_ORDER_QUERY,
         INVENTORY_QUERY,
         PROCUREMENT_GAP_QUERY,
         TRAFFIC_FORECAST_QUERY,
@@ -86,6 +89,26 @@ public record AssistantResolution(
             }
             if (traceCode != null) {
                 throw new IllegalArgumentException("Menu resolution cannot contain traceCode");
+            }
+        } else if (type == Type.MEAL_ORDER_QUERY) {
+            if (!"meal_order.query".equals(intent)) {
+                throw new IllegalArgumentException(
+                        "Meal order resolution must select meal_order.query");
+            }
+            if (traceCode != null || menuId != null) {
+                throw new IllegalArgumentException(
+                        "Meal order resolution cannot contain menu or trace identifiers");
+            }
+            for (String key : parameters.keySet()) {
+                if (!Set.of("status").contains(key)) {
+                    throw new IllegalArgumentException(
+                            "Unsupported meal order query parameter: " + key);
+                }
+            }
+            String status = parameters.get("status");
+            if (status != null && !Set.of("CREATED", "CANCELLED")
+                    .contains(status.toUpperCase(Locale.ROOT))) {
+                throw new IllegalArgumentException("Unsupported meal order status: " + status);
             }
         } else if (type == Type.MENU_PUBLISH_REQUEST) {
             if (!"menu.publish".equals(intent)) {
@@ -163,6 +186,7 @@ public record AssistantResolution(
         } else if (intent != null
                 && !intent.equals("traceability.query")
                 && !intent.equals("menu.query")
+                && !intent.equals("meal_order.query")
                 && !intent.equals("inventory.query")
                 && !intent.equals("procurement.gap.query")
                 && !intent.equals("traffic.forecast.query")
@@ -210,6 +234,17 @@ public record AssistantResolution(
                 List.of(),
                 "已识别为按日期的日菜单查询。",
                 parameters);
+    }
+
+    public static AssistantResolution mealOrderQuery() {
+        return new AssistantResolution(
+                Type.MEAL_ORDER_QUERY,
+                "meal_order.query",
+                null,
+                null,
+                List.of(),
+                "已识别为个人消费订单查询。",
+                Map.of());
     }
 
     public static AssistantResolution menuPublish(String menuId) {

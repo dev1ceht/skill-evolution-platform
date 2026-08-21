@@ -1,0 +1,38 @@
+{
+  "taskId": "SC-009",
+  "baseRevision": "f2980c406c5ca5a3344bf173a162429180348a59",
+  "capturedAt": "2026-08-21T21:00:00+08:00",
+  "freshness": "fresh",
+  "scope": "在学习数据集上增加 DINER 菜单与个人消费订单纵向切片；订单不支付、不扣库存，消费订单状态只覆盖 CREATED/CANCELLED。",
+  "writeSet": [
+    "backend/src/main/java/com/example/smartcanteen/assistant/**",
+    "backend/src/main/java/com/example/smartcanteen/agent/**",
+    "backend/src/main/java/com/example/smartcanteen/application/**",
+    "backend/src/main/java/com/example/smartcanteen/domain/**",
+    "backend/src/main/java/com/example/smartcanteen/http/**",
+    "backend/src/main/java/com/example/smartcanteen/infrastructure/**",
+    "backend/src/main/resources/db/migration/**",
+    "backend/src/test/java/**",
+    "frontend/src/**",
+    "frontend/tests/**",
+    "contracts/smart-canteen.openapi.yaml",
+    "contracts/generated/**",
+    "docs/smart-canteen/**",
+    ".project-to-act/**",
+    "README.md"
+  ],
+  "conflicts": [],
+  "intendedChanges": [
+    "新增 meal_orders/meal_order_items 持久化模型和 scoped 业务服务。",
+    "新增 DINER 员工端菜单接口、个人订单接口和取消接口。",
+    "新增 meal_order.query/create/cancel Tool 与 Skill，并接入助手解析、权限和确认流程。",
+    "新增员工/学生端菜单和个人订单工作区，保留运营端导航和页面。",
+    "更新 OpenAPI、生成客户端类型、学习 SOP 和项目治理证据。"
+  ],
+  "outOfScope": [
+    "支付、退款、余额、支付回调和真实支付网关",
+    "评价、投诉、优惠券、配送、取餐核销和库存扣减",
+    "菜品定价模型或真实 POS 同步",
+    "MCP、SubAgent、RAG、Memory 和真实外部业务系统"
+  ]
+}

@@ -19,6 +19,8 @@ public record AssistantClarification(
         if (!intent.equals("traceability.query")
                 && !intent.equals("menu.query")
                 && !intent.equals("menu.publish")
+                && !intent.equals("meal_order.create")
+                && !intent.equals("meal_order.cancel")
                 && !intent.equals("traffic.forecast.query")
                 && !intent.equals("meal_plan.query")
                 && !intent.equals("procurement.plan.generate")) {

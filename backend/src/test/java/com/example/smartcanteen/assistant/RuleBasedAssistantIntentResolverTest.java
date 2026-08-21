@@ -83,6 +83,36 @@ class RuleBasedAssistantIntentResolverTest {
     }
 
     @Test
+    void resolves_personal_order_query_without_turning_it_into_a_write() {
+        AssistantResolution result = resolver.resolve("查看我的订单");
+
+        assertThat(result.type()).isEqualTo(AssistantResolution.Type.MEAL_ORDER_QUERY);
+        assertThat(result.intent()).isEqualTo("meal_order.query");
+        assertThat(result.parameters()).isEmpty();
+    }
+
+    @Test
+    void resolves_explicit_order_creation_with_menu_and_dish_quantity() {
+        AssistantResolution result = resolver.resolve(
+                "帮我订 M001 的 DISH-001 x2");
+
+        assertThat(result.type()).isEqualTo(AssistantResolution.Type.WRITE_REQUEST);
+        assertThat(result.intent()).isEqualTo("meal_order.create");
+        assertThat(result.parameters())
+                .containsEntry("menuId", "M001")
+                .containsEntry("items", "[{\"dishId\":\"DISH-001\",\"quantity\":2}]");
+    }
+
+    @Test
+    void asks_for_order_id_before_cancelling_a_personal_order() {
+        AssistantResolution result = resolver.resolve("取消我的订单");
+
+        assertThat(result.type()).isEqualTo(AssistantResolution.Type.CLARIFICATION);
+        assertThat(result.intent()).isEqualTo("meal_order.cancel");
+        assertThat(result.missingFields()).containsExactly("orderId");
+    }
+
+    @Test
     void accepts_an_iso_date_outside_the_current_century() {
         AssistantResolution result = resolver.resolve("查询 1999-08-17 的菜单");
 

@@ -1,5 +1,6 @@
 export const routeIds = [
   'home',
+  'diner',
   'ingredients',
   'units',
   'dishes',

@@ -107,6 +107,9 @@ public class AssistantIntentResolverRouter implements AssistantIntentResolver {
                     && isDateMealQuery(resolution, "forecastDate");
             case MEAL_PLAN_QUERY -> resolution.intent().equals("meal_plan.query")
                     && isDateMealQuery(resolution, "menuDate");
+            case MEAL_ORDER_QUERY -> resolution.intent().equals("meal_order.query")
+                    && resolution.parameters().keySet().stream()
+                    .allMatch(key -> key.equals("status"));
             case MENU_PUBLISH_REQUEST, WRITE_REQUEST, CONFIRM_PENDING_ACTION, CANCEL_PENDING_ACTION -> false;
             case CLARIFICATION -> resolution.intent() == null
                     || resolution.intent().equals("traceability.query")
@@ -114,6 +117,7 @@ public class AssistantIntentResolverRouter implements AssistantIntentResolver {
                     || resolution.intent().equals("procurement.gap.query")
                     || resolution.intent().equals("traffic.forecast.query")
                     || resolution.intent().equals("meal_plan.query")
+                    || resolution.intent().equals("meal_order.query")
                     || AssistantResolution.isWriteIntent(resolution.intent());
             case UNSUPPORTED -> true;
         };

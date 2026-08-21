@@ -736,6 +736,104 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DishResponse'
+  /api/v1/diner/menus:
+    get:
+      operationId: listDinerMenus
+      tags: [diner]
+      parameters:
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+        - name: date
+          in: query
+          required: false
+          schema: { type: string, format: date }
+        - name: mealTime
+          in: query
+          required: false
+          schema: { type: string, enum: [BREAKFAST, LUNCH, DINNER, SNACK] }
+        - $ref: '#/components/parameters/OperationalPage'
+        - $ref: '#/components/parameters/OperationalSize'
+      responses:
+        '200':
+          description: 当前范围已公示菜单及菜品快照
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DinerMenuPageResponse'
+        '400':
+          $ref: '#/components/responses/BusinessError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+  /api/v1/meal-orders:
+    get:
+      operationId: listMealOrders
+      tags: [diner]
+      parameters:
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+        - name: status
+          in: query
+          required: false
+          schema: { type: string, enum: [CREATED, CANCELLED] }
+        - $ref: '#/components/parameters/OperationalPage'
+        - $ref: '#/components/parameters/OperationalSize'
+      responses:
+        '200':
+          description: 当前登录用户的个人消费订单
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MealOrderPageResponse'
+        '400':
+          $ref: '#/components/responses/BusinessError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+    post:
+      operationId: createMealOrder
+      tags: [diner]
+      parameters:
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MealOrderRequest'
+      responses:
+        '200':
+          description: 已创建未支付个人消费订单
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MealOrderResponse'
+        '400':
+          $ref: '#/components/responses/BusinessError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+  /api/v1/meal-orders/{orderId}/cancel:
+    post:
+      operationId: cancelMealOrder
+      tags: [diner]
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema: { type: string, minLength: 1, maxLength: 64 }
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+      responses:
+        '200':
+          description: 已取消个人消费订单
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MealOrderResponse'
+        '400':
+          $ref: '#/components/responses/BusinessError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
   /api/v1/daily-menus:
     get:
       operationId: listDailyMenus
@@ -3268,6 +3366,71 @@ components:
         decisionBy: { type: string, nullable: true }
         decisionComment: { type: string, nullable: true }
         publishedBy: { type: string, nullable: true }
+    DinerMenuItem:
+      type: object
+      required: [dishId, name, category, description]
+      properties:
+        dishId: { type: string }
+        name: { type: string }
+        category: { type: string }
+        description: { type: string }
+        imageUrl: { type: string, nullable: true }
+    DinerMenu:
+      type: object
+      required: [id, menuDate, mealTime, items]
+      properties:
+        id: { type: string }
+        menuDate: { type: string, format: date }
+        mealTime: { type: string, enum: [BREAKFAST, LUNCH, DINNER, SNACK] }
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/DinerMenuItem' }
+    MealOrderItem:
+      type: object
+      required: [dishId, dishName, quantity, unitPrice, amount]
+      properties:
+        dishId: { type: string }
+        dishName: { type: string }
+        quantity: { type: integer, minimum: 1, maximum: 20 }
+        unitPrice: { type: number, format: double, minimum: 0 }
+        amount: { type: number, format: double, minimum: 0 }
+    MealOrder:
+      type: object
+      required: [id, orderNo, actorUserId, menuId, mealDate, mealTime, status, paymentStatus, totalAmount, items, version, createdAt, updatedAt]
+      properties:
+        id: { type: string }
+        orderNo: { type: string }
+        actorUserId: { type: string }
+        menuId: { type: string }
+        mealDate: { type: string, format: date }
+        mealTime: { type: string, enum: [BREAKFAST, LUNCH, DINNER, SNACK] }
+        status: { type: string, enum: [CREATED, CANCELLED] }
+        paymentStatus: { type: string, enum: [UNPAID, PAID, REFUNDED] }
+        totalAmount: { type: number, format: double, minimum: 0 }
+        items:
+          type: array
+          minItems: 1
+          items: { $ref: '#/components/schemas/MealOrderItem' }
+        version: { type: integer, format: int64, minimum: 0 }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    MealOrderRequest:
+      type: object
+      required: [items]
+      properties:
+        menuId: { type: string, nullable: true }
+        menuDate: { type: string, format: date, nullable: true }
+        mealTime: { type: string, enum: [BREAKFAST, LUNCH, DINNER, SNACK], nullable: true }
+        items:
+          type: array
+          minItems: 1
+          maxItems: 20
+          items:
+            type: object
+            required: [dishId, quantity]
+            properties:
+              dishId: { type: string }
+              quantity: { type: integer, minimum: 1, maximum: 20 }
     MenuQueryResult:
       description: menuId 查询返回单个菜单；日期查询返回已发布菜单分页结果。
       oneOf:
@@ -3629,6 +3792,28 @@ components:
         records:
           type: array
           items: { $ref: '#/components/schemas/DailyMenu' }
+    PageViewDinerMenu:
+      type: object
+      required: [total, pages, current, size, records]
+      properties:
+        total: { type: integer, format: int64 }
+        pages: { type: integer, format: int64 }
+        current: { type: integer }
+        size: { type: integer }
+        records:
+          type: array
+          items: { $ref: '#/components/schemas/DinerMenu' }
+    PageViewMealOrder:
+      type: object
+      required: [total, pages, current, size, records]
+      properties:
+        total: { type: integer, format: int64 }
+        pages: { type: integer, format: int64 }
+        current: { type: integer }
+        size: { type: integer }
+        records:
+          type: array
+          items: { $ref: '#/components/schemas/MealOrder' }
     PageViewSupplier:
       type: object
       required: [total, pages, current, size, records]
@@ -3694,6 +3879,20 @@ components:
         code: { type: integer }
         message: { type: string }
         data: { $ref: '#/components/schemas/PageViewDailyMenu' }
+    DinerMenuPageResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code: { type: integer }
+        message: { type: string }
+        data: { $ref: '#/components/schemas/PageViewDinerMenu' }
+    MealOrderPageResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code: { type: integer }
+        message: { type: string }
+        data: { $ref: '#/components/schemas/PageViewMealOrder' }
     SupplierPageResponse:
       type: object
       required: [code, message, data]
@@ -3743,6 +3942,13 @@ components:
         code: { type: integer }
         message: { type: string }
         data: { $ref: '#/components/schemas/DailyMenu' }
+    MealOrderResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code: { type: integer }
+        message: { type: string }
+        data: { $ref: '#/components/schemas/MealOrder' }
     SupplierResponse:
       type: object
       required: [code, message, data]

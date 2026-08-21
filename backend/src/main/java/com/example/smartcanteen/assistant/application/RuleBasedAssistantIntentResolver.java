@@ -32,6 +32,12 @@ public class RuleBasedAssistantIntentResolver implements AssistantIntentResolver
             "(?i)(?<![A-Za-z0-9])SUP(?:PLIER)?[-_][A-Za-z0-9_-]+(?![A-Za-z0-9])");
     private static final Pattern PURCHASE_ORDER_ID = Pattern.compile(
             "(?i)(?<![A-Za-z0-9])PO[-_][A-Za-z0-9_-]+(?![A-Za-z0-9])");
+    private static final Pattern MEAL_ORDER_ID = Pattern.compile(
+            "(?i)(?<![A-Za-z0-9])MEAL[-_][A-Za-z0-9_-]+(?![A-Za-z0-9])");
+    private static final Pattern DISH_ID = Pattern.compile(
+            "(?i)(?<![A-Za-z0-9])DISH[-_][A-Za-z0-9_-]+(?![A-Za-z0-9])");
+    private static final Pattern MEAL_ORDER_ITEM = Pattern.compile(
+            "(?i)(?<![A-Za-z0-9])(DISH[-_][A-Za-z0-9_-]+)(?:\\s*(?:x|×|\\*)\\s*(\\d+))?(?:\\s*份)?(?![A-Za-z0-9])");
     private static final Pattern PROCUREMENT_PLAN_ID = Pattern.compile(
             "(?i)(?<![A-Za-z0-9])PLAN[-_][A-Za-z0-9_-]+(?![A-Za-z0-9])");
     private static final Pattern INGREDIENT_ID = Pattern.compile(
@@ -90,6 +96,7 @@ public class RuleBasedAssistantIntentResolver implements AssistantIntentResolver
         return message != null
                 && UNSUPPORTED_REQUEST.matcher(message).find()
                 && !isInventoryReadRequest(message)
+                && !isMealOrderReadRequest(message)
                 && !isProcurementGapReadRequest(message)
                 && !isTrafficForecastReadRequest(message)
                 && !isMealPrepReadRequest(message)
@@ -105,6 +112,9 @@ public class RuleBasedAssistantIntentResolver implements AssistantIntentResolver
         AssistantResolution write = resolveExplicitWrite(message);
         if (write != null) {
             return write;
+        }
+        if (isMealOrderReadRequest(message)) {
+            return AssistantResolution.mealOrderQuery();
         }
         if (isInventoryReadRequest(message)) {
             boolean warningOnly = isWarningOnlyInventoryRequest(message);
@@ -355,6 +365,22 @@ public class RuleBasedAssistantIntentResolver implements AssistantIntentResolver
                 || normalized.contains("够用几天");
     }
 
+    private static boolean isMealOrderReadRequest(String message) {
+        if (message == null || message.isBlank()) {
+            return false;
+        }
+        String normalized = message.trim().toLowerCase(Locale.ROOT);
+        if (normalized.contains("采购订单") || normalized.contains("采购单")) {
+            return false;
+        }
+        return normalized.contains("我的订单")
+                || normalized.contains("订单记录")
+                || normalized.contains("订单状态")
+                || normalized.contains("查订单")
+                || normalized.contains("查看订单")
+                || normalized.contains("meal_order.query");
+    }
+
     private static boolean isProcurementGapReadRequest(String message) {
         if (message == null || message.isBlank()) {
             return false;
@@ -513,6 +539,43 @@ public class RuleBasedAssistantIntentResolver implements AssistantIntentResolver
             return null;
         }
         String normalized = message.trim().toLowerCase(Locale.ROOT);
+        if (isMealOrderCreateRequest(normalized)) {
+            Map<String, String> parameters = new LinkedHashMap<>();
+            findMenuId(message).ifPresent(menuId -> parameters.put("menuId", menuId));
+            findMenuDate(message).ifPresent(date -> parameters.put("menuDate", date.toString()));
+            findMealTime(message).ifPresent(mealTime -> parameters.put("mealTime", mealTime));
+            String items = mealOrderItemsJson(message);
+            if (!parameters.containsKey("menuId") && !parameters.containsKey("menuDate")) {
+                return AssistantResolution.clarificationFor(
+                        "meal_order.create",
+                        "请提供菜单 ID 或日期，例如“帮我订 M822 的 DISH-001”。",
+                        "menuId");
+            }
+            if (items == null) {
+                return AssistantResolution.clarificationFor(
+                        "meal_order.create",
+                        "请提供要订购的菜品 ID，例如“DISH-001 x1”；当前先支持按菜品 ID 下单。",
+                        "items");
+            }
+            parameters.put("items", items);
+            return AssistantResolution.writeRequest(
+                    "meal_order.create", parameters, "已识别为消费订单创建请求，将先生成待确认订单。");
+        }
+        if (isMealOrderCancelRequest(normalized)) {
+            Map<String, String> parameters = new LinkedHashMap<>();
+            Matcher matcher = MEAL_ORDER_ID.matcher(message);
+            if (matcher.find()) {
+                parameters.put("orderId", matcher.group().toUpperCase(Locale.ROOT));
+            }
+            if (!parameters.containsKey("orderId")) {
+                return AssistantResolution.clarificationFor(
+                        "meal_order.cancel",
+                        "请提供要取消的消费订单号，例如“取消 MEAL-001”。",
+                        "orderId");
+            }
+            return AssistantResolution.writeRequest(
+                    "meal_order.cancel", parameters, "已识别为消费订单取消请求，将先生成待确认操作。");
+        }
         boolean procurementDraft = isProcurementDraftRequest(normalized);
         boolean procurementPlan = normalized.contains("生成采购计划")
                 || normalized.contains("创建采购计划");
@@ -647,6 +710,43 @@ public class RuleBasedAssistantIntentResolver implements AssistantIntentResolver
                     "alert.dispose", parameters, "已识别为预警处置请求，将先生成待确认处置记录。");
         }
         return null;
+    }
+
+    private static boolean isMealOrderCreateRequest(String normalized) {
+        return normalized.contains("点餐")
+                || normalized.contains("订餐")
+                || normalized.contains("下单")
+                || normalized.contains("帮我订")
+                || normalized.contains("创建消费订单")
+                || normalized.contains("meal_order.create");
+    }
+
+    private static boolean isMealOrderCancelRequest(String normalized) {
+        return (normalized.contains("取消订单")
+                || normalized.contains("取消消费订单")
+                || (normalized.contains("取消") && normalized.contains("我的订单"))
+                || normalized.contains("meal_order.cancel"))
+                && !normalized.contains("采购订单");
+    }
+
+    private static String mealOrderItemsJson(String message) {
+        Matcher matcher = MEAL_ORDER_ITEM.matcher(message == null ? "" : message);
+        StringBuilder items = new StringBuilder("[");
+        int count = 0;
+        while (matcher.find()) {
+            if (count > 0) {
+                items.append(',');
+            }
+            String dishId = matcher.group(1).toUpperCase(Locale.ROOT);
+            String quantity = matcher.group(2) == null ? "1" : matcher.group(2);
+            items.append("{\"dishId\":\"")
+                    .append(dishId)
+                    .append("\",\"quantity\":")
+                    .append(quantity)
+                    .append('}');
+            count++;
+        }
+        return count == 0 ? null : items.append(']').toString();
     }
 
     private static boolean isProcurementDraftRequest(String normalized) {

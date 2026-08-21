@@ -1,0 +1,29 @@
+{
+  "taskId": "SC-009",
+  "title": "实现员工/学生菜单与消费订单切片",
+  "currentBehavior": "系统已有已发布菜单查询、DINER 角色和运营侧采购能力，但没有个人消费订单领域、订单 API、订单 Tool 或员工/学生端订单页面。",
+  "desiredBehavior": "员工/学生在当前食堂范围内查看已发布菜单，选择菜单菜品创建未支付消费订单，查询自己的订单并取消未完成订单；助手能够查询并在确认后执行创建/取消。",
+  "publicSeams": [
+    "MealOrderService.listPublishedMenus/create/listMine/cancel",
+    "MealOrderController GET /api/v1/diner/menus",
+    "MealOrderController GET/POST /api/v1/meal-orders",
+    "MealOrderController POST /api/v1/meal-orders/{orderId}/cancel",
+    "MealOrderToolExecutor meal_order.query/create/cancel",
+    "RuleBasedAssistantIntentResolver meal_order intents",
+    "DinerWorkspace employee/student frontend"
+  ],
+  "deterministicBoundary": {
+    "model": "只负责理解和解释；不生成 userId、菜单事实、菜品资格或订单状态",
+    "menu": "MealOrderService 只读取当前 scope 的 PUBLISHED 菜单和 ACTIVE 菜品",
+    "order": "MealOrderService 校验菜单菜品、数量、actor 所属关系，并由 JDBC Store 持久化",
+    "payment": "本轮不实现支付；paymentStatus 固定为 UNPAID，不调用外部支付服务",
+    "assistantWrite": "助手创建/取消订单先生成 WAITING_CONFIRMATION 的 Agent Run，确认后再执行 Tool"
+  },
+  "acceptancePlan": [
+    "H2 HTTP 测试覆盖菜单查询、订单创建、幂等、个人范围、取消和跨用户拒绝",
+    "Agent Tool 测试覆盖 query/create/cancel 输入校验、菜单校验、actor 绑定和幂等",
+    "助手 HTTP 测试覆盖订单查询和确认后创建/取消",
+    "前端测试覆盖员工页面菜单加载、数量编辑、订单创建、列表刷新和取消",
+    "全量 Java/前端/Python/SOP/Project-to-Act 校验通过"
+  ]
+}

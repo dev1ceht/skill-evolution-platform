@@ -4,6 +4,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import AgentMetricsDashboard from './components/AgentMetricsDashboard.vue';
 import AssistantWorkspace from './components/AssistantWorkspace.vue';
 import CanteenWorkspace from './components/CanteenWorkspace.vue';
+import DinerWorkspace from './components/DinerWorkspace.vue';
 import LoginPanel from './components/LoginPanel.vue';
 import OperationsOverview from './components/OperationsOverview.vue';
 import type { AuthSession, CanteenScope } from './api/smartCanteenApi';
@@ -50,18 +51,26 @@ const navigation: NavigationGroup[] = [
   ] },
   { label: '智能能力', items: [{ id: 'assistant', label: '智能助手', icon: 'AI' }] },
 ];
-const allNavigationItems = computed(() => navigation.flatMap((group) => group.items));
+const dinerNavigation: NavigationGroup[] = [
+  { label: '员工服务', items: [
+    { id: 'diner', label: '菜单与点餐', icon: '餐' },
+    { id: 'assistant', label: '智能助手', icon: 'AI' },
+  ] },
+];
 const roles = computed(() => {
   const info = session.value?.userInfo;
   return info?.roles ?? (info?.role ? [info.role] : []);
 });
+const isDiner = computed(() => roles.value.includes('DINER'));
+const activeNavigation = computed(() => isDiner.value ? dinerNavigation : navigation);
+const allNavigationItems = computed(() => activeNavigation.value.flatMap((group) => group.items));
 const isAdmin = computed(() => roles.value.some((role) => ['SYSTEM_ADMIN', 'SCHOOL_ADMIN'].includes(role)));
 const userLabel = computed(() => session.value?.userInfo.nickname || session.value?.userInfo.username || '当前用户');
 const activeLabel = computed(() => allNavigationItems.value.find((item) => item.id === activeView.value)?.label ?? '首页');
 
 function signedIn(next: AuthSession): void {
   session.value = next;
-  navigate('home');
+  navigate(isDiner.value ? 'diner' : 'home');
 }
 
 async function signOut(): Promise<void> {
@@ -81,7 +90,12 @@ function syncRoute(): void {
   activeView.value = routeFromLocation();
 }
 
-onMounted(() => window.addEventListener('hashchange', syncRoute));
+onMounted(() => {
+  if (isDiner.value && activeView.value === 'home') {
+    navigate('diner');
+  }
+  window.addEventListener('hashchange', syncRoute);
+});
 onBeforeUnmount(() => window.removeEventListener('hashchange', syncRoute));
 </script>
 
@@ -91,7 +105,7 @@ onBeforeUnmount(() => window.removeEventListener('hashchange', syncRoute));
     <aside class="sidebar" :class="{ open: sidebarOpen }">
       <div class="brand"><div class="brand-mark">食</div><div><strong>智慧食堂</strong><span>单食堂运营中台</span></div></div>
       <nav class="navigation">
-        <section v-for="group in navigation" :key="group.label" class="nav-group">
+        <section v-for="group in activeNavigation" :key="group.label" class="nav-group">
           <p>{{ group.label }}</p>
           <button v-for="item in group.items" :key="item.id" type="button" class="nav-item" :class="{ active: activeView === item.id }" @click="navigate(item.id)"><span class="nav-icon">{{ item.icon }}</span><span>{{ item.label }}</span></button>
         </section>
@@ -107,6 +121,7 @@ onBeforeUnmount(() => window.removeEventListener('hashchange', syncRoute));
           <section class="quick-grid"><button class="quick-card" type="button" @click="navigate('menus')"><span class="quick-icon peach">谱</span><span><strong>编辑今日食谱</strong><small>配置菜品与配方，提交审批</small></span><b>→</b></button><button class="quick-card" type="button" @click="navigate('plans')"><span class="quick-icon mint">计</span><span><strong>生成采购计划</strong><small>根据公示食谱自动计算缺口</small></span><b>→</b></button><button class="quick-card" type="button" @click="navigate('receiving')"><span class="quick-icon blue">验</span><span><strong>处理验收入库</strong><small>登记批次、有效期和溯源码</small></span><b>→</b></button><button class="quick-card" type="button" @click="navigate('alerts')"><span class="quick-icon yellow">警</span><span><strong>查看预警中心</strong><small>跟进台账缺项与安全预警</small></span><b>→</b></button></section>
           <AgentMetricsDashboard v-if="isAdmin" :api="api" :scope="scope" />
         </template>
+        <DinerWorkspace v-else-if="activeView === 'diner'" :api="api" :scope="scope" />
         <AssistantWorkspace v-else-if="activeView === 'assistant'" :api="api" :scope="scope" :actor-id="session?.userInfo.userId" />
         <CanteenWorkspace v-else :api="api" :scope="scope" :view="activeView" :roles="roles" />
       </section>

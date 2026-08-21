@@ -25,3 +25,5 @@ requirements:
     title: 客流预测和备餐建议必须基于可追溯的版本化事实
   - id: DASHBOARD-001
     title: 溯源结果必须返回可核验链路
+  - id: DINER-001
+    title: 员工/学生只能查看和操作自己的未支付消费订单

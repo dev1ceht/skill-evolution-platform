@@ -1,0 +1,64 @@
+{
+  "taskId": "SC-009",
+  "title": "实现员工/学生菜单与消费订单切片",
+  "status": "completed",
+  "owner": "Codex",
+  "governanceMode": "post-completion-iteration-after-SC-008",
+  "goal": "让 DINER 用户能够查看当前范围内的已发布菜单，创建自己的未支付消费订单，查询个人订单并取消未完成订单；同时通过助手开放对应的查询与确认后写入 Tool。",
+  "allowedPaths": [
+    "backend/src/main/java/com/example/smartcanteen/assistant/**",
+    "backend/src/main/java/com/example/smartcanteen/agent/**",
+    "backend/src/main/java/com/example/smartcanteen/application/**",
+    "backend/src/main/java/com/example/smartcanteen/domain/**",
+    "backend/src/main/java/com/example/smartcanteen/http/**",
+    "backend/src/main/java/com/example/smartcanteen/infrastructure/**",
+    "backend/src/main/resources/db/migration/**",
+    "backend/src/test/java/**",
+    "frontend/src/**",
+    "frontend/tests/**",
+    "contracts/smart-canteen.openapi.yaml",
+    "contracts/generated/**",
+    "docs/smart-canteen/**",
+    ".project-to-act/**",
+    "README.md"
+  ],
+  "invariants": [
+    "菜单和菜品事实只来自服务端当前 CanteenScope 下的已发布日菜单；请求体不能选择其他 userId。",
+    "消费订单只能引用对应已发布菜单中的 ACTIVE 菜品，数量由服务端校验并保存菜品名称快照。",
+    "创建订单使用 scope + actorUserId + Idempotency-Key 幂等；同键不同业务载荷必须拒绝。",
+    "取消订单只能由订单所属用户发起，已取消订单重复取消返回当前状态，其他用户不得读取或操作。",
+    "本轮不接支付、不扣减库存、不改变菜单份数，不引入真实 POS；订单 paymentStatus 固定为 UNPAID。",
+    "meal_order.create 和 meal_order.cancel 通过助手执行时必须先进入 WAITING_CONFIRMATION，确认后才写入。"
+  ],
+  "acceptance": [
+    "DINER 能通过员工端查询指定日期已发布菜单，并看到菜品名称和描述。",
+    "DINER 能创建一笔包含一个或多个菜单菜品的消费订单，订单初始状态为 CREATED、paymentStatus 为 UNPAID。",
+    "个人订单列表只返回当前 actorUserId 的订单；订单可按创建时间倒序查询。",
+    "订单创建同一 Idempotency-Key 同载荷重放返回同一订单，不同载荷返回业务错误。",
+    "订单所属用户可以取消 CREATED 订单，取消后状态为 CANCELLED；跨用户读取和取消被拒绝。",
+    "助手可识别我的订单查询、带菜单/菜品参数的下单和取消订单请求；下单/取消都经过确认门槛。",
+    "员工端前端覆盖加载、空状态、错误状态、数量编辑、创建订单和取消订单反馈。",
+    "定向/全量 Java、前端类型检查与测试、Python/SOP/项目治理校验通过。"
+  ],
+  "checks": [
+    "mvn -q -Dtest=MealOrderToolExecutorTest,MealOrderControllerHttpTest,RuleBasedAssistantIntentResolverTest,YamlSkillRegistryTest test",
+    "mvn -q test",
+    "npm run build",
+    "npm run test",
+    "python -m pytest -q --basetemp .pytest-tmp-sc009",
+    "python skills/smart-canteen-sop/scripts/validate_sop_manifest.py --manifest docs/smart-canteen/sop-manifests.yaml",
+    "python C:\\Users\\th\\.agents\\skills\\project-to-act\\scripts\\init_project_management.py --project-root D:\\project\\smart-canteen --validate",
+    "git diff --check"
+  ],
+  "dependencies": [
+    "SC-002 学习环境菜单和业务事实数据集",
+    "SC-003 AgentScope HarnessAgent、DINER 角色与菜单只读权限",
+    "SC-004 员工/学生菜单查询只读助手",
+    "SC-008 采购申请 Draft 助手与确认流程"
+  ],
+  "evidence": [
+    "E-SC009-TESTS",
+    "E-SC009-REVIEW"
+  ],
+  "rollback": "回退 SC-009 变更即可移除消费订单表、订单 API、消费订单 Tool 和员工端页面；保留既有菜单、采购和运营页面。"
+}

@@ -239,6 +239,8 @@ public class BusinessAuthorizationPolicy {
         }
         return switch (intent) {
             case "menu.query" -> "MENU_READ";
+            case "meal_order.query" -> "MEAL_ORDER_READ";
+            case "meal_order.create", "meal_order.cancel" -> "MEAL_ORDER_WRITE";
             case "menu.validate-for-submit" -> "MENU_VALIDATE";
             case "menu.submit" -> "MENU_SUBMIT";
             case "menu.record-decision" -> "MENU_APPROVE";

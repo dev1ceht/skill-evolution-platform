@@ -236,6 +236,12 @@ public class AssistantConversationService {
                         normalizedKey,
                         context,
                         principal);
+                case MEAL_ORDER_QUERY -> executeMealOrderQuery(
+                        conversation,
+                        resolution,
+                        normalizedKey,
+                        context,
+                        principal);
                 case INVENTORY_QUERY -> executeInventory(
                         conversation,
                         resolution,
@@ -705,6 +711,10 @@ public class AssistantConversationService {
                     "ingredientId", "库存出库");
             case "alert.dispose" -> resolution.parameters().getOrDefault(
                     "warnId", "预警处置");
+            case "meal_order.create" -> resolution.parameters().getOrDefault(
+                    "menuId", "消费订单");
+            case "meal_order.cancel" -> resolution.parameters().getOrDefault(
+                    "orderId", "消费订单");
             case "procurement.plan.generate" -> "采购申请 Draft";
             default -> "业务写入";
         };
@@ -784,6 +794,22 @@ public class AssistantConversationService {
                 context,
                 principal,
                 AssistantConversationService::assistantInventoryMessage);
+    }
+
+    private AssistantTurn executeMealOrderQuery(
+            AssistantConversation conversation,
+            AssistantResolution resolution,
+            String idempotencyKey,
+            ExecutionContext context,
+            AuthPrincipal principal) {
+        return executeReadOnly(
+                conversation,
+                resolution.intent(),
+                new LinkedHashMap<>(resolution.parameters()),
+                idempotencyKey,
+                context,
+                principal,
+                AssistantConversationService::assistantMealOrderMessage);
     }
 
     private AssistantTurn executeProcurementGap(
@@ -958,6 +984,17 @@ public class AssistantConversationService {
             }
         }
         return "已完成库存查询：返回 " + total + " 项食材，其中 " + warnings + " 项低于或等于预警阈值。";
+    }
+
+    private static String assistantMealOrderMessage(AgentRun run, JsonNode result) {
+        if (!"SUCCEEDED".equals(run.status().name())) {
+            return "个人订单查询未完成，请查看运行状态后重试。";
+        }
+        long total = result == null || !result.path("total").canConvertToLong()
+                ? result == null || !result.path("records").isArray()
+                        ? 0 : result.path("records").size()
+                : result.path("total").asLong();
+        return "已完成个人订单查询：当前用户共有 " + total + " 笔消费订单。";
     }
 
     private static String assistantProcurementGapMessage(AgentRun run, JsonNode result) {
