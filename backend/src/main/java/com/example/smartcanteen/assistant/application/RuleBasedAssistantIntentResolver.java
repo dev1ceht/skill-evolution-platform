@@ -34,6 +34,14 @@ public class RuleBasedAssistantIntentResolver implements AssistantIntentResolver
             "(?i)(?<![A-Za-z0-9])PO[-_][A-Za-z0-9_-]+(?![A-Za-z0-9])");
     private static final Pattern MEAL_ORDER_ID = Pattern.compile(
             "(?i)(?<![A-Za-z0-9])MEAL[-_][A-Za-z0-9_-]+(?![A-Za-z0-9])");
+    private static final Pattern REVIEW_RATING = Pattern.compile(
+            "(?i)(?:评分|打分|rating)?\\s*[:：]?\\s*([1-5])\\s*(?:分|星|颗星)");
+    private static final Pattern REVIEW_CONTENT = Pattern.compile(
+            "(?:内容|留言)[:：]\\s*([^，,。\\n]+)");
+    private static final Pattern COMPLAINT_SUBJECT = Pattern.compile(
+            "(?:主题|标题)[:：]\\s*(.+?)(?=\\s*(?:描述|内容|问题)[:：]|$)");
+    private static final Pattern COMPLAINT_DESCRIPTION = Pattern.compile(
+            "(?:描述|内容|问题)[:：]\\s*([^。\\n]+)");
     private static final Pattern MEAL_ORDER_ITEM = Pattern.compile(
             "(?i)(?<![A-Za-z0-9])(DISH[-_][A-Za-z0-9_-]+)(?:\\s*(?:x|×|\\*)\\s*(\\d+))?(?:\\s*份)?(?![A-Za-z0-9])");
     private static final Pattern PROCUREMENT_PLAN_ID = Pattern.compile(
@@ -104,7 +112,7 @@ public class RuleBasedAssistantIntentResolver implements AssistantIntentResolver
     private AssistantResolution resolveDirect(String message) {
         if (message == null || message.isBlank()) {
             return AssistantResolution.clarification(
-                    "请告诉我你要查询的内容；当前可以查询菜单、库存、原料缺口、客流预测和备餐建议。",
+                    "请告诉我你要查询或办理的内容；当前可以查询菜单、订单、评价、投诉、库存、原料缺口、客流预测和备餐建议。",
                     "message");
         }
         AssistantResolution write = resolveExplicitWrite(message);
@@ -113,6 +121,12 @@ public class RuleBasedAssistantIntentResolver implements AssistantIntentResolver
         }
         if (isMealOrderReadRequest(message)) {
             return AssistantResolution.mealOrderQuery();
+        }
+        if (isMealReviewReadRequest(message)) {
+            return AssistantResolution.mealReviewQuery();
+        }
+        if (isDinerComplaintReadRequest(message)) {
+            return AssistantResolution.dinerComplaintQuery();
         }
         if (isInventoryReadRequest(message)) {
             boolean warningOnly = isWarningOnlyInventoryRequest(message);
@@ -379,6 +393,34 @@ public class RuleBasedAssistantIntentResolver implements AssistantIntentResolver
                 || normalized.contains("meal_order.query");
     }
 
+    private static boolean isMealReviewReadRequest(String message) {
+        if (message == null || message.isBlank()) {
+            return false;
+        }
+        String normalized = message.trim().toLowerCase(Locale.ROOT);
+        return normalized.contains("我的评价")
+                || normalized.contains("评价记录")
+                || normalized.contains("评价列表")
+                || normalized.contains("查看评价")
+                || normalized.contains("查询评价")
+                || normalized.contains("查评价")
+                || normalized.contains("meal_review.query");
+    }
+
+    private static boolean isDinerComplaintReadRequest(String message) {
+        if (message == null || message.isBlank()) {
+            return false;
+        }
+        String normalized = message.trim().toLowerCase(Locale.ROOT);
+        return normalized.contains("我的投诉")
+                || normalized.contains("投诉记录")
+                || normalized.contains("投诉进度")
+                || normalized.contains("查看投诉")
+                || normalized.contains("查询投诉")
+                || normalized.contains("查投诉")
+                || normalized.contains("diner_complaint.query");
+    }
+
     private static boolean isProcurementGapReadRequest(String message) {
         if (message == null || message.isBlank()) {
             return false;
@@ -537,6 +579,55 @@ public class RuleBasedAssistantIntentResolver implements AssistantIntentResolver
             return null;
         }
         String normalized = message.trim().toLowerCase(Locale.ROOT);
+        if (isMealReviewCreateRequest(normalized)) {
+            Map<String, String> parameters = new LinkedHashMap<>();
+            Matcher order = MEAL_ORDER_ID.matcher(message);
+            if (order.find()) {
+                parameters.put("orderId", order.group().toUpperCase(Locale.ROOT));
+            }
+            Matcher rating = REVIEW_RATING.matcher(message);
+            if (rating.find()) {
+                parameters.put("rating", rating.group(1));
+            }
+            Matcher content = REVIEW_CONTENT.matcher(message);
+            if (content.find()) {
+                parameters.put("content", cleanField(content.group(1)));
+            }
+            String missing = firstMissing(parameters, "orderId", "rating");
+            if (missing != null) {
+                return AssistantResolution.clarificationFor(
+                        "meal_review.create",
+                        "请提供订单号和 1～5 分评分，例如“评价 MEAL-001 5分 内容：很好吃”。",
+                        missing);
+            }
+            return AssistantResolution.writeRequest(
+                    "meal_review.create", parameters, "已识别为个人评价提交请求，将先生成待确认操作。");
+        }
+        if (isDinerComplaintCreateRequest(normalized)) {
+            Map<String, String> parameters = new LinkedHashMap<>();
+            parameters.put("category", complaintCategory(normalized));
+            Matcher subject = COMPLAINT_SUBJECT.matcher(message);
+            if (subject.find()) {
+                parameters.put("subject", cleanField(subject.group(1)));
+            }
+            Matcher description = COMPLAINT_DESCRIPTION.matcher(message);
+            if (description.find()) {
+                parameters.put("description", cleanField(description.group(1)));
+            }
+            Matcher relatedOrder = MEAL_ORDER_ID.matcher(message);
+            if (relatedOrder.find()) {
+                parameters.put("relatedOrderId", relatedOrder.group().toUpperCase(Locale.ROOT));
+            }
+            String missing = firstMissing(parameters, "subject", "description");
+            if (missing != null) {
+                return AssistantResolution.clarificationFor(
+                        "diner_complaint.create",
+                        "请补充投诉主题和描述，例如“我要投诉 主题：服务 描述：窗口排队时间较长”。",
+                        missing);
+            }
+            return AssistantResolution.writeRequest(
+                    "diner_complaint.create", parameters, "已识别为个人投诉提交请求，将先生成待确认操作。");
+        }
         if (isMealOrderCreateRequest(normalized)) {
             Map<String, String> parameters = new LinkedHashMap<>();
             findMenuId(message).ifPresent(menuId -> parameters.put("menuId", menuId));
@@ -717,6 +808,46 @@ public class RuleBasedAssistantIntentResolver implements AssistantIntentResolver
                 || normalized.contains("帮我订")
                 || normalized.contains("创建消费订单")
                 || normalized.contains("meal_order.create");
+    }
+
+    private static boolean isMealReviewCreateRequest(String normalized) {
+        return (normalized.contains("评价") || normalized.contains("review")
+                || normalized.contains("meal_review.create"))
+                && (normalized.contains("我要评价")
+                        || normalized.contains("提交评价")
+                        || normalized.contains("评价订单")
+                        || (normalized.startsWith("评价")
+                                && MEAL_ORDER_ID.matcher(normalized).find())
+                        || normalized.contains("meal_review.create"))
+                && !isMealReviewReadRequest(normalized);
+    }
+
+    private static boolean isDinerComplaintCreateRequest(String normalized) {
+        return (normalized.contains("投诉") || normalized.contains("diner_complaint.create"))
+                && !isDinerComplaintReadRequest(normalized);
+    }
+
+    private static String complaintCategory(String normalized) {
+        if (normalized.contains("卫生") || normalized.contains("脏") || normalized.contains("清洁")) {
+            return "HYGIENE";
+        }
+        if (normalized.contains("服务") || normalized.contains("态度")) {
+            return "SERVICE";
+        }
+        if (normalized.contains("排队") || normalized.contains("拥挤") || normalized.contains("人多")) {
+            return "QUEUE";
+        }
+        if (normalized.contains("支付") || normalized.contains("扣款")) {
+            return "PAYMENT";
+        }
+        if (normalized.contains("菜品") || normalized.contains("口味") || normalized.contains("食物")) {
+            return "FOOD_QUALITY";
+        }
+        return "OTHER";
+    }
+
+    private static String cleanField(String value) {
+        return value == null ? null : value.trim().replaceAll("[，,。；;]+$", "");
     }
 
     private static boolean isMealOrderCancelRequest(String normalized) {

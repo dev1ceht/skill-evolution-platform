@@ -241,6 +241,10 @@ public class BusinessAuthorizationPolicy {
             case "menu.query" -> "MENU_READ";
             case "meal_order.query" -> "MEAL_ORDER_READ";
             case "meal_order.create", "meal_order.cancel" -> "MEAL_ORDER_WRITE";
+            case "meal_review.query" -> "MEAL_REVIEW_READ";
+            case "meal_review.create" -> "MEAL_REVIEW_WRITE";
+            case "diner_complaint.query" -> "DINER_COMPLAINT_READ";
+            case "diner_complaint.create" -> "DINER_COMPLAINT_WRITE";
             case "menu.validate-for-submit" -> "MENU_VALIDATE";
             case "menu.submit" -> "MENU_SUBMIT";
             case "menu.record-decision" -> "MENU_APPROVE";

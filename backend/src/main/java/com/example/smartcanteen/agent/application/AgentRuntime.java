@@ -508,7 +508,8 @@ public class AgentRuntime {
                     "ingredientId", "materialId", "quantity", "unit", "unitPrice",
                     "purchasePrice", "batchNo", "reason", "warnId", "orderType",
                     "expectedDeliveryAt", "remark", "productionDate", "expiryDate", "processTime",
-                    "processContent", "processFile", "items" -> true;
+                    "processContent", "processFile", "items", "rating", "content", "category",
+                    "subject", "description", "relatedOrderId" -> true;
             default -> false;
         };
     }

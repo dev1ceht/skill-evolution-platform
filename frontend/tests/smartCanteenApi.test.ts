@@ -203,4 +203,51 @@ describe('SmartCanteenApi', () => {
       { params: scope },
     );
   });
+
+  it('maps personal review and complaint endpoints with idempotency headers', async () => {
+    const get = vi.fn()
+      .mockResolvedValueOnce({
+        data: { code: 0, message: 'success', data: { total: 0, pages: 0, current: 1, size: 100, records: [] } },
+      })
+      .mockResolvedValueOnce({
+        data: { code: 0, message: 'success', data: { total: 0, pages: 0, current: 1, size: 100, records: [] } },
+      });
+    const post = vi.fn()
+      .mockResolvedValueOnce({ data: { code: 0, message: 'success', data: { id: 'REVIEW-001' } } })
+      .mockResolvedValueOnce({ data: { code: 0, message: 'success', data: { id: 'COMPLAINT-001' } } });
+    const api = new SmartCanteenApi({ get, post } as unknown as AxiosInstance);
+    const scope = { schoolId: 'SCHOOL-FEEDBACK', canteenId: 'CANTEEN-FEEDBACK' };
+
+    await api.listMealReviews(scope);
+    await api.createMealReview(
+      { orderId: 'MEAL-001', rating: 5, content: '很好吃' },
+      'REVIEW-KEY-1',
+      scope,
+    );
+    await api.listDinerComplaints(scope);
+    await api.createDinerComplaint(
+      { category: 'SERVICE', subject: '窗口服务', description: '排队时间较长' },
+      'COMPLAINT-KEY-1',
+      scope,
+    );
+
+    expect(get).toHaveBeenNthCalledWith(1, '/api/v1/meal-reviews', {
+      params: { ...scope, page: 1, size: 100 },
+    });
+    expect(get).toHaveBeenNthCalledWith(2, '/api/v1/diner-complaints', {
+      params: { ...scope, page: 1, size: 100 },
+    });
+    expect(post).toHaveBeenNthCalledWith(
+      1,
+      '/api/v1/meal-reviews',
+      { orderId: 'MEAL-001', rating: 5, content: '很好吃' },
+      { params: scope, headers: { 'Idempotency-Key': 'REVIEW-KEY-1' } },
+    );
+    expect(post).toHaveBeenNthCalledWith(
+      2,
+      '/api/v1/diner-complaints',
+      { category: 'SERVICE', subject: '窗口服务', description: '排队时间较长' },
+      { params: scope, headers: { 'Idempotency-Key': 'COMPLAINT-KEY-1' } },
+    );
+  });
 });

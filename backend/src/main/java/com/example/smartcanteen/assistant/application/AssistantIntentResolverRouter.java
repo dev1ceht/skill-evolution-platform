@@ -110,6 +110,11 @@ public class AssistantIntentResolverRouter implements AssistantIntentResolver {
             case MEAL_ORDER_QUERY -> resolution.intent().equals("meal_order.query")
                     && resolution.parameters().keySet().stream()
                     .allMatch(key -> key.equals("status"));
+            case MEAL_REVIEW_QUERY -> resolution.intent().equals("meal_review.query")
+                    && resolution.parameters().isEmpty();
+            case DINER_COMPLAINT_QUERY -> resolution.intent().equals("diner_complaint.query")
+                    && resolution.parameters().keySet().stream()
+                    .allMatch(key -> key.equals("status"));
             case MENU_PUBLISH_REQUEST, WRITE_REQUEST, CONFIRM_PENDING_ACTION, CANCEL_PENDING_ACTION -> false;
             case CLARIFICATION -> resolution.intent() == null
                     || resolution.intent().equals("traceability.query")
@@ -118,6 +123,8 @@ public class AssistantIntentResolverRouter implements AssistantIntentResolver {
                     || resolution.intent().equals("traffic.forecast.query")
                     || resolution.intent().equals("meal_plan.query")
                     || resolution.intent().equals("meal_order.query")
+                    || resolution.intent().equals("meal_review.query")
+                    || resolution.intent().equals("diner_complaint.query")
                     || AssistantResolution.isWriteIntent(resolution.intent());
             case UNSUPPORTED -> true;
         };

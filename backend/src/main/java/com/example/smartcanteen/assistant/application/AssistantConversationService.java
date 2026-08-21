@@ -242,6 +242,18 @@ public class AssistantConversationService {
                         normalizedKey,
                         context,
                         principal);
+                case MEAL_REVIEW_QUERY -> executeMealReviewQuery(
+                        conversation,
+                        resolution,
+                        normalizedKey,
+                        context,
+                        principal);
+                case DINER_COMPLAINT_QUERY -> executeDinerComplaintQuery(
+                        conversation,
+                        resolution,
+                        normalizedKey,
+                        context,
+                        principal);
                 case INVENTORY_QUERY -> executeInventory(
                         conversation,
                         resolution,
@@ -715,6 +727,10 @@ public class AssistantConversationService {
                     "menuId", "消费订单");
             case "meal_order.cancel" -> resolution.parameters().getOrDefault(
                     "orderId", "消费订单");
+            case "meal_review.create" -> resolution.parameters().getOrDefault(
+                    "orderId", "个人评价");
+            case "diner_complaint.create" -> resolution.parameters().getOrDefault(
+                    "subject", "个人投诉");
             case "procurement.plan.generate" -> "采购申请 Draft";
             default -> "业务写入";
         };
@@ -810,6 +826,38 @@ public class AssistantConversationService {
                 context,
                 principal,
                 AssistantConversationService::assistantMealOrderMessage);
+    }
+
+    private AssistantTurn executeMealReviewQuery(
+            AssistantConversation conversation,
+            AssistantResolution resolution,
+            String idempotencyKey,
+            ExecutionContext context,
+            AuthPrincipal principal) {
+        return executeReadOnly(
+                conversation,
+                resolution.intent(),
+                new LinkedHashMap<>(resolution.parameters()),
+                idempotencyKey,
+                context,
+                principal,
+                AssistantConversationService::assistantMealReviewMessage);
+    }
+
+    private AssistantTurn executeDinerComplaintQuery(
+            AssistantConversation conversation,
+            AssistantResolution resolution,
+            String idempotencyKey,
+            ExecutionContext context,
+            AuthPrincipal principal) {
+        return executeReadOnly(
+                conversation,
+                resolution.intent(),
+                new LinkedHashMap<>(resolution.parameters()),
+                idempotencyKey,
+                context,
+                principal,
+                AssistantConversationService::assistantDinerComplaintMessage);
     }
 
     private AssistantTurn executeProcurementGap(
@@ -995,6 +1043,28 @@ public class AssistantConversationService {
                         ? 0 : result.path("records").size()
                 : result.path("total").asLong();
         return "已完成个人订单查询：当前用户共有 " + total + " 笔消费订单。";
+    }
+
+    private static String assistantMealReviewMessage(AgentRun run, JsonNode result) {
+        if (!"SUCCEEDED".equals(run.status().name())) {
+            return "个人评价查询未完成，请查看运行状态后重试。";
+        }
+        long total = result == null || !result.path("total").canConvertToLong()
+                ? result == null || !result.path("records").isArray()
+                        ? 0 : result.path("records").size()
+                : result.path("total").asLong();
+        return "已完成个人评价查询：当前用户共有 " + total + " 条评价。";
+    }
+
+    private static String assistantDinerComplaintMessage(AgentRun run, JsonNode result) {
+        if (!"SUCCEEDED".equals(run.status().name())) {
+            return "个人投诉查询未完成，请查看运行状态后重试。";
+        }
+        long total = result == null || !result.path("total").canConvertToLong()
+                ? result == null || !result.path("records").isArray()
+                        ? 0 : result.path("records").size()
+                : result.path("total").asLong();
+        return "已完成个人投诉查询：当前用户共有 " + total + " 条投诉记录。";
     }
 
     private static String assistantProcurementGapMessage(AgentRun run, JsonNode result) {

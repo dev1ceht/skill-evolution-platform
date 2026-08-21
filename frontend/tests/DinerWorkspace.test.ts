@@ -78,4 +78,85 @@ describe('DinerWorkspace', () => {
     expect(cancelMealOrder).toHaveBeenCalledWith('MEAL-001', scope);
     expect(wrapper.text()).toContain('订单 MO-001 已取消');
   });
+
+  it('submits a review for an own active order and reloads personal reviews', async () => {
+    const review = {
+      id: 'REVIEW-001',
+      actorUserId: 'USER-001',
+      orderId: 'MEAL-001',
+      orderNo: 'MO-001',
+      rating: 5,
+      content: '很好吃',
+      status: 'SUBMITTED' as const,
+      version: 0,
+      createdAt: '2026-08-21T03:00:00Z',
+      updatedAt: '2026-08-21T03:00:00Z',
+    };
+    const listMealReviews = vi.fn().mockResolvedValueOnce([]).mockResolvedValueOnce([review]);
+    const createMealReview = vi.fn().mockResolvedValue(review);
+    const api: SmartCanteenApiPort = {
+      listDinerMenus: vi.fn().mockResolvedValue([menu]),
+      listMealOrders: vi.fn().mockResolvedValue([order]),
+      listMealReviews,
+      createMealReview,
+    };
+    const wrapper = mount(DinerWorkspace, { props: { api, scope } });
+    await flushPromises();
+
+    await wrapper.get('textarea[placeholder*="用餐体验"]').setValue('很好吃');
+    await wrapper.get('[aria-label="提交评价"]').trigger('click');
+    await flushPromises();
+
+    expect(createMealReview).toHaveBeenCalledWith(
+      { orderId: 'MEAL-001', rating: 5, content: '很好吃' },
+      expect.stringContaining('diner-review-'),
+      scope,
+    );
+    expect(wrapper.text()).toContain('订单 MO-001 的评价已提交');
+    expect(wrapper.text()).toContain('很好吃');
+  });
+
+  it('submits an employee complaint and reloads personal complaints', async () => {
+    const complaint = {
+      id: 'COMPLAINT-001',
+      actorUserId: 'USER-001',
+      category: 'SERVICE' as const,
+      subject: '窗口服务',
+      description: '排队时间较长',
+      relatedOrderId: null,
+      status: 'SUBMITTED' as const,
+      reply: null,
+      version: 0,
+      createdAt: '2026-08-21T03:00:00Z',
+      updatedAt: '2026-08-21T03:00:00Z',
+    };
+    const listDinerComplaints = vi.fn().mockResolvedValueOnce([]).mockResolvedValueOnce([complaint]);
+    const createDinerComplaint = vi.fn().mockResolvedValue(complaint);
+    const api: SmartCanteenApiPort = {
+      listDinerMenus: vi.fn().mockResolvedValue([menu]),
+      listMealOrders: vi.fn().mockResolvedValue([]),
+      listDinerComplaints,
+      createDinerComplaint,
+    };
+    const wrapper = mount(DinerWorkspace, { props: { api, scope } });
+    await flushPromises();
+
+    await wrapper.get('input[placeholder="例如：窗口服务"]').setValue('窗口服务');
+    await wrapper.get('textarea[placeholder="请描述遇到的问题"]').setValue('排队时间较长');
+    await wrapper.get('form.complaint-form').trigger('submit');
+    await flushPromises();
+
+    expect(createDinerComplaint).toHaveBeenCalledWith(
+      {
+        category: 'SERVICE',
+        subject: '窗口服务',
+        description: '排队时间较长',
+        relatedOrderId: undefined,
+      },
+      expect.stringContaining('diner-complaint-'),
+      scope,
+    );
+    expect(wrapper.text()).toContain('投诉已提交');
+    expect(wrapper.text()).toContain('排队时间较长');
+  });
 });

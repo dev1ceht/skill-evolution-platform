@@ -1,5 +1,9 @@
 // Generated from API IR. Review before production use.
 
+// Compatibility aliases used by the catalog workspace for free-form business categories.
+export type IngredientCategory = string;
+export type DishCategory = string;
+
 export type AssistantMessageRequest = {
   message: string;
 };
@@ -457,31 +461,6 @@ export type Nutrition = {
   carbohydrateG: number;
 };
 
-export type IngredientCategory =
-  | '蔬菜'
-  | '肉禽'
-  | '蛋奶'
-  | '水产'
-  | '主食'
-  | '豆制品'
-  | '调味品'
-  | '干货'
-  | '水果'
-  | '半成品'
-  | '其他';
-
-export type DishCategory =
-  | '主食'
-  | '荤菜'
-  | '素菜'
-  | '荤素搭配'
-  | '汤羹'
-  | '炒菜'
-  | '小吃'
-  | '饮品'
-  | '早餐'
-  | '其他';
-
 export type Ingredient = {
   id: string;
   name: string;
@@ -496,7 +475,7 @@ export type Ingredient = {
 export type IngredientRequest = {
   ingredientId?: string;
   name: string;
-  category: IngredientCategory;
+  category: string;
   baseUnit: string;
   specification?: string;
   energyKcal?: number;
@@ -552,7 +531,7 @@ export type Dish = {
 export type DishRequest = {
   dishId?: string;
   name: string;
-  category: DishCategory;
+  category: string;
   description?: string;
   imageUrl?: string;
   active?: boolean;
@@ -612,7 +591,7 @@ export type MealOrder = {
   mealDate: string;
   mealTime: string;
   status: string;
-  paymentStatus: 'UNPAID';
+  paymentStatus: string;
   totalAmount: number;
   items: Array<MealOrderItem>;
   version: number;
@@ -625,6 +604,46 @@ export type MealOrderRequest = {
   menuDate?: string;
   mealTime?: string;
   items: Array<Record<string, unknown>>;
+};
+
+export type MealReview = {
+  id: string;
+  actorUserId: string;
+  orderId: string;
+  orderNo: string;
+  rating: number;
+  content?: string;
+  status: string;
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type EmployeeMealReviewRequest = {
+  orderId: string;
+  rating: number;
+  content?: string;
+};
+
+export type DinerComplaint = {
+  id: string;
+  actorUserId: string;
+  category: string;
+  subject: string;
+  description: string;
+  relatedOrderId?: string;
+  status: string;
+  reply?: string;
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type DinerComplaintRequest = {
+  category: string;
+  subject: string;
+  description: string;
+  relatedOrderId?: string;
 };
 
 export type MenuQueryResult = string;
@@ -909,6 +928,22 @@ export type PageViewMealOrder = {
   records: Array<MealOrder>;
 };
 
+export type PageViewMealReview = {
+  total: number;
+  pages: number;
+  current: number;
+  size: number;
+  records: Array<MealReview>;
+};
+
+export type PageViewDinerComplaint = {
+  total: number;
+  pages: number;
+  current: number;
+  size: number;
+  records: Array<DinerComplaint>;
+};
+
 export type PageViewSupplier = {
   total: number;
   pages: number;
@@ -971,6 +1006,18 @@ export type MealOrderPageResponse = {
   data: PageViewMealOrder;
 };
 
+export type MealReviewPageResponse = {
+  code: number;
+  message: string;
+  data: PageViewMealReview;
+};
+
+export type DinerComplaintPageResponse = {
+  code: number;
+  message: string;
+  data: PageViewDinerComplaint;
+};
+
 export type SupplierPageResponse = {
   code: number;
   message: string;
@@ -1017,6 +1064,18 @@ export type MealOrderResponse = {
   code: number;
   message: string;
   data: MealOrder;
+};
+
+export type MealReviewResponse = {
+  code: number;
+  message: string;
+  data: MealReview;
+};
+
+export type DinerComplaintResponse = {
+  code: number;
+  message: string;
+  data: DinerComplaint;
 };
 
 export type SupplierResponse = {
@@ -2187,6 +2246,32 @@ export async function getDashboardSummary(schoolId: string, canteenId: string, d
   return response.json() as Promise<DashboardSummaryResponse>;
 }
 
+export async function listDinerComplaints(schoolId: string, canteenId: string, status?: string, page?: number, size?: number): Promise<DinerComplaintPageResponse> {
+  const path = "/api/v1/diner-complaints";
+  const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
+  if (status !== undefined) url.searchParams.set("status", String(status));
+  if (page !== undefined) url.searchParams.set("page", String(page));
+  if (size !== undefined) url.searchParams.set("size", String(size));
+  const response = await fetch(url, { method: 'GET' });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<DinerComplaintPageResponse>;
+}
+
+export async function createDinerComplaint(schoolId: string, canteenId: string, idempotencyKey: string, body: DinerComplaintRequest): Promise<DinerComplaintResponse> {
+  const path = "/api/v1/diner-complaints";
+  const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
+  const headers: Record<string, string> = {};
+  headers["Idempotency-Key"] = String(idempotencyKey);
+  headers["Content-Type"] = "application/json";
+  const response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body) });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<DinerComplaintResponse>;
+}
+
 export async function listDinerMenus(schoolId: string, canteenId: string, date?: string, mealTime?: string, page?: number, size?: number): Promise<DinerMenuPageResponse> {
   const path = "/api/v1/diner/menus";
   const url = new URL(path, window.location.origin);
@@ -2473,6 +2558,31 @@ export async function cancelMealOrder(orderId: string, schoolId: string, canteen
   const response = await fetch(url, { method: 'POST' });
   if (!response.ok) throw new Error(`API request failed: ${response.status}`);
   return response.json() as Promise<MealOrderResponse>;
+}
+
+export async function listMealReviews(schoolId: string, canteenId: string, page?: number, size?: number): Promise<MealReviewPageResponse> {
+  const path = "/api/v1/meal-reviews";
+  const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
+  if (page !== undefined) url.searchParams.set("page", String(page));
+  if (size !== undefined) url.searchParams.set("size", String(size));
+  const response = await fetch(url, { method: 'GET' });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<MealReviewPageResponse>;
+}
+
+export async function createMealReview(schoolId: string, canteenId: string, idempotencyKey: string, body: EmployeeMealReviewRequest): Promise<MealReviewResponse> {
+  const path = "/api/v1/meal-reviews";
+  const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
+  const headers: Record<string, string> = {};
+  headers["Idempotency-Key"] = String(idempotencyKey);
+  headers["Content-Type"] = "application/json";
+  const response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body) });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<MealReviewResponse>;
 }
 
 export async function listMealSuspensions(schoolId: string, canteenId: string, fromParameter?: string, to?: string, status?: MealSuspensionStatus, page?: number, size?: number): Promise<MealSuspensionPageResponse> {

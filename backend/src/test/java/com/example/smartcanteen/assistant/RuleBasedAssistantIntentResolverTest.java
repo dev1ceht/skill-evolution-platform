@@ -92,6 +92,59 @@ class RuleBasedAssistantIntentResolverTest {
     }
 
     @Test
+    void resolves_personal_review_query_without_turning_it_into_a_write() {
+        AssistantResolution result = resolver.resolve("查看我的评价记录");
+
+        assertThat(result.type()).isEqualTo(AssistantResolution.Type.MEAL_REVIEW_QUERY);
+        assertThat(result.intent()).isEqualTo("meal_review.query");
+        assertThat(result.parameters()).isEmpty();
+    }
+
+    @Test
+    void resolves_personal_complaint_query_without_turning_it_into_a_write() {
+        AssistantResolution result = resolver.resolve("查询我的投诉进度");
+
+        assertThat(result.type()).isEqualTo(AssistantResolution.Type.DINER_COMPLAINT_QUERY);
+        assertThat(result.intent()).isEqualTo("diner_complaint.query");
+        assertThat(result.parameters()).isEmpty();
+    }
+
+    @Test
+    void resolves_review_creation_with_order_rating_and_content() {
+        AssistantResolution result = resolver.resolve(
+                "评价 MEAL-001 5分 内容：很好吃");
+
+        assertThat(result.type()).isEqualTo(AssistantResolution.Type.WRITE_REQUEST);
+        assertThat(result.intent()).isEqualTo("meal_review.create");
+        assertThat(result.parameters())
+                .containsEntry("orderId", "MEAL-001")
+                .containsEntry("rating", "5")
+                .containsEntry("content", "很好吃");
+    }
+
+    @Test
+    void asks_for_review_rating_before_previewing_a_review() {
+        AssistantResolution result = resolver.resolve("评价 MEAL-001 内容：很好吃");
+
+        assertThat(result.type()).isEqualTo(AssistantResolution.Type.CLARIFICATION);
+        assertThat(result.intent()).isEqualTo("meal_review.create");
+        assertThat(result.missingFields()).containsExactly("rating");
+    }
+
+    @Test
+    void resolves_complaint_creation_with_category_subject_and_description() {
+        AssistantResolution result = resolver.resolve(
+                "我要投诉 主题：服务 描述：窗口排队时间较长");
+
+        assertThat(result.type()).isEqualTo(AssistantResolution.Type.WRITE_REQUEST);
+        assertThat(result.intent()).isEqualTo("diner_complaint.create");
+        assertThat(result.parameters())
+                .containsEntry("category", "SERVICE")
+                .containsEntry("subject", "服务")
+                .containsEntry("description", "窗口排队时间较长");
+    }
+
+    @Test
     void resolves_explicit_order_creation_with_menu_and_dish_quantity() {
         AssistantResolution result = resolver.resolve(
                 "帮我订 M001 的 DISH-001 x2");

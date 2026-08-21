@@ -2,32 +2,22 @@
   "added": [
     {
       "method": "GET",
-      "path": "/api/v1/diner/menus"
+      "path": "/api/v1/diner-complaints"
     },
     {
       "method": "GET",
-      "path": "/api/v1/meal-orders"
+      "path": "/api/v1/meal-reviews"
     },
     {
       "method": "POST",
-      "path": "/api/v1/meal-orders"
+      "path": "/api/v1/diner-complaints"
     },
     {
       "method": "POST",
-      "path": "/api/v1/meal-orders/{orderId}/cancel"
-    },
-    {
-      "method": "PUT",
-      "path": "/api/v1/ingredients/{ingredientId}/units"
+      "path": "/api/v1/meal-reviews"
     }
   ],
   "removed": [],
-  "changed": [
-    {
-      "method": "POST",
-      "path": "/api/v1/procurement-plans/generate-range",
-      "breakingReasons": []
-    }
-  ],
+  "changed": [],
   "breaking": []
 }

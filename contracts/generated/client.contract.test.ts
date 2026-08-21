@@ -367,6 +367,21 @@ describe("Smart Canteen Workflow API contract", () => {
     expect(new URL(requestUrl).pathname).toBe("/api/v1/dashboard/summary");
     expect(options.method).toBe("GET");
   });
+  it("listDinerComplaints sends GET /api/v1/diner-complaints", async () => {
+    await client.listDinerComplaints('fixture', 'fixture', undefined, undefined, undefined);
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/diner-complaints");
+    expect(options.method).toBe("GET");
+  });
+  it("createDinerComplaint sends POST /api/v1/diner-complaints", async () => {
+    await client.createDinerComplaint('fixture', 'fixture', 'fixture', {} as never);
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/diner-complaints");
+    expect(options.method).toBe("POST");
+    expect(options.headers["Idempotency-Key"]).toBe('fixture');
+    expect(options.headers["Content-Type"]).toBe("application/json");
+    expect(JSON.parse(options.body)).toEqual({});
+  });
   it("listDinerMenus sends GET /api/v1/diner/menus", async () => {
     await client.listDinerMenus('fixture', 'fixture', undefined, undefined, undefined, undefined);
     const [requestUrl, options] = fetchMock.mock.calls[0];
@@ -522,6 +537,21 @@ describe("Smart Canteen Workflow API contract", () => {
     const [requestUrl, options] = fetchMock.mock.calls[0];
     expect(new URL(requestUrl).pathname).toBe("/api/v1/meal-orders/fixture/cancel");
     expect(options.method).toBe("POST");
+  });
+  it("listMealReviews sends GET /api/v1/meal-reviews", async () => {
+    await client.listMealReviews('fixture', 'fixture', undefined, undefined);
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/meal-reviews");
+    expect(options.method).toBe("GET");
+  });
+  it("createMealReview sends POST /api/v1/meal-reviews", async () => {
+    await client.createMealReview('fixture', 'fixture', 'fixture', {} as never);
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/meal-reviews");
+    expect(options.method).toBe("POST");
+    expect(options.headers["Idempotency-Key"]).toBe('fixture');
+    expect(options.headers["Content-Type"]).toBe("application/json");
+    expect(JSON.parse(options.body)).toEqual({});
   });
   it("listMealSuspensions sends GET /api/v1/meal-suspensions", async () => {
     await client.listMealSuspensions('fixture', 'fixture', undefined, undefined, undefined, undefined, undefined);

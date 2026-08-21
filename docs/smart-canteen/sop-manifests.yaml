@@ -157,6 +157,154 @@ sops:
       evidence: "required"
     status: "implemented"
 
+  - id: "smart-canteen.meal-review-query"
+    version: "1.0.0"
+    trigger: ["查看我的评价", "查询评价记录", "查看个人评价"]
+    risk_level: "low"
+    approval: "not-required"
+    permissions: ["MEAL_REVIEW_READ"]
+    scope: "schoolId + canteenId + actorUserId"
+    preconditions: ["只返回当前登录用户自己的评价", "评价事实来自评价服务"]
+    idempotency: "只读查询可安全重放"
+    timeout: { mode: "request-bound", enforced: true }
+    steps: ["resolve-actor", "load-personal-reviews", "return-review-snapshot"]
+    rollback: "not-applicable"
+    requirements: ["DINER-002"]
+    references: [".project-to-act/PROJECT_FEATURES.md"]
+    implementation:
+      modules: ["backend/src/main/java/com/example/smartcanteen/application/MealReviewService.java", "backend/src/main/java/com/example/smartcanteen/agent/infrastructure/MealReviewToolExecutor.java"]
+      apis: ["contracts/smart-canteen.openapi.yaml"]
+      migrations: ["backend/src/main/resources/db/migration/V37__create_diner_feedback.sql"]
+      tests: ["backend/src/test/java/com/example/smartcanteen/agent/MealReviewToolExecutorTest.java", "backend/src/test/java/com/example/smartcanteen/http/EmployeeFeedbackControllerHttpTest.java"]
+      verification: [".project-to-act/tasks/SC-010/evidence/E-SC010-TESTS.md"]
+    adapters: [{ name: "JdbcMealReviewStore", status: "implemented" }]
+    evidence: [".project-to-act/tasks/SC-010/evidence/E-SC010-TESTS.md"]
+    runtime:
+      intents: ["meal_review.query"]
+      input_schema: "agent/meal-review-query-input-v1"
+      output_schema: "agent/meal-review-page-v1"
+      tools: ["meal_review.query"]
+      tool_by_intent: { meal_review.query: "meal_review.query" }
+      side_effect: "read"
+      run_confirmation: "not-required"
+      domain_approval: "not-applicable"
+      activation: "active"
+      deadline_ms: 3000
+      retry_policy: "read-only-bounded"
+      evidence: "required"
+    status: "implemented"
+
+  - id: "smart-canteen.meal-review-write"
+    version: "1.0.0"
+    trigger: ["提交评价", "评价我的订单", "给订单打分"]
+    risk_level: "medium"
+    approval: "assistant-confirmation-before-create"
+    permissions: ["MEAL_REVIEW_WRITE"]
+    scope: "schoolId + canteenId + actorUserId"
+    preconditions: ["订单属于当前用户且未取消", "同一消费订单最多提交一条评价", "评分只能是 1～5"]
+    idempotency: "按当前 actor + scope 隔离业务 Idempotency-Key；同键同载荷重放，不同请求体拒绝复用"
+    timeout: { mode: "request-bound", enforced: false }
+    steps: ["resolve-actor-and-order", "validate-rating", "create-review", "return-action-result"]
+    rollback: "本轮无评价修改、删除和管理端审核"
+    requirements: ["DINER-002"]
+    references: [".project-to-act/PROJECT_FEATURES.md"]
+    implementation:
+      modules: ["backend/src/main/java/com/example/smartcanteen/application/MealReviewService.java", "backend/src/main/java/com/example/smartcanteen/agent/infrastructure/MealReviewToolExecutor.java"]
+      apis: ["contracts/smart-canteen.openapi.yaml"]
+      migrations: ["backend/src/main/resources/db/migration/V37__create_diner_feedback.sql", "backend/src/main/resources/db/migration/V38__allow_diner_feedback_assistant_actions.sql"]
+      tests: ["backend/src/test/java/com/example/smartcanteen/assistant/RuleBasedAssistantIntentResolverTest.java", "backend/src/test/java/com/example/smartcanteen/http/EmployeeFeedbackControllerHttpTest.java"]
+      verification: [".project-to-act/tasks/SC-010/evidence/E-SC010-TESTS.md"]
+    adapters: [{ name: "JdbcMealReviewStore", status: "implemented" }]
+    evidence: [".project-to-act/tasks/SC-010/evidence/E-SC010-TESTS.md"]
+    runtime:
+      intents: ["meal_review.create"]
+      input_schema: "agent/meal-review-write-input-v1"
+      output_schema: "agent/meal-review-action-result-v1"
+      tools: ["meal_review.create"]
+      tool_by_intent: { meal_review.create: "meal_review.create" }
+      side_effect: "write"
+      run_confirmation: "required-before-write"
+      domain_approval: "not-applicable"
+      activation: "active"
+      deadline_ms: 10000
+      retry_policy: "no-retry-after-write"
+      evidence: "required"
+    status: "implemented"
+
+  - id: "smart-canteen.diner-complaint-query"
+    version: "1.0.0"
+    trigger: ["查看我的投诉", "查询投诉进度", "查看投诉记录"]
+    risk_level: "low"
+    approval: "not-required"
+    permissions: ["DINER_COMPLAINT_READ"]
+    scope: "schoolId + canteenId + actorUserId"
+    preconditions: ["只返回当前登录用户自己的投诉", "投诉状态来自投诉服务"]
+    idempotency: "只读查询可安全重放"
+    timeout: { mode: "request-bound", enforced: true }
+    steps: ["resolve-actor", "load-personal-complaints", "return-complaint-snapshot"]
+    rollback: "not-applicable"
+    requirements: ["DINER-003"]
+    references: [".project-to-act/PROJECT_FEATURES.md"]
+    implementation:
+      modules: ["backend/src/main/java/com/example/smartcanteen/application/DinerComplaintService.java", "backend/src/main/java/com/example/smartcanteen/agent/infrastructure/DinerComplaintToolExecutor.java"]
+      apis: ["contracts/smart-canteen.openapi.yaml"]
+      migrations: ["backend/src/main/resources/db/migration/V37__create_diner_feedback.sql"]
+      tests: ["backend/src/test/java/com/example/smartcanteen/agent/DinerComplaintToolExecutorTest.java", "backend/src/test/java/com/example/smartcanteen/http/EmployeeFeedbackControllerHttpTest.java"]
+      verification: [".project-to-act/tasks/SC-010/evidence/E-SC010-TESTS.md"]
+    adapters: [{ name: "JdbcDinerComplaintStore", status: "implemented" }]
+    evidence: [".project-to-act/tasks/SC-010/evidence/E-SC010-TESTS.md"]
+    runtime:
+      intents: ["diner_complaint.query"]
+      input_schema: "agent/diner-complaint-query-input-v1"
+      output_schema: "agent/diner-complaint-page-v1"
+      tools: ["diner_complaint.query"]
+      tool_by_intent: { diner_complaint.query: "diner_complaint.query" }
+      side_effect: "read"
+      run_confirmation: "not-required"
+      domain_approval: "not-applicable"
+      activation: "active"
+      deadline_ms: 3000
+      retry_policy: "read-only-bounded"
+      evidence: "required"
+    status: "implemented"
+
+  - id: "smart-canteen.diner-complaint-write"
+    version: "1.0.0"
+    trigger: ["提交投诉", "我要投诉食堂问题", "反馈食堂问题"]
+    risk_level: "medium"
+    approval: "assistant-confirmation-before-create"
+    permissions: ["DINER_COMPLAINT_WRITE"]
+    scope: "schoolId + canteenId + actorUserId"
+    preconditions: ["分类、主题和描述由服务端校验", "投诉初始状态固定为 SUBMITTED", "可选关联订单必须属于当前用户"]
+    idempotency: "按当前 actor + scope 隔离业务 Idempotency-Key；同键同载荷重放，不同请求体拒绝复用"
+    timeout: { mode: "request-bound", enforced: false }
+    steps: ["resolve-actor", "validate-complaint", "create-submitted-complaint", "return-action-result"]
+    rollback: "本轮不提供员工撤回、管理端受理、回复和关闭"
+    requirements: ["DINER-003"]
+    references: [".project-to-act/PROJECT_FEATURES.md"]
+    implementation:
+      modules: ["backend/src/main/java/com/example/smartcanteen/application/DinerComplaintService.java", "backend/src/main/java/com/example/smartcanteen/agent/infrastructure/DinerComplaintToolExecutor.java"]
+      apis: ["contracts/smart-canteen.openapi.yaml"]
+      migrations: ["backend/src/main/resources/db/migration/V37__create_diner_feedback.sql", "backend/src/main/resources/db/migration/V38__allow_diner_feedback_assistant_actions.sql"]
+      tests: ["backend/src/test/java/com/example/smartcanteen/assistant/RuleBasedAssistantIntentResolverTest.java", "backend/src/test/java/com/example/smartcanteen/http/EmployeeFeedbackControllerHttpTest.java"]
+      verification: [".project-to-act/tasks/SC-010/evidence/E-SC010-TESTS.md"]
+    adapters: [{ name: "JdbcDinerComplaintStore", status: "implemented" }]
+    evidence: [".project-to-act/tasks/SC-010/evidence/E-SC010-TESTS.md"]
+    runtime:
+      intents: ["diner_complaint.create"]
+      input_schema: "agent/diner-complaint-write-input-v1"
+      output_schema: "agent/diner-complaint-action-result-v1"
+      tools: ["diner_complaint.create"]
+      tool_by_intent: { diner_complaint.create: "diner_complaint.create" }
+      side_effect: "write"
+      run_confirmation: "required-before-write"
+      domain_approval: "not-applicable"
+      activation: "active"
+      deadline_ms: 10000
+      retry_policy: "no-retry-after-write"
+      evidence: "required"
+    status: "implemented"
+
   - id: "smart-canteen.menu-approval"
     version: "1.0.0"
     trigger: ["提交菜单审批", "发布日菜单"]

@@ -25,6 +25,8 @@ public record AssistantResolution(
             "procurement.order.receive",
             "meal_order.create",
             "meal_order.cancel",
+            "meal_review.create",
+            "diner_complaint.create",
             "inventory.receive",
             "inventory.stock-out",
             "alert.dispose");
@@ -33,6 +35,8 @@ public record AssistantResolution(
         TRACEABILITY_QUERY,
         MENU_QUERY,
         MEAL_ORDER_QUERY,
+        MEAL_REVIEW_QUERY,
+        DINER_COMPLAINT_QUERY,
         INVENTORY_QUERY,
         PROCUREMENT_GAP_QUERY,
         TRAFFIC_FORECAST_QUERY,
@@ -109,6 +113,34 @@ public record AssistantResolution(
             if (status != null && !Set.of("CREATED", "CANCELLED")
                     .contains(status.toUpperCase(Locale.ROOT))) {
                 throw new IllegalArgumentException("Unsupported meal order status: " + status);
+            }
+        } else if (type == Type.MEAL_REVIEW_QUERY) {
+            if (!"meal_review.query".equals(intent)) {
+                throw new IllegalArgumentException(
+                        "Meal review resolution must select meal_review.query");
+            }
+            if (traceCode != null || menuId != null || !parameters.isEmpty()) {
+                throw new IllegalArgumentException(
+                        "Meal review query cannot contain resource identifiers or parameters");
+            }
+        } else if (type == Type.DINER_COMPLAINT_QUERY) {
+            if (!"diner_complaint.query".equals(intent)) {
+                throw new IllegalArgumentException(
+                        "Diner complaint resolution must select diner_complaint.query");
+            }
+            if (traceCode != null || menuId != null) {
+                throw new IllegalArgumentException(
+                        "Diner complaint query cannot contain resource identifiers");
+            }
+            for (String key : parameters.keySet()) {
+                if (!Set.of("status").contains(key)) {
+                    throw new IllegalArgumentException(
+                            "Unsupported diner complaint query parameter: " + key);
+                }
+            }
+            String status = parameters.get("status");
+            if (status != null && !"SUBMITTED".equals(status.toUpperCase(Locale.ROOT))) {
+                throw new IllegalArgumentException("Unsupported diner complaint status: " + status);
             }
         } else if (type == Type.MENU_PUBLISH_REQUEST) {
             if (!"menu.publish".equals(intent)) {
@@ -187,6 +219,8 @@ public record AssistantResolution(
                 && !intent.equals("traceability.query")
                 && !intent.equals("menu.query")
                 && !intent.equals("meal_order.query")
+                && !intent.equals("meal_review.query")
+                && !intent.equals("diner_complaint.query")
                 && !intent.equals("inventory.query")
                 && !intent.equals("procurement.gap.query")
                 && !intent.equals("traffic.forecast.query")
@@ -244,6 +278,28 @@ public record AssistantResolution(
                 null,
                 List.of(),
                 "已识别为个人消费订单查询。",
+                Map.of());
+    }
+
+    public static AssistantResolution mealReviewQuery() {
+        return new AssistantResolution(
+                Type.MEAL_REVIEW_QUERY,
+                "meal_review.query",
+                null,
+                null,
+                List.of(),
+                "已识别为个人评价查询。",
+                Map.of());
+    }
+
+    public static AssistantResolution dinerComplaintQuery() {
+        return new AssistantResolution(
+                Type.DINER_COMPLAINT_QUERY,
+                "diner_complaint.query",
+                null,
+                null,
+                List.of(),
+                "已识别为个人投诉查询。",
                 Map.of());
     }
 

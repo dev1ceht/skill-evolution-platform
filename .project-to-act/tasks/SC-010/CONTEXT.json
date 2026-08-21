@@ -1,0 +1,38 @@
+{
+  "taskId": "SC-010",
+  "baseRevision": "bb828a2",
+  "capturedAt": "2026-08-21T22:00:00+08:00",
+  "freshness": "fresh",
+  "scope": "在学习数据集上增加员工/学生评价与投诉提交/查询纵向切片；支付、退款、评价分析和投诉管理端处理不进入本轮。",
+  "writeSet": [
+    "backend/src/main/java/com/example/smartcanteen/assistant/**",
+    "backend/src/main/java/com/example/smartcanteen/agent/**",
+    "backend/src/main/java/com/example/smartcanteen/application/**",
+    "backend/src/main/java/com/example/smartcanteen/domain/**",
+    "backend/src/main/java/com/example/smartcanteen/http/**",
+    "backend/src/main/java/com/example/smartcanteen/infrastructure/**",
+    "backend/src/main/resources/db/migration/**",
+    "backend/src/test/java/**",
+    "frontend/src/**",
+    "frontend/tests/**",
+    "contracts/smart-canteen.openapi.yaml",
+    "contracts/generated/**",
+    "docs/smart-canteen/**",
+    ".project-to-act/**",
+    "README.md"
+  ],
+  "conflicts": [],
+  "intendedChanges": [
+    "新增 meal_reviews 与 diner_complaints 持久化模型、actor-scoped 幂等和服务端校验。",
+    "新增员工评价/投诉 HTTP API 和权限。",
+    "新增 meal_review.query/create、diner_complaint.query/create Tool 与 Skill，并接入助手解析、权限和确认流程。",
+    "扩展员工端页面，提供评价表单、投诉表单和个人记录列表。",
+    "更新 OpenAPI、生成客户端类型、学习 SOP、测试和项目治理证据。"
+  ],
+  "outOfScope": [
+    "支付、退款、余额、支付回调和真实支付网关",
+    "评价聚合分析、评分反作弊和公开评价展示",
+    "投诉管理端受理、分派、回复、关闭和通知",
+    "POS 同步、库存扣减、取餐核销和真实订单金额"
+  ]
+}

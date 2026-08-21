@@ -27,3 +27,7 @@ requirements:
     title: 溯源结果必须返回可核验链路
   - id: DINER-001
     title: 员工/学生只能查看和操作自己的未支付消费订单
+  - id: DINER-002
+    title: 员工/学生只能对自己的未取消消费订单提交一次评价
+  - id: DINER-003
+    title: 员工/学生只能提交和查询自己的投诉记录

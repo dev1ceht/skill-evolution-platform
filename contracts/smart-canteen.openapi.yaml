@@ -834,6 +834,98 @@ paths:
           $ref: '#/components/responses/BusinessError'
         '403':
           $ref: '#/components/responses/ForbiddenError'
+  /api/v1/meal-reviews:
+    get:
+      operationId: listMealReviews
+      tags: [diner]
+      parameters:
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+        - $ref: '#/components/parameters/OperationalPage'
+        - $ref: '#/components/parameters/OperationalSize'
+      responses:
+        '200':
+          description: 当前登录用户的个人就餐评价
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MealReviewPageResponse'
+        '400':
+          $ref: '#/components/responses/BusinessError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+    post:
+      operationId: createMealReview
+      tags: [diner]
+      parameters:
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmployeeMealReviewRequest'
+      responses:
+        '200':
+          description: 已提交个人就餐评价
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MealReviewResponse'
+        '400':
+          $ref: '#/components/responses/BusinessError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+  /api/v1/diner-complaints:
+    get:
+      operationId: listDinerComplaints
+      tags: [diner]
+      parameters:
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+        - name: status
+          in: query
+          required: false
+          schema: { type: string, enum: [SUBMITTED] }
+        - $ref: '#/components/parameters/OperationalPage'
+        - $ref: '#/components/parameters/OperationalSize'
+      responses:
+        '200':
+          description: 当前登录用户的个人投诉记录
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DinerComplaintPageResponse'
+        '400':
+          $ref: '#/components/responses/BusinessError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+    post:
+      operationId: createDinerComplaint
+      tags: [diner]
+      parameters:
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DinerComplaintRequest'
+      responses:
+        '200':
+          description: 已提交个人投诉
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DinerComplaintResponse'
+        '400':
+          $ref: '#/components/responses/BusinessError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
   /api/v1/daily-menus:
     get:
       operationId: listDailyMenus
@@ -3431,6 +3523,50 @@ components:
             properties:
               dishId: { type: string }
               quantity: { type: integer, minimum: 1, maximum: 20 }
+    MealReview:
+      type: object
+      required: [id, actorUserId, orderId, orderNo, rating, status, version, createdAt, updatedAt]
+      properties:
+        id: { type: string }
+        actorUserId: { type: string }
+        orderId: { type: string }
+        orderNo: { type: string }
+        rating: { type: integer, minimum: 1, maximum: 5 }
+        content: { type: string, nullable: true, maxLength: 2000 }
+        status: { type: string, enum: [SUBMITTED] }
+        version: { type: integer, format: int64, minimum: 0 }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    EmployeeMealReviewRequest:
+      type: object
+      required: [orderId, rating]
+      properties:
+        orderId: { type: string, minLength: 1, maxLength: 64 }
+        rating: { type: integer, minimum: 1, maximum: 5 }
+        content: { type: string, nullable: true, maxLength: 2000 }
+    DinerComplaint:
+      type: object
+      required: [id, actorUserId, category, subject, description, status, version, createdAt, updatedAt]
+      properties:
+        id: { type: string }
+        actorUserId: { type: string }
+        category: { type: string, enum: [FOOD_QUALITY, SERVICE, HYGIENE, QUEUE, PAYMENT, OTHER] }
+        subject: { type: string, maxLength: 120 }
+        description: { type: string, maxLength: 2000 }
+        relatedOrderId: { type: string, nullable: true }
+        status: { type: string, enum: [SUBMITTED] }
+        reply: { type: string, nullable: true, maxLength: 3000 }
+        version: { type: integer, format: int64, minimum: 0 }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    DinerComplaintRequest:
+      type: object
+      required: [category, subject, description]
+      properties:
+        category: { type: string, enum: [FOOD_QUALITY, SERVICE, HYGIENE, QUEUE, PAYMENT, OTHER] }
+        subject: { type: string, minLength: 1, maxLength: 120 }
+        description: { type: string, minLength: 1, maxLength: 2000 }
+        relatedOrderId: { type: string, nullable: true, maxLength: 64 }
     MenuQueryResult:
       description: menuId 查询返回单个菜单；日期查询返回已发布菜单分页结果。
       oneOf:
@@ -3814,6 +3950,28 @@ components:
         records:
           type: array
           items: { $ref: '#/components/schemas/MealOrder' }
+    PageViewMealReview:
+      type: object
+      required: [total, pages, current, size, records]
+      properties:
+        total: { type: integer, format: int64 }
+        pages: { type: integer, format: int64 }
+        current: { type: integer }
+        size: { type: integer }
+        records:
+          type: array
+          items: { $ref: '#/components/schemas/MealReview' }
+    PageViewDinerComplaint:
+      type: object
+      required: [total, pages, current, size, records]
+      properties:
+        total: { type: integer, format: int64 }
+        pages: { type: integer, format: int64 }
+        current: { type: integer }
+        size: { type: integer }
+        records:
+          type: array
+          items: { $ref: '#/components/schemas/DinerComplaint' }
     PageViewSupplier:
       type: object
       required: [total, pages, current, size, records]
@@ -3893,6 +4051,20 @@ components:
         code: { type: integer }
         message: { type: string }
         data: { $ref: '#/components/schemas/PageViewMealOrder' }
+    MealReviewPageResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code: { type: integer }
+        message: { type: string }
+        data: { $ref: '#/components/schemas/PageViewMealReview' }
+    DinerComplaintPageResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code: { type: integer }
+        message: { type: string }
+        data: { $ref: '#/components/schemas/PageViewDinerComplaint' }
     SupplierPageResponse:
       type: object
       required: [code, message, data]
@@ -3949,6 +4121,20 @@ components:
         code: { type: integer }
         message: { type: string }
         data: { $ref: '#/components/schemas/MealOrder' }
+    MealReviewResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code: { type: integer }
+        message: { type: string }
+        data: { $ref: '#/components/schemas/MealReview' }
+    DinerComplaintResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code: { type: integer }
+        message: { type: string }
+        data: { $ref: '#/components/schemas/DinerComplaint' }
     SupplierResponse:
       type: object
       required: [code, message, data]

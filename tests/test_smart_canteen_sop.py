@@ -20,7 +20,7 @@ def test_sop_manifest_and_run_are_valid() -> None:
         check=False,
     )
     assert result.returncode == 0, result.stdout + result.stderr
-    assert "Validated 14 SOPs and 1 compositions" in result.stdout
+    assert "Validated 18 SOPs and 1 compositions" in result.stdout
 
 
 def test_closed_loop_run_covers_menu_procurement_inventory_and_traceability() -> None:

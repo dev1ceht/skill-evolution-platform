@@ -58,6 +58,14 @@ import type {
   MealSuspensionResponse,
   MealSuspensionRequest,
   MealReviewRequest,
+  MealReview,
+  MealReviewPageResponse,
+  MealReviewResponse,
+  EmployeeMealReviewRequest,
+  DinerComplaint,
+  DinerComplaintPageResponse,
+  DinerComplaintResponse,
+  DinerComplaintRequest,
   SupplierComplaint,
   SupplierComplaintStatus,
   SupplierComplaintPageResponse,
@@ -193,6 +201,21 @@ export interface SmartCanteenApiPort {
     scope: CanteenScope,
   ): Promise<MealOrder>;
   cancelMealOrder?(orderId: string, scope: CanteenScope): Promise<MealOrder>;
+  listMealReviews?(scope: CanteenScope): Promise<MealReview[]>;
+  createMealReview?(
+    request: EmployeeMealReviewRequest,
+    idempotencyKey: string,
+    scope: CanteenScope,
+  ): Promise<MealReview>;
+  listDinerComplaints?(
+    scope: CanteenScope,
+    status?: 'SUBMITTED',
+  ): Promise<DinerComplaint[]>;
+  createDinerComplaint?(
+    request: DinerComplaintRequest,
+    idempotencyKey: string,
+    scope: CanteenScope,
+  ): Promise<DinerComplaint>;
   listIngredients?(scope: CanteenScope, keyword?: string, category?: string): Promise<Ingredient[]>;
   createIngredient?(request: IngredientRequest, scope: CanteenScope): Promise<Ingredient>;
   updateIngredient?(
@@ -874,6 +897,49 @@ export class SmartCanteenApi implements SmartCanteenApiPort {
       `/api/v1/meal-orders/${encodeURIComponent(orderId)}/cancel`,
       undefined,
       { params: scope },
+    );
+    return unwrap(response);
+  }
+
+  async listMealReviews(scope: CanteenScope): Promise<MealReview[]> {
+    const response = await this.client.get<MealReviewPageResponse>('/api/v1/meal-reviews', {
+      params: { ...scope, page: 1, size: 100 },
+    });
+    return unwrap(response).records;
+  }
+
+  async createMealReview(
+    request: EmployeeMealReviewRequest,
+    idempotencyKey: string,
+    scope: CanteenScope,
+  ): Promise<MealReview> {
+    const response = await this.client.post<MealReviewResponse>(
+      '/api/v1/meal-reviews',
+      request,
+      { params: scope, headers: { 'Idempotency-Key': idempotencyKey } },
+    );
+    return unwrap(response);
+  }
+
+  async listDinerComplaints(
+    scope: CanteenScope,
+    status?: 'SUBMITTED',
+  ): Promise<DinerComplaint[]> {
+    const response = await this.client.get<DinerComplaintPageResponse>('/api/v1/diner-complaints', {
+      params: { ...scope, page: 1, size: 100, ...(status ? { status } : {}) },
+    });
+    return unwrap(response).records;
+  }
+
+  async createDinerComplaint(
+    request: DinerComplaintRequest,
+    idempotencyKey: string,
+    scope: CanteenScope,
+  ): Promise<DinerComplaint> {
+    const response = await this.client.post<DinerComplaintResponse>(
+      '/api/v1/diner-complaints',
+      request,
+      { params: scope, headers: { 'Idempotency-Key': idempotencyKey } },
     );
     return unwrap(response);
   }

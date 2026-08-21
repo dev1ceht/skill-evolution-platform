@@ -1,0 +1,64 @@
+{
+  "taskId": "SC-010",
+  "title": "实现员工/学生评价与投诉提交切片",
+  "status": "completed",
+  "owner": "Codex",
+  "governanceMode": "post-completion-iteration-after-SC-009",
+  "goal": "让 DINER 用户能够对自己的未取消消费订单提交一次 1～5 星评价并查询个人评价，同时提交带分类、主题和描述的个人投诉并查询投诉状态；对应助手写入必须先确认。",
+  "allowedPaths": [
+    "backend/src/main/java/com/example/smartcanteen/assistant/**",
+    "backend/src/main/java/com/example/smartcanteen/agent/**",
+    "backend/src/main/java/com/example/smartcanteen/application/**",
+    "backend/src/main/java/com/example/smartcanteen/domain/**",
+    "backend/src/main/java/com/example/smartcanteen/http/**",
+    "backend/src/main/java/com/example/smartcanteen/infrastructure/**",
+    "backend/src/main/resources/db/migration/**",
+    "backend/src/test/java/**",
+    "frontend/src/**",
+    "frontend/tests/**",
+    "contracts/smart-canteen.openapi.yaml",
+    "contracts/generated/**",
+    "docs/smart-canteen/**",
+    ".project-to-act/**",
+    "README.md"
+  ],
+  "invariants": [
+    "评价和投诉的 actorUserId 只能来自当前认证身份，请求体和 Agent 参数不能覆盖身份。",
+    "评价只能引用当前 scope 下当前用户自己的未取消消费订单；同一订单最多一条评价。",
+    "评价分数只能是 1～5；评价内容可选但长度受服务端限制。",
+    "投诉只返回当前用户自己的记录；投诉分类、主题和描述由服务端重新校验，初始状态固定为 SUBMITTED。",
+    "评价和投诉创建均使用当前 actor + scope + Idempotency-Key 幂等；同键不同载荷拒绝复用。",
+    "meal_review.create 和 diner_complaint.create 通过助手执行时必须先进入 WAITING_CONFIRMATION，确认后才写入。",
+    "本轮不接支付、退款、真实金额结算、评价分析、投诉管理端受理回复、POS 或库存扣减。"
+  ],
+  "acceptance": [
+    "DINER 能通过 API 和前端查看自己的评价记录。",
+    "DINER 能对自己的未取消消费订单提交一次 1～5 星评价，重复评价被拒绝且同键重放返回同一评价。",
+    "DINER 能提交分类、主题、描述和可选关联订单的投诉，并只能查询自己的投诉。",
+    "投诉初始状态为 SUBMITTED，当前切片不自动生成虚构回复。",
+    "助手可识别个人评价/投诉查询；评价和投诉创建会生成确认计划，确认后才执行。",
+    "跨用户订单评价、跨用户评价/投诉读取、越权字段和非法评分被拒绝。",
+    "员工端覆盖评价表单、投诉表单、列表刷新、加载、空状态和错误反馈。",
+    "定向/全量 Java、前端类型检查与测试、Python/SOP/项目治理校验通过。"
+  ],
+  "checks": [
+    "mvn -q -Dtest=MealReviewToolExecutorTest,DinerComplaintToolExecutorTest,EmployeeFeedbackControllerHttpTest,RuleBasedAssistantIntentResolverTest,YamlSkillRegistryTest test",
+    "mvn -q test",
+    "npm run build",
+    "npm run test",
+    "python -m pytest -q --basetemp .pytest-tmp-sc010",
+    "python skills/smart-canteen-sop/scripts/validate_sop_manifest.py --manifest docs/smart-canteen/sop-manifests.yaml",
+    "python C:\\Users\\th\\.agents\\skills\\project-to-act\\scripts\\init_project_management.py --project-root D:\\project\\smart-canteen --validate",
+    "git diff --check"
+  ],
+  "dependencies": [
+    "SC-009 员工/学生菜单与个人消费订单切片",
+    "SC-003 DINER 角色和服务端身份上下文",
+    "现有助手确认式 Agent Run 和 Skill Registry"
+  ],
+  "evidence": [
+    "E-SC010-TESTS",
+    "E-SC010-REVIEW"
+  ],
+  "rollback": "回退 SC-010 变更即可移除 meal_reviews/diner_complaints 表、评价/投诉 API、Tool、Skill 和员工端反馈面板；保留既有菜单和消费订单切片。"
+}
