@@ -7,8 +7,10 @@ import com.example.smartcanteen.domain.DailyMenuItem;
 import com.example.smartcanteen.domain.Dish;
 import com.example.smartcanteen.domain.PageResult;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,6 +38,61 @@ public class DailyMenuService {
     @Transactional(readOnly = true)
     public DailyMenu get(CanteenScope scope, String menuId) {
         return requireMenu(scope, menuId);
+    }
+
+    /** Public menu lookup: draft and approval-in-progress menus are not business facts for diners. */
+    @Transactional(readOnly = true)
+    public DailyMenu getPublished(CanteenScope scope, String menuId) {
+        DailyMenu menu = requireMenu(scope, menuId);
+        if (!"PUBLISHED".equals(menu.status())) {
+            throw new IllegalArgumentException("Published daily menu not found: " + menuId);
+        }
+        return menu;
+    }
+
+    /**
+     * Lists only published menus for the public/read-only assistant path.
+     *
+     * <p>The persistence port deliberately exposes all lifecycle states because approval and
+     * scheduling need them. This application boundary applies the public-state filter and then
+     * paginates the result, so callers cannot accidentally expose a draft menu.</p>
+     */
+    @Transactional(readOnly = true)
+    public PageResult<DailyMenu> listPublished(
+            CanteenScope scope,
+            LocalDate from,
+            LocalDate to,
+            String mealTime,
+            int page,
+            int size) {
+        LocalDate start = from == null ? LocalDate.now() : from;
+        LocalDate end = to == null ? start : to;
+        if (end.isBefore(start)) {
+            throw new IllegalArgumentException("endDate cannot be before startDate");
+        }
+        if (page < 1 || size < 1) {
+            throw new IllegalArgumentException("Page current and size must be positive");
+        }
+        String normalizedMealTime = normalizeMealTime(mealTime);
+        List<DailyMenu> allMenus = new ArrayList<>();
+        int sourcePage = 1;
+        PageResult<DailyMenu> source;
+        do {
+            source = store.listDailyMenus(scope, start, end, sourcePage, 100);
+            allMenus.addAll(source.records());
+            sourcePage++;
+        } while (!source.records().isEmpty() && allMenus.size() < source.total());
+
+        List<DailyMenu> published = allMenus.stream()
+                .filter(menu -> "PUBLISHED".equals(menu.status()))
+                .filter(menu -> normalizedMealTime == null
+                        || normalizedMealTime.equals(menu.mealTime()))
+                .toList();
+        long offset = (long) (page - 1) * size;
+        int startIndex = offset >= published.size() ? published.size() : (int) offset;
+        int endIndex = Math.min(startIndex + size, published.size());
+        return new PageResult<>(
+                published.subList(startIndex, endIndex), page, size, published.size());
     }
 
     /** Read-only preflight used by the Agent plan before a menu is submitted. */
@@ -210,5 +267,16 @@ public class DailyMenuService {
             throw new IllegalStateException(
                     "A daily menu already exists for " + menu.menuDate() + " / " + menu.mealTime());
         }
+    }
+
+    private static String normalizeMealTime(String mealTime) {
+        if (mealTime == null || mealTime.isBlank()) {
+            return null;
+        }
+        String normalized = mealTime.trim().toUpperCase(Locale.ROOT);
+        if (!Set.of("BREAKFAST", "LUNCH", "DINNER", "SNACK").contains(normalized)) {
+            throw new IllegalArgumentException("Unsupported mealTime: " + mealTime);
+        }
+        return normalized;
     }
 }

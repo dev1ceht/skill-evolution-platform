@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "projectId": "smart-canteen",
   "projectName": "Smart Canteen Business Assistant",
-  "revision": 3,
+  "revision": 5,
   "projectStatus": "active",
-  "currentStage": "6",
-  "updatedAt": "2026-08-21T09:20:07.676Z",
+  "currentStage": "7",
+  "updatedAt": "2026-08-21T10:05:31.678Z",
   "historicalLimitations": [
     "采用既有智慧食堂代码与学习数据，历史阶段以现有文档和测试为基线；从阶段5继续开发，早期阶段不可追溯部分标记为 legacy_unverified。"
   ],
@@ -130,23 +130,46 @@
     {
       "id": "6",
       "name": "评测、安全测试与调优",
-      "status": "ready",
+      "status": "passed",
       "expectedArtifacts": [
         "分切片评测",
         "红队报告",
         "错误分类与回归集"
       ],
-      "taskIds": [],
-      "evidenceIds": [],
-      "artifacts": [],
-      "decisions": [],
-      "startedAt": null,
-      "updatedAt": "2026-08-21T09:20:07.676Z"
+      "taskIds": [
+        "SC-004"
+      ],
+      "evidenceIds": [
+        "E-SC004-TESTS",
+        "E-SC004-REVIEW"
+      ],
+      "artifacts": [
+        ".project-to-act/tasks/SC-004/evidence/E-SC004-TESTS.md",
+        ".project-to-act/tasks/SC-004/evidence/E-SC004-REVIEW.md"
+      ],
+      "decisions": [
+        {
+          "at": "2026-08-21T10:05:31.678Z",
+          "decision": "passed",
+          "evidenceIds": [
+            "E-SC004-TESTS",
+            "E-SC004-REVIEW"
+          ],
+          "artifacts": [
+            ".project-to-act/tasks/SC-004/evidence/E-SC004-TESTS.md",
+            ".project-to-act/tasks/SC-004/evidence/E-SC004-REVIEW.md"
+          ],
+          "summary": "SC-004 菜单只读查询、已发布边界、互斥输入契约、全量回归和项目治理校验通过；日期/餐次共享值对象抽取留作后续优化。",
+          "nextStage": null
+        }
+      ],
+      "startedAt": "2026-08-21T09:28:08.080Z",
+      "updatedAt": "2026-08-21T10:05:31.678Z"
     },
     {
       "id": "7",
       "name": "定型发布与产品化",
-      "status": "pending",
+      "status": "ready",
       "expectedArtifacts": [
         "版本与发布清单",
         "SLO 与监控",
@@ -157,7 +180,7 @@
       "artifacts": [],
       "decisions": [],
       "startedAt": null,
-      "updatedAt": null
+      "updatedAt": "2026-08-21T10:05:31.678Z"
     },
     {
       "id": "8",
@@ -221,6 +244,38 @@
       ],
       "summary": "SC-003 code, build, regression tests, local MySQL migration, and dual-axis review passed; live AgentScope provider smoke test deferred because no model key is configured.",
       "revision": 3
+    },
+    {
+      "at": "2026-08-21T09:28:08.080Z",
+      "action": "start",
+      "fromStage": "6",
+      "toStage": "6",
+      "fromStatus": "ready",
+      "toStatus": "in_progress",
+      "taskId": "SC-004",
+      "decision": null,
+      "evidenceIds": [],
+      "artifacts": [],
+      "summary": "实现员工/学生菜单只读查询纵向切片并建立日期查询评测样例。",
+      "revision": 4
+    },
+    {
+      "at": "2026-08-21T10:05:31.678Z",
+      "action": "decision",
+      "fromStage": "6",
+      "toStage": "7",
+      "taskId": "SC-004",
+      "decision": "passed",
+      "evidenceIds": [
+        "E-SC004-TESTS",
+        "E-SC004-REVIEW"
+      ],
+      "artifacts": [
+        ".project-to-act/tasks/SC-004/evidence/E-SC004-TESTS.md",
+        ".project-to-act/tasks/SC-004/evidence/E-SC004-REVIEW.md"
+      ],
+      "summary": "SC-004 菜单只读查询、已发布边界、互斥输入契约、全量回归和项目治理校验通过；日期/餐次共享值对象抽取留作后续优化。",
+      "revision": 5
     }
   ]
 }

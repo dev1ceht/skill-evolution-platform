@@ -51,9 +51,8 @@ Memory、SubAgent、动态 Skill 和 tools 配置；本阶段不会让 HarnessAg
 
 ## 后续接入顺序
 
-1. SC-004：把菜单、库存和采购查询作为现有业务 Tool 暴露给助手。
-2. SC-005：增加确定性库存缺口和备餐分析服务，LLM 只解释结果。
-3. SC-006：在有明确价值时再接 MCP、SSE 流式事件和 SubAgent。
+1. SC-005：把库存与采购只读查询接入现有业务 Tool，并增加确定性缺口分析，LLM 只解释结果。
+2. SC-006：在有明确价值时再接 MCP、SSE 流式事件和 SubAgent。
 
 当前不启用 AgentScope 的 Sandbox、SubAgent、MCP 和持久 Memory；它们属于后续需求驱动的
 扩展点，不是首个可运行切片的前置条件。

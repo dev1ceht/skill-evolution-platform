@@ -1,0 +1,46 @@
+{
+  "taskId": "SC-004",
+  "title": "实现员工/学生菜单只读查询纵向切片",
+  "status": "completed",
+  "owner": "Codex",
+  "goal": "让员工/学生可以通过智慧食堂助手查询今天或指定日期的已发布菜单，同时保持已有菜单 ID 查询兼容，并将业务事实继续交给菜单服务和 Tool 提供。",
+  "allowedPaths": [
+    "README.md",
+    "backend/src/main/java/com/example/smartcanteen/assistant/**",
+    "backend/src/main/java/com/example/smartcanteen/agent/**",
+    "backend/src/main/java/com/example/smartcanteen/application/DailyMenuService.java",
+    "backend/src/test/java/com/example/smartcanteen/assistant/**",
+    "backend/src/test/java/com/example/smartcanteen/agent/**",
+    "backend/src/test/java/com/example/smartcanteen/http/AssistantControllerHttpTest.java",
+    "contracts/smart-canteen.openapi.yaml",
+    "docs/smart-canteen/**",
+    ".project-to-act/**"
+  ],
+  "invariants": [
+    "AgentScope、模型和解析器不能直接访问数据库；菜单事实必须由 DailyMenuService 和 menu.query Tool 提供。",
+    "员工/学生菜单查询只返回已发布菜单，不向公开查询泄露草稿、待审批或已驳回菜单。",
+    "menu.query 保持只读、可重复执行且不创建业务写入。",
+    "已有按 menuId 查询的调用保持兼容；日期查询使用 ISO-8601 日期，mealTime 只允许已有领域枚举。",
+    "查询范围继续来自服务端 ExecutionContext/CanteenScope，用户输入不能扩大租户或食堂范围。",
+    "本切片不实现库存、采购、备餐计划写入或多 Agent 编排。"
+  ],
+  "acceptance": [
+    "规则解析器能把‘今天有什么菜’解析为 menu.query 日期查询，并能解析指定日期与午餐。",
+    "HTTP 助手能返回指定日期的已发布菜单；未发布菜单不会出现在公共查询结果中。",
+    "menu.query Tool 同时支持 menuId 和 menuDate/mealTime 两种只读输入，并对缺少查询条件或非法日期给出确定性错误。",
+    "DINER、CANTEEN_STAFF、SCHOOL_ADMIN 的既有权限行为不回归；菜单查询不会获得运营写权限。",
+    "Maven 定向测试、全量测试、项目治理校验和生命周期校验通过。"
+  ],
+  "checks": [
+    "mvn -q -Dtest=RuleBasedAssistantIntentResolverTest,MenuToolExecutorTest,AssistantControllerHttpTest test",
+    "mvn -q test",
+    "python C:\\Users\\th\\.agents\\skills\\project-to-act\\scripts\\init_project_management.py --project-root D:\\project\\smart-canteen --validate",
+    "python C:\\Users\\th\\.agents\\skills\\develop-ai-agents\\scripts\\manage_lifecycle.py --project-root D:\\project\\smart-canteen validate"
+  ],
+  "dependencies": [
+    "SC-001 菜单领域与 SOP 边界",
+    "SC-002 学习环境业务事实数据集",
+    "SC-003 AgentScope HarnessAgent 与角色上下文"
+  ],
+  "rollback": "回退本切片提交即可恢复 menu.query 仅按 menuId 查询的行为；不触碰菜单写入生命周期。"
+}

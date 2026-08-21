@@ -30,30 +30,30 @@ class AssistantIntentResolverRouterTest {
                 new CanteenScope("SCHOOL-001", "CANTEEN-001"),
                 Set.of(Role.DINER),
                 Set.of("MENU_READ"));
-        when(model.resolve("帮我看看今天有什么菜", Optional.empty(), context))
+        when(model.resolve("请帮我查看用餐安排", Optional.empty(), context))
                 .thenReturn(Optional.of(AssistantResolution.menuQuery("M001")));
 
         AssistantIntentResolverRouter router = new AssistantIntentResolverRouter(
                 rules, model, true);
 
         AssistantResolution result = router.resolve(
-                "帮我看看今天有什么菜", Optional.empty(), Optional.empty(), context);
+                "请帮我查看用餐安排", Optional.empty(), Optional.empty(), context);
 
         assertThat(result.type()).isEqualTo(AssistantResolution.Type.MENU_QUERY);
-        verify(model).resolve("帮我看看今天有什么菜", Optional.empty(), context);
+        verify(model).resolve("请帮我查看用餐安排", Optional.empty(), context);
     }
 
     @Test
     void uses_the_model_adapter_for_an_unsupported_message_when_explicitly_enabled() {
         RuleBasedAssistantIntentResolver rules = new RuleBasedAssistantIntentResolver();
         AssistantModelResolver model = mock(AssistantModelResolver.class);
-        when(model.resolve("帮我看看今天有什么菜", Optional.empty()))
+        when(model.resolve("请帮我查看用餐安排", Optional.empty()))
                 .thenReturn(Optional.of(AssistantResolution.menuQuery("M001")));
 
         AssistantIntentResolverRouter router = new AssistantIntentResolverRouter(
                 rules, model, true);
 
-        AssistantResolution result = router.resolve("帮我看看今天有什么菜");
+        AssistantResolution result = router.resolve("请帮我查看用餐安排");
 
         assertThat(result.type()).isEqualTo(AssistantResolution.Type.MENU_QUERY);
         assertThat(result.menuId()).isEqualTo("M001");
@@ -66,10 +66,10 @@ class AssistantIntentResolverRouterTest {
         AssistantIntentResolverRouter router = new AssistantIntentResolverRouter(
                 rules, model, false);
 
-        AssistantResolution result = router.resolve("帮我看看今天有什么菜");
+        AssistantResolution result = router.resolve("请帮我查看用餐安排");
 
         assertThat(result.type()).isEqualTo(AssistantResolution.Type.UNSUPPORTED);
-        verify(model, never()).resolve("帮我看看今天有什么菜", Optional.empty());
+        verify(model, never()).resolve("请帮我查看用餐安排", Optional.empty());
     }
 
     @Test

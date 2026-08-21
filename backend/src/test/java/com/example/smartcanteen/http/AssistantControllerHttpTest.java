@@ -226,6 +226,36 @@ class AssistantControllerHttpTest {
     }
 
     @Test
+    void resolves_a_date_menu_query_and_returns_only_published_menus() throws Exception {
+        jdbc.update(
+                "INSERT INTO daily_menus (school_id, canteen_id, menu_id, menu_date, meal_time, status, version) "
+                        + "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                SCHOOL_ID, CANTEEN_ID, "M003", "2026-08-17", "LUNCH", "PUBLISHED", 2);
+        jdbc.update(
+                "INSERT INTO daily_menu_items (school_id, canteen_id, menu_id, dish_id, estimated_quantity, sort_order) "
+                        + "VALUES (?, ?, ?, ?, ?, ?)",
+                SCHOOL_ID, CANTEEN_ID, "M003", "DISH-ASSIST-001", 120, 1);
+        jdbc.update(
+                "INSERT INTO daily_menus (school_id, canteen_id, menu_id, menu_date, meal_time, status, version) "
+                        + "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                SCHOOL_ID, CANTEEN_ID, "M004", "2026-08-17", "DINNER", "DRAFT", 1);
+
+        mvc.perform(message(
+                        "menu-date-message-001",
+                        "查询 2026-08-17 的菜单",
+                        "CONV-ASSIST-MENU-DATE"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.kind").value("RESULT"))
+                .andExpect(jsonPath("$.data.intent").value("menu.query"))
+                .andExpect(jsonPath("$.data.runStatus").value("SUCCEEDED"))
+                .andExpect(jsonPath("$.data.result.records.length()").value(1))
+                .andExpect(jsonPath("$.data.result.records[0].id").value("M003"))
+                .andExpect(jsonPath("$.data.result.records[0].status").value("PUBLISHED"))
+                .andExpect(jsonPath("$.data.message").value(
+                        org.hamcrest.Matchers.containsString("2026-08-17")));
+    }
+
+    @Test
     void previews_and_confirms_a_menu_publish_without_bypassing_domain_approval() throws Exception {
         jdbc.update(
                 "INSERT INTO daily_menus (school_id, canteen_id, menu_id, menu_date, meal_time, "

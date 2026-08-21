@@ -723,14 +723,18 @@ public class AssistantConversationService {
             String idempotencyKey,
             ExecutionContext context,
             AuthPrincipal principal) {
+        Map<String, Object> input = new LinkedHashMap<>(resolution.parameters());
+        if (resolution.menuId() != null) {
+            input.put("menuId", resolution.menuId());
+        }
         return executeReadOnly(
                 conversation,
                 resolution.intent(),
-                Map.of("menuId", resolution.menuId()),
+                input,
                 idempotencyKey,
                 context,
                 principal,
-                (run, result) -> assistantMenuMessage(run, result, resolution.menuId()));
+                (run, result) -> assistantMenuMessage(run, result, resolution));
     }
 
     private AssistantTurn executeReadOnly(
@@ -814,10 +818,21 @@ public class AssistantConversationService {
                 + "」、批次「" + batch + "」、供应商「" + supplier + "」。";
     }
 
-    private static String assistantMenuMessage(AgentRun run, JsonNode result, String menuId) {
+    private static String assistantMenuMessage(
+            AgentRun run, JsonNode result, AssistantResolution resolution) {
         if (!"SUCCEEDED".equals(run.status().name())) {
             return "菜单查询未完成，请查看运行状态后重试或人工处理。";
         }
+        if (result != null && result.path("records").isArray()) {
+            String date = resolution.parameters().getOrDefault("menuDate", "未知日期");
+            String mealTime = resolution.parameters().getOrDefault("mealTime", "全部餐次");
+            long total = result.path("total").canConvertToLong()
+                    ? result.path("total").asLong()
+                    : result.path("records").size();
+            return "已完成菜单查询：日期「" + date + "」、餐次「" + mealTime
+                    + "」，共 " + total + " 个已发布菜单。";
+        }
+        String menuId = resolution.menuId() == null ? "未知菜单" : resolution.menuId();
         String date = textOr(result, "menuDate", "未知日期");
         String mealTime = textOr(result, "mealTime", "未知餐次");
         String status = textOr(result, "status", "未知状态");

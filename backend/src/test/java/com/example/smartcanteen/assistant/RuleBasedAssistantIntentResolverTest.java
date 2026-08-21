@@ -7,6 +7,7 @@ import com.example.smartcanteen.assistant.domain.AssistantClarification;
 import com.example.smartcanteen.assistant.domain.AssistantPendingAction;
 import com.example.smartcanteen.assistant.domain.AssistantResolution;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
@@ -61,12 +62,32 @@ class RuleBasedAssistantIntentResolverTest {
     }
 
     @Test
-    void asks_for_a_menu_id_when_menu_query_is_missing_one() {
-        AssistantResolution result = resolver.resolve("帮我看看今天的菜单");
+    void resolves_today_menu_query_without_requiring_a_menu_id() {
+        AssistantResolution result = resolver.resolve("今天有什么菜？");
 
-        assertThat(result.type()).isEqualTo(AssistantResolution.Type.CLARIFICATION);
-        assertThat(result.missingFields()).containsExactly("menuId");
-        assertThat(result.message()).contains("M001");
+        assertThat(result.type()).isEqualTo(AssistantResolution.Type.MENU_QUERY);
+        assertThat(result.intent()).isEqualTo("menu.query");
+        assertThat(result.menuId()).isNull();
+        assertThat(result.parameters()).containsEntry("menuDate", LocalDate.now().toString());
+    }
+
+    @Test
+    void resolves_a_date_and_meal_time_menu_query() {
+        AssistantResolution result = resolver.resolve("查询 2026-08-17 午餐菜单");
+
+        assertThat(result.type()).isEqualTo(AssistantResolution.Type.MENU_QUERY);
+        assertThat(result.menuId()).isNull();
+        assertThat(result.parameters())
+                .containsEntry("menuDate", "2026-08-17")
+                .containsEntry("mealTime", "LUNCH");
+    }
+
+    @Test
+    void accepts_an_iso_date_outside_the_current_century() {
+        AssistantResolution result = resolver.resolve("查询 1999-08-17 的菜单");
+
+        assertThat(result.type()).isEqualTo(AssistantResolution.Type.MENU_QUERY);
+        assertThat(result.parameters()).containsEntry("menuDate", "1999-08-17");
     }
 
     @Test

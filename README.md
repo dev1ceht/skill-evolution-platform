@@ -64,6 +64,16 @@ SC-003 已加入 AgentScope Java 2.0 HarnessAgent 的可选意图解析通道，
 `deepseek-http` 适配器。角色上下文、启用方式和当前边界见
 [`docs/smart-canteen/agentscope-runtime.md`](docs/smart-canteen/agentscope-runtime.md)。
 
+SC-004 已接入员工/学生菜单只读查询。助手请求会沿用服务端学校/食堂范围，通过
+`menu.query` Tool 查询业务服务；按 `menuId` 查询返回单个菜单，按“今天”或 `YYYY-MM-DD`
+查询返回已发布菜单列表，草稿和审批中的菜单不会作为公开结果返回。示例消息：
+
+```text
+今天有什么菜？
+查询 2026-08-17 午餐菜单
+请查询 M001 的菜单
+```
+
 > `infra/verify-stack.ps1` 只负责启动和验收基础设施，不会启动前端或后端。
 
 ## 快速验证

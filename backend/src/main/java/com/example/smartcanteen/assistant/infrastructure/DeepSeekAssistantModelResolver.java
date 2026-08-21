@@ -12,6 +12,8 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -53,7 +55,7 @@ public class DeepSeekAssistantModelResolver implements AssistantModelResolver {
             你是智慧食堂助手的意图分类器。只能输出一个 JSON 对象，不要 Markdown，不要解释。
             允许的 type 只有 TRACEABILITY_QUERY、MENU_QUERY、CLARIFICATION、UNSUPPORTED。
             TRACEABILITY_QUERY 必须包含 intent=traceability.query 和 TRACE- 或 TRACE_ 开头的 traceCode。
-            MENU_QUERY 必须包含 intent=menu.query 和短格式 M001 或 MABC123 的 menuId。
+            MENU_QUERY 必须包含 intent=menu.query，并且二选一：只含短格式 M001 或 MABC123 的 menuId，或 ISO 日期格式的 menuDate；只有日期查询可选 mealTime，且只能是 BREAKFAST、LUNCH、DINNER、SNACK。
             CLARIFICATION 可以包含 intent、missingFields 数组和 message。
             不得输出 WRITE_REQUEST、MENU_PUBLISH_REQUEST、CONFIRM_PENDING_ACTION 或 CANCEL_PENDING_ACTION。
             JSON 示例：{"type":"TRACEABILITY_QUERY","intent":"traceability.query","traceCode":"TRACE-001"}
@@ -219,7 +221,24 @@ public class DeepSeekAssistantModelResolver implements AssistantModelResolver {
 
     private Optional<AssistantResolution> menu(JsonNode result) {
         String menuId = normalizedShortMenuId(result.path("menuId").asText(null));
-        return menuId == null ? Optional.empty() : Optional.of(AssistantResolution.menuQuery(menuId));
+        String menuDate = result.path("menuDate").asText(null);
+        String mealTime = result.path("mealTime").asText(null);
+        if (menuId != null) {
+            if ((menuDate != null && !menuDate.isBlank())
+                    || (mealTime != null && !mealTime.isBlank())) {
+                return Optional.empty();
+            }
+            return Optional.of(AssistantResolution.menuQuery(menuId));
+        }
+        if (menuDate == null || menuDate.isBlank()) {
+            return Optional.empty();
+        }
+        try {
+            LocalDate date = LocalDate.parse(menuDate.trim());
+            return Optional.of(AssistantResolution.menuQueryByDate(date, mealTime));
+        } catch (DateTimeParseException | IllegalArgumentException exception) {
+            return Optional.empty();
+        }
     }
 
     private Optional<AssistantResolution> clarification(JsonNode result, String message) {

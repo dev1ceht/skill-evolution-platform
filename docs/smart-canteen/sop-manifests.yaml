@@ -9,30 +9,30 @@ defaults:
 sops:
   - id: "smart-canteen.menu-query"
     version: "1.0.0"
-    trigger: ["查询日菜单", "查看今天的菜单"]
+    trigger: ["查询日菜单", "查看今天的菜单", "查询指定日期菜单"]
     risk_level: "low"
     approval: "not-required"
     permissions: ["MENU_READ"]
     scope: "schoolId + canteenId"
-    preconditions: ["菜单属于当前学校和食堂范围"]
+    preconditions: ["菜单属于当前学校和食堂范围", "公开查询只返回已发布菜单"]
     idempotency: "只读查询可安全重放"
     timeout: { mode: "request-bound", enforced: true }
-    steps: ["load-menu", "return-menu-snapshot"]
+    steps: ["resolve-menu-id-or-date", "load-published-menu", "return-menu-snapshot"]
     rollback: "not-applicable"
     requirements: ["MENU-001"]
     references: ["skills/smart-canteen-sop/references/menu-approval.md"]
     implementation:
-      modules: ["backend/src/main/java/com/example/smartcanteen/application/DailyMenuService.java"]
+      modules: ["backend/src/main/java/com/example/smartcanteen/application/DailyMenuService.java", "backend/src/main/java/com/example/smartcanteen/agent/infrastructure/MenuToolExecutor.java"]
       apis: ["contracts/integration-plan.json"]
       migrations: ["backend/src/main/resources/db/migration/V5__create_operational_core.sql"]
-      tests: ["backend/src/test/java/com/example/smartcanteen/http/AssistantControllerHttpTest.java"]
+      tests: ["backend/src/test/java/com/example/smartcanteen/assistant/RuleBasedAssistantIntentResolverTest.java", "backend/src/test/java/com/example/smartcanteen/agent/MenuToolExecutorTest.java", "backend/src/test/java/com/example/smartcanteen/http/AssistantControllerHttpTest.java"]
       verification: ["docs/smart-canteen/phase5-verification.json"]
     adapters: [{ name: "JdbcOperationalStore", status: "implemented" }]
     evidence: ["docs/smart-canteen/phase5-traceability.md"]
     runtime:
       intents: ["menu.query"]
       input_schema: "#/components/schemas/MenuQueryIntent"
-      output_schema: "#/components/schemas/DailyMenu"
+      output_schema: "#/components/schemas/MenuQueryResult"
       tools: ["menu.query"]
       tool_by_intent: { menu.query: "menu.query" }
       side_effect: "read"

@@ -1,6 +1,10 @@
 package com.example.smartcanteen.assistant.domain;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -54,8 +58,27 @@ public record AssistantResolution(
             if (!"menu.query".equals(intent)) {
                 throw new IllegalArgumentException("Menu resolution must select menu.query");
             }
-            if (menuId == null || menuId.isBlank()) {
-                throw new IllegalArgumentException("Menu resolution requires menuId");
+            boolean hasMenuId = menuId != null && !menuId.isBlank();
+            boolean hasMenuDate = parameters.containsKey("menuDate")
+                    && parameters.get("menuDate") != null
+                    && !parameters.get("menuDate").isBlank();
+            if (!hasMenuId && !hasMenuDate) {
+                throw new IllegalArgumentException(
+                        "Menu resolution requires menuId or menuDate");
+            }
+            if (hasMenuId && hasMenuDate) {
+                throw new IllegalArgumentException(
+                        "Menu resolution cannot contain both menuId and menuDate");
+            }
+            if (hasMenuId && parameters.containsKey("mealTime")
+                    && parameters.get("mealTime") != null
+                    && !parameters.get("mealTime").isBlank()) {
+                throw new IllegalArgumentException(
+                        "Menu resolution cannot contain menuId and mealTime");
+            }
+            if (hasMenuDate) {
+                validateMenuDate(parameters.get("menuDate"));
+                validateMealTime(parameters.get("mealTime"));
             }
             if (traceCode != null) {
                 throw new IllegalArgumentException("Menu resolution cannot contain traceCode");
@@ -122,6 +145,23 @@ public record AssistantResolution(
                 List.of(),
                 "已识别为日菜单查询。",
                 Map.of());
+    }
+
+    public static AssistantResolution menuQueryByDate(LocalDate menuDate, String mealTime) {
+        Objects.requireNonNull(menuDate, "menuDate");
+        Map<String, String> parameters = new LinkedHashMap<>();
+        parameters.put("menuDate", menuDate.toString());
+        if (mealTime != null && !mealTime.isBlank()) {
+            parameters.put("mealTime", mealTime.trim().toUpperCase(Locale.ROOT));
+        }
+        return new AssistantResolution(
+                Type.MENU_QUERY,
+                "menu.query",
+                null,
+                null,
+                List.of(),
+                "已识别为按日期的日菜单查询。",
+                parameters);
     }
 
     public static AssistantResolution menuPublish(String menuId) {
@@ -201,5 +241,26 @@ public record AssistantResolution(
 
     public static boolean isWriteIntent(String intent) {
         return WRITE_INTENTS.contains(intent);
+    }
+
+    private static void validateMenuDate(String value) {
+        try {
+            LocalDate parsed = LocalDate.parse(value);
+            if (!parsed.toString().equals(value)) {
+                throw new IllegalArgumentException("menuDate must be YYYY-MM-DD");
+            }
+        } catch (DateTimeParseException exception) {
+            throw new IllegalArgumentException("menuDate must be YYYY-MM-DD", exception);
+        }
+    }
+
+    private static void validateMealTime(String value) {
+        if (value == null || value.isBlank()) {
+            return;
+        }
+        String normalized = value.trim().toUpperCase(Locale.ROOT);
+        if (!Set.of("BREAKFAST", "LUNCH", "DINNER", "SNACK").contains(normalized)) {
+            throw new IllegalArgumentException("Unsupported mealTime: " + value);
+        }
     }
 }

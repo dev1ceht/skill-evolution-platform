@@ -6,8 +6,10 @@ import com.example.smartcanteen.application.DailyMenuService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
-import java.util.Set;
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.Objects;
+import java.util.Set;
 import org.springframework.stereotype.Component;
 
 /** Executes canonical daily-menu writes after the Agent run confirmation gate. */
@@ -38,23 +40,27 @@ public class MenuToolExecutor implements ToolExecutor {
     public ToolResult execute(String toolName, ExecutionContext context, String inputJson) {
         try {
             JsonNode input = objectMapper.readTree(inputJson);
-            String menuId = requiredText(input, "menuId");
             Object result;
             switch (toolName) {
-                case "menu.query" -> result = menus.get(context.scope(), menuId);
-                case "menu.validate-for-submit" -> result = menus.validateForSubmit(
-                        context.scope(), menuId, requiredLong(input, "menuVersion"));
+                case "menu.query" -> result = query(context, input);
+                case "menu.validate-for-submit" -> {
+                    String menuId = requiredText(input, "menuId");
+                    result = menus.validateForSubmit(
+                            context.scope(), menuId, requiredLong(input, "menuVersion"));
+                }
                 case "menu.submit" -> result = menus.submitForApproval(
-                        context.scope(), menuId, requiredLong(input, "menuVersion"), context.actorUserId());
+                        context.scope(), requiredText(input, "menuId"),
+                        requiredLong(input, "menuVersion"), context.actorUserId());
                 case "menu.record-decision" -> result = menus.recordDecision(
                         context.scope(),
-                        menuId,
+                        requiredText(input, "menuId"),
                         requiredLong(input, "menuVersion"),
                         requiredText(input, "decision"),
                         optionalText(input, "comment"),
                         context.actorUserId());
                 case "menu.publish" -> result = menus.publish(
-                        context.scope(), menuId, requiredLong(input, "menuVersion"), context.actorUserId());
+                        context.scope(), requiredText(input, "menuId"),
+                        requiredLong(input, "menuVersion"), context.actorUserId());
                 default -> throw new IllegalArgumentException("Tool is not registered: " + toolName);
             }
             return new ToolResult(objectMapper.writeValueAsString(result));
@@ -63,6 +69,34 @@ public class MenuToolExecutor implements ToolExecutor {
         } catch (IOException exception) {
             throw new IllegalArgumentException("Invalid menu tool input", exception);
         }
+    }
+
+    private Object query(ExecutionContext context, JsonNode input) {
+        String menuId = optionalText(input, "menuId");
+        String menuDateText = optionalText(input, "menuDate");
+        String mealTime = optionalText(input, "mealTime");
+        boolean hasMenuId = menuId != null && !menuId.isBlank();
+        boolean hasMenuDate = menuDateText != null && !menuDateText.isBlank();
+        if (hasMenuId && hasMenuDate) {
+            throw new IllegalArgumentException("menu.query cannot contain both menuId and menuDate");
+        }
+        if (hasMenuId && mealTime != null && !mealTime.isBlank()) {
+            throw new IllegalArgumentException("menu.query cannot contain menuId and mealTime");
+        }
+        if (hasMenuId) {
+            return menus.getPublished(context.scope(), menuId);
+        }
+        if (!hasMenuDate) {
+            throw new IllegalArgumentException("menuId or menuDate is required");
+        }
+        LocalDate menuDate;
+        try {
+            menuDate = LocalDate.parse(menuDateText);
+        } catch (DateTimeParseException exception) {
+            throw new IllegalArgumentException("menuDate must be YYYY-MM-DD", exception);
+        }
+        return menus.listPublished(
+                context.scope(), menuDate, menuDate, mealTime, 1, 100);
     }
 
     private static String requiredText(JsonNode input, String field) {
@@ -75,7 +109,13 @@ public class MenuToolExecutor implements ToolExecutor {
 
     private static String optionalText(JsonNode input, String field) {
         JsonNode value = input == null ? null : input.get(field);
-        return value == null || value.isNull() ? null : value.asText();
+        if (value == null || value.isNull()) {
+            return null;
+        }
+        if (!value.isTextual()) {
+            throw new IllegalArgumentException(field + " must be text");
+        }
+        return value.asText().trim();
     }
 
     private static long requiredLong(JsonNode input, String field) {

@@ -1,0 +1,21 @@
+{
+  "taskId": "SC-004",
+  "baseRevision": "dad085cc29358841f2ecd709716d00f3bb6beac2",
+  "workspace": "D:\\project\\smart-canteen",
+  "intent": "把员工/学生菜单查询从‘按 ID 查询’扩展为‘按今天/指定日期查询’，并在业务服务层落实只返回已发布菜单。",
+  "knownUncommittedBaseline": [],
+  "writeSet": [
+    "backend/src/main/java/com/example/smartcanteen/assistant/",
+    "backend/src/main/java/com/example/smartcanteen/agent/",
+    "backend/src/main/java/com/example/smartcanteen/application/DailyMenuService.java",
+    "backend/src/test/java/com/example/smartcanteen/assistant/",
+    "backend/src/test/java/com/example/smartcanteen/agent/",
+    "backend/src/test/java/com/example/smartcanteen/http/AssistantControllerHttpTest.java",
+    "contracts/smart-canteen.openapi.yaml",
+    "docs/smart-canteen/",
+    "README.md",
+    ".project-to-act/"
+  ],
+  "conflicts": [],
+  "freshness": "2026-08-21T09:35:00+08:00"
+}

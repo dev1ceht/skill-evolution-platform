@@ -97,7 +97,7 @@ public class AssistantIntentResolverRouter implements AssistantIntentResolver {
                     && (hasPrefix(resolution.traceCode(), "TRACE-")
                     || hasPrefix(resolution.traceCode(), "TRACE_"));
             case MENU_QUERY -> resolution.intent().equals("menu.query")
-                    && isShortMenuId(resolution.menuId());
+                    && (isShortMenuId(resolution.menuId()) || isDateMenuQuery(resolution));
             case MENU_PUBLISH_REQUEST, WRITE_REQUEST, CONFIRM_PENDING_ACTION, CANCEL_PENDING_ACTION -> false;
             case CLARIFICATION -> resolution.intent() == null
                     || resolution.intent().equals("traceability.query")
@@ -113,5 +113,12 @@ public class AssistantIntentResolverRouter implements AssistantIntentResolver {
 
     private static boolean isShortMenuId(String value) {
         return MenuId.isValid(value);
+    }
+
+    private static boolean isDateMenuQuery(AssistantResolution resolution) {
+        return resolution.menuId() == null
+                && resolution.parameters().containsKey("menuDate")
+                && resolution.parameters().get("menuDate") != null
+                && !resolution.parameters().get("menuDate").isBlank();
     }
 }

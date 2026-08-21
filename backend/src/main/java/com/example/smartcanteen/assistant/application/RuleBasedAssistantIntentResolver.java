@@ -4,6 +4,8 @@ import com.example.smartcanteen.assistant.domain.AssistantResolution;
 import com.example.smartcanteen.assistant.domain.AssistantClarification;
 import com.example.smartcanteen.assistant.domain.AssistantPendingAction;
 import com.example.smartcanteen.domain.MenuId;
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.Locale;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -25,7 +27,7 @@ public class RuleBasedAssistantIntentResolver implements AssistantIntentResolver
     private static final Pattern UNSUPPORTED_REQUEST = Pattern.compile(
             "采购|进货|订货|库存|预警|告警|台账|审批|报损|付款|入库|出库|采购计划",
             Pattern.CASE_INSENSITIVE);
-    private static final Pattern DATE = Pattern.compile("\\b20\\d{2}[-/.]\\d{1,2}[-/.]\\d{1,2}\\b");
+    private static final Pattern DATE = Pattern.compile("\\b\\d{4}[-/.]\\d{1,2}[-/.]\\d{1,2}\\b");
     private static final Pattern SUPPLIER_ID = Pattern.compile(
             "(?i)(?<![A-Za-z0-9])SUP(?:PLIER)?[-_][A-Za-z0-9_-]+(?![A-Za-z0-9])");
     private static final Pattern PURCHASE_ORDER_ID = Pattern.compile(
@@ -133,6 +135,8 @@ public class RuleBasedAssistantIntentResolver implements AssistantIntentResolver
         }
         boolean menuRequest = normalized.contains("菜单")
                 || normalized.contains("食谱")
+                || normalized.contains("有什么菜")
+                || normalized.contains("吃什么")
                 || normalized.contains("daily menu")
                 || normalized.contains("menu");
         if (menuRequest) {
@@ -140,9 +144,14 @@ public class RuleBasedAssistantIntentResolver implements AssistantIntentResolver
             if (menuId.isPresent()) {
                 return AssistantResolution.menuQuery(menuId.get());
             }
+            Optional<LocalDate> menuDate = findMenuDate(message);
+            if (menuDate.isPresent()) {
+                return AssistantResolution.menuQueryByDate(
+                        menuDate.get(), findMealTime(message).orElse(null));
+            }
             return AssistantResolution.clarificationFor(
                     "menu.query",
-                    "请提供日菜单 ID，例如 M001。", "menuId");
+                    "请提供菜单日期，例如“今天的菜单”或“2026-08-17 的菜单”。", "menuDate");
         }
         return AssistantResolution.unsupported(
                 "当前助手已开放食品溯源和日菜单只读查询。请说明“查询 TRACE-001 的溯源信息”"
@@ -157,6 +166,13 @@ public class RuleBasedAssistantIntentResolver implements AssistantIntentResolver
                 return Optional.of("menu.query".equals(pending.intent())
                         ? AssistantResolution.menuQuery(menuId.get())
                         : AssistantResolution.menuPublish(menuId.get()));
+            }
+            if ("menu.query".equals(pending.intent())) {
+                Optional<LocalDate> menuDate = findMenuDate(message);
+                if (menuDate.isPresent()) {
+                    return Optional.of(AssistantResolution.menuQueryByDate(
+                            menuDate.get(), findMealTime(message).orElse(null)));
+                }
             }
         }
         Matcher matcher = RESOURCE_ID.matcher(message == null ? "" : message.trim());
@@ -180,7 +196,7 @@ public class RuleBasedAssistantIntentResolver implements AssistantIntentResolver
         if ("menu.query".equals(pending.intent())) {
             return Optional.of(AssistantResolution.clarificationFor(
                     "menu.query",
-                    "请提供日菜单 ID，例如 M001。", "menuId"));
+                    "请提供菜单日期，例如“今天的菜单”或“2026-08-17 的菜单”。", "menuDate"));
         }
         if ("menu.publish".equals(pending.intent())) {
             return Optional.of(AssistantResolution.clarificationFor(
@@ -203,6 +219,58 @@ public class RuleBasedAssistantIntentResolver implements AssistantIntentResolver
 
     private static Optional<String> findMenuId(String message) {
         return MenuId.findIn(message);
+    }
+
+    private static Optional<LocalDate> findMenuDate(String message) {
+        if (message == null || message.isBlank()) {
+            return Optional.empty();
+        }
+        Matcher matcher = DATE.matcher(message);
+        if (matcher.find()) {
+            String candidate = matcher.group().replace('/', '-').replace('.', '-');
+            try {
+                return Optional.of(LocalDate.parse(candidate));
+            } catch (DateTimeParseException ignored) {
+                return Optional.empty();
+            }
+        }
+        String normalized = message.trim().toLowerCase(Locale.ROOT);
+        if (normalized.contains("今天")
+                || normalized.contains("今日")
+                || normalized.contains("today")) {
+            return Optional.of(LocalDate.now());
+        }
+        return Optional.empty();
+    }
+
+    private static Optional<String> findMealTime(String message) {
+        if (message == null || message.isBlank()) {
+            return Optional.empty();
+        }
+        String normalized = message.trim().toLowerCase(Locale.ROOT);
+        if (normalized.contains("早餐")
+                || normalized.contains("早饭")
+                || normalized.contains("早上")
+                || normalized.contains("breakfast")) {
+            return Optional.of("BREAKFAST");
+        }
+        if (normalized.contains("午餐")
+                || normalized.contains("午饭")
+                || normalized.contains("中餐")
+                || normalized.contains("中午")
+                || normalized.contains("lunch")) {
+            return Optional.of("LUNCH");
+        }
+        if (normalized.contains("晚餐")
+                || normalized.contains("晚饭")
+                || normalized.contains("晚上")
+                || normalized.contains("dinner")) {
+            return Optional.of("DINNER");
+        }
+        if (normalized.contains("加餐") || normalized.contains("snack")) {
+            return Optional.of("SNACK");
+        }
+        return Optional.empty();
     }
 
     private static boolean isResourceOnly(String message) {

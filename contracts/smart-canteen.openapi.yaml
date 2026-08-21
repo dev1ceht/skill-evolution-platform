@@ -2490,12 +2490,20 @@ components:
           maxLength: 2000
           description: 用户本轮自然语言消息；身份和业务范围不从消息中读取。
     MenuQueryIntent:
-      type: object
-      required: [menuId]
-      additionalProperties: false
-      properties:
-        menuId:
-          $ref: '#/components/schemas/MenuId'
+      description: 按菜单 ID 或日期查询已发布菜单，二者必须且只能提供一个。
+      oneOf:
+        - type: object
+          required: [menuId]
+          additionalProperties: false
+          properties:
+            menuId:
+              $ref: '#/components/schemas/MenuId'
+        - type: object
+          required: [menuDate]
+          additionalProperties: false
+          properties:
+            menuDate: { type: string, format: date }
+            mealTime: { type: string, enum: [BREAKFAST, LUNCH, DINNER, SNACK] }
     AssistantTurn:
       type: object
       description: 助手响应；菜单发布以及采购、库存、预警写入必须先返回确认计划，之后仅由明确确认或取消推进 Agent Run。写入入口仍受部署灰度开关、scope、权限和幂等策略约束。
@@ -3222,6 +3230,20 @@ components:
         decisionBy: { type: string, nullable: true }
         decisionComment: { type: string, nullable: true }
         publishedBy: { type: string, nullable: true }
+    MenuQueryResult:
+      description: menuId 查询返回单个菜单；日期查询返回已发布菜单分页结果。
+      oneOf:
+        - $ref: '#/components/schemas/DailyMenu'
+        - type: object
+          required: [records, current, size, total]
+          properties:
+            records:
+              type: array
+              items:
+                $ref: '#/components/schemas/DailyMenu'
+            current: { type: integer, minimum: 1 }
+            size: { type: integer, minimum: 1 }
+            total: { type: integer, format: int64, minimum: 0 }
     DailyMenuDecisionRequest:
       type: object
       required: [version, decision]

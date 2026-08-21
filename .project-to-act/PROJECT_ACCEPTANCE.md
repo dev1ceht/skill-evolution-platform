@@ -5,8 +5,8 @@
 
 ## 当前验收结论
 
-- 结论：SC-003 条件通过
-- 验收范围：AgentScope HarnessAgent 适配、角色上下文、DINER 角色和现有助手回归
+- 结论：SC-004 通过；SC-003 仍为条件通过
+- 验收范围：SC-004 员工/学生菜单只读查询、已发布边界、Tool 参数契约和既有权限/回归
 - 最后检查：2026-08-21（SC-003 自动化测试、数据库迁移和代码复审）
 - 遗留问题：未配置真实模型密钥，真实 AgentScope Provider 烟囱测试延期；两个模型适配器的共享响应解析器抽取延期
 
@@ -18,6 +18,7 @@
 | A-002 | 范围内功能满足完成条件 | 通过（SC-003 范围） | 对照 `PROJECT_FEATURES.md` | E-SC003-TESTS、E-SC003-REVIEW |
 | A-003 | 项目约定的测试全部通过 | 通过 | 运行 Maven/Python 测试 | E-SC003-TESTS |
 | A-004 | 阻塞与重大遗留问题已处理 | 通过（延期项已记录） | 对照 `PROJECT_PROGRESS.md` | E-SC003-REVIEW |
+| A-005 | SC-004 菜单只读切片满足验收条件 | 通过 | Java/Python 测试、治理校验、生命周期校验和双轴评审 | E-SC004-TESTS、E-SC004-REVIEW |
 
 ## 证据索引
 
@@ -26,6 +27,8 @@
 | E-SC002-DATA | 2026-08-21 | study dataset schema 检查、seed 导入、重复导入和 SQL 查询 | 0 | 工作区 HEAD `50ad495` + 数据文件 | 初始化数据成功导入；重复执行成功；缺口、溯源和预警查询有结果 | `.project-to-act/tasks/SC-002/evidence/E-SC002-DATA.md` | 当前学习环境 |
 | E-SC003-TESTS | 2026-08-21 | Maven 全量/定向测试、Python/SOP 校验、Project-to-Act 校验、MySQL 迁移验证 | 0（应用启动后人为停止） | 工作区变更 + `V28__add_diner_role.sql` | AgentScope 依赖、角色上下文、DINER 权限、28 个迁移和既有回归通过 | `.project-to-act/tasks/SC-003/evidence/E-SC003-TESTS.md` | 当前学习环境 |
 | E-SC003-REVIEW | 2026-08-21 | 固定点 `50ad495` 的 Spec/Standards 双轴代码复审 | 通过（带延期项） | 工作区变更 | 无功能性阻塞；真实 Provider 烟囱测试和共享解析器抽取延期 | `.project-to-act/tasks/SC-003/evidence/E-SC003-REVIEW.md` | 当前学习环境 |
+| E-SC004-TESTS | 2026-08-21 | SC-004 Java 定向/全量测试、Python/SOP/合约测试、Project-to-Act 和生命周期校验 | 0 | 工作区 SC-004 变更 | 菜单日期查询、已发布过滤、互斥参数、权限回归和治理检查通过；环境说明见证据文件 | `.project-to-act/tasks/SC-004/evidence/E-SC004-TESTS.md` | 当前学习环境 |
+| E-SC004-REVIEW | 2026-08-21 | 固定点 `dad085cc29358841f2ecd709716d00f3bb6beac2` 的 Spec/Standards 双轴代码复审 | 通过（带后续重构建议） | 工作区 SC-004 变更 | 无功能性阻塞；日期/餐次共享值对象抽取列为后续优化；真实 Provider 延期继承 SC-003 | `.project-to-act/tasks/SC-004/evidence/E-SC004-REVIEW.md` | 当前学习环境 |
 
 ## Gate 记录
 
@@ -40,3 +43,4 @@
 
 - 2026-08-21：SC-002 数据基线通过；SC-003 尚未验收，必须补充 Java 测试、依赖构建和生命周期验证后再决定。
 - 2026-08-21：SC-003 自动化测试、MySQL v28 迁移验证和双轴代码复审通过；AgentScope 真实 Provider 烟囱测试与共享解析器抽取作为延期改进；结论为条件通过，下一步进入 SC-004。
+- 2026-08-21：SC-004 定向/全量 Java 测试、Python/SOP/合约测试、Project-to-Act 校验、生命周期校验和双轴复审通过；日期/餐次重复校验记录为后续重构建议；结论为通过，下一步进入 SC-005。
