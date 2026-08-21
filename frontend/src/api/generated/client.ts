@@ -457,9 +457,30 @@ export type Nutrition = {
   carbohydrateG: number;
 };
 
-export type IngredientCategory = "蔬菜" | "肉禽" | "蛋奶" | "水产" | "主食" | "豆制品" | "调味品" | "干货" | "水果" | "半成品" | "其他";
+export type IngredientCategory =
+  | '蔬菜'
+  | '肉禽'
+  | '蛋奶'
+  | '水产'
+  | '主食'
+  | '豆制品'
+  | '调味品'
+  | '干货'
+  | '水果'
+  | '半成品'
+  | '其他';
 
-export type DishCategory = "主食" | "荤菜" | "素菜" | "荤素搭配" | "汤羹" | "炒菜" | "小吃" | "饮品" | "早餐" | "其他";
+export type DishCategory =
+  | '主食'
+  | '荤菜'
+  | '素菜'
+  | '荤素搭配'
+  | '汤羹'
+  | '炒菜'
+  | '小吃'
+  | '饮品'
+  | '早餐'
+  | '其他';
 
 export type Ingredient = {
   id: string;

@@ -40,7 +40,7 @@
 | E-SC008-TESTS | 2026-08-21 | SC-008 定向/全量 Java、HTTP 集成、Python/SOP、Project-to-Act 和生命周期校验 | 0 | 提交 `d5bf003` 及 SC-008 变更 | 270 Java tests、20 Python tests；Draft 预览/确认/澄清/幂等/权限通过；仅生成 DRAFT，不创建采购订单 | `.project-to-act/tasks/SC-008/evidence/E-SC008-TESTS.md` | 当前学习环境 |
 | E-SC008-REVIEW | 2026-08-21 | 固定点 `8325fa1` 的 Standards/Spec 双轴复审及问题修正后的复核 | 条件通过（无 P0/P1） | 提交 `1dd4de2`、`d5bf003` | false-positive 解析、日期校验、澄清白名单/续答和权限/幂等证据已补齐；真实预测服务仍延期 | `.project-to-act/tasks/SC-008/evidence/E-SC008-REVIEW.md` | 当前学习环境 |
 | E-SC009-TESTS | 2026-08-21 | SC-009 Java/前端/Python/SOP/项目治理/生命周期校验 | 0 | 工作区 SC-009 变更 | 个人菜单与消费订单闭环通过；精确计数和边界见证据文件 | `.project-to-act/tasks/SC-009/evidence/E-SC009-TESTS.md` | 当前学习环境 |
-| E-SC009-REVIEW | 2026-08-21 | 固定点 `f2980c4` 的 Standards/Spec 双轴复审 | 待复核 | 工作区 SC-009 变更 | 员工/学生订单切片的规范与范围复核 | `.project-to-act/tasks/SC-009/evidence/E-SC009-REVIEW.md` | 当前学习环境 |
+| E-SC009-REVIEW | 2026-08-21 | 固定点 `f2980c4` 的 Standards/Spec 双轴复审及问题修正后的复核 | 通过（无 P0/P1） | 提交 `b333370`、`b058f89` 及收口变更 | 生成客户端、助手取消 HTTP、actor 幂等隔离、UNPAID-only 和订单号大小写问题已补齐；非阻塞重构建议留待后续 | `.project-to-act/tasks/SC-009/evidence/E-SC009-REVIEW.md` | 当前学习环境 |
 
 ## Gate 记录
 

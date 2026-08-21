@@ -1,56 +1,33 @@
 {
-  "added": [],
+  "added": [
+    {
+      "method": "GET",
+      "path": "/api/v1/diner/menus"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/meal-orders"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/meal-orders"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/meal-orders/{orderId}/cancel"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/ingredients/{ingredientId}/units"
+    }
+  ],
   "removed": [],
   "changed": [
     {
       "method": "POST",
-      "path": "/api/v1/dishes",
-      "breakingReasons": [
-        "request-schema-became-incompatible"
-      ]
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/ingredients",
-      "breakingReasons": [
-        "request-schema-became-incompatible"
-      ]
-    },
-    {
-      "method": "PUT",
-      "path": "/api/v1/dishes/{dishId}",
-      "breakingReasons": [
-        "request-schema-became-incompatible"
-      ]
-    },
-    {
-      "method": "PUT",
-      "path": "/api/v1/ingredients/{ingredientId}",
-      "breakingReasons": [
-        "request-schema-became-incompatible"
-      ]
+      "path": "/api/v1/procurement-plans/generate-range",
+      "breakingReasons": []
     }
   ],
-  "breaking": [
-    {
-      "type": "request-schema-became-incompatible",
-      "method": "POST",
-      "path": "/api/v1/dishes"
-    },
-    {
-      "type": "request-schema-became-incompatible",
-      "method": "POST",
-      "path": "/api/v1/ingredients"
-    },
-    {
-      "type": "request-schema-became-incompatible",
-      "method": "PUT",
-      "path": "/api/v1/dishes/{dishId}"
-    },
-    {
-      "type": "request-schema-became-incompatible",
-      "method": "PUT",
-      "path": "/api/v1/ingredients/{ingredientId}"
-    }
-  ]
+  "breaking": []
 }

@@ -15,9 +15,9 @@
 | `npm run test`（`frontend`） | 通过：138 tests，0 failures（含 111 个生成客户端契约测试） |
 | `python -m pytest -q --basetemp .pytest-tmp-sc009` | 通过：20 tests，0 failures |
 | `python skills/smart-canteen-sop/scripts/validate_sop_manifest.py --manifest docs/smart-canteen/sop-manifests.yaml` | 通过：14 SOPs、1 composition |
-| `python C:\Users\th\.agents\skills\project-to-act\scripts\init_project_management.py --project-root D:\project\smart-canteen --validate` | 待最终收口时复核 |
-| `python C:\Users\th\.agents\skills\develop-ai-agents\scripts\manage_lifecycle.py --project-root D:\project\smart-canteen validate` | 待最终收口时复核 |
-| `git diff --check` | 待最终收口时复核 |
+| `python C:\Users\th\.agents\skills\project-to-act\scripts\init_project_management.py --project-root D:\project\smart-canteen --validate` | 通过：valid=true、issues=[] |
+| `python C:\Users\th\.agents\skills\develop-ai-agents\scripts\manage_lifecycle.py --project-root D:\project\smart-canteen validate` | 通过：revision=9、projectStatus=completed |
+| `git diff --check` | 通过（仅 CRLF 转换提示） |
 
 ## HTTP 行为证据
 
