@@ -445,11 +445,7 @@ public class RuleBasedAssistantIntentResolver implements AssistantIntentResolver
         Matcher matcher = DATE.matcher(message);
         if (matcher.find()) {
             String candidate = matcher.group().replace('/', '-').replace('.', '-');
-            try {
-                return Optional.of(LocalDate.parse(candidate));
-            } catch (DateTimeParseException ignored) {
-                return Optional.empty();
-            }
+            return parseDate(candidate);
         }
         String normalized = message.trim().toLowerCase(Locale.ROOT);
         if (normalized.contains("今天")
@@ -525,6 +521,12 @@ public class RuleBasedAssistantIntentResolver implements AssistantIntentResolver
             Matcher dates = DATE.matcher(message);
             while (dates.find()) {
                 String date = dates.group().replace('/', '-').replace('.', '-');
+                if (parseDate(date).isEmpty()) {
+                    return AssistantResolution.clarificationFor(
+                            "procurement.plan.generate",
+                            "请提供有效的采购草稿日期，例如“2026-08-22”。",
+                            "periodStart", "periodEnd");
+                }
                 if (!parameters.containsKey("periodStart")) {
                     parameters.put("periodStart", date);
                 } else if (!parameters.containsKey("periodEnd")) {
@@ -648,17 +650,43 @@ public class RuleBasedAssistantIntentResolver implements AssistantIntentResolver
     }
 
     private static boolean isProcurementDraftRequest(String normalized) {
-        boolean explicitApplication = normalized.contains("采购申请")
-                && (normalized.contains("生成") || normalized.contains("创建"))
-                && !normalized.contains("订单");
-        return explicitApplication
-                || normalized.contains("采购申请草稿")
+        boolean draftMention = normalized.contains("采购申请")
                 || normalized.contains("采购草稿")
                 || normalized.contains("采购 draft")
                 || normalized.contains("采购draft")
                 || normalized.contains("采购申请 draft")
                 || normalized.contains("采购申请draft")
                 || normalized.contains("purchase draft");
+        boolean explicitCreate = normalized.contains("生成")
+                || normalized.contains("创建")
+                || normalized.contains("generate")
+                || normalized.contains("create");
+        boolean bareDatedDraft = (normalized.contains("draft") || normalized.contains("草稿"))
+                && DATE.matcher(normalized).find();
+        boolean readOnlyMention = normalized.contains("查看")
+                || normalized.contains("查询")
+                || normalized.contains("查一下")
+                || normalized.contains("状态")
+                || normalized.contains("详情")
+                || normalized.contains("有没有")
+                || normalized.contains("是否");
+        boolean negated = normalized.contains("不要")
+                || normalized.contains("别")
+                || normalized.contains("不生成")
+                || normalized.contains("不创建")
+                || normalized.contains("无需")
+                || normalized.contains("不需要")
+                || normalized.contains("取消");
+        return draftMention && (explicitCreate || bareDatedDraft) && !readOnlyMention && !negated
+                && !normalized.contains("订单");
+    }
+
+    private static Optional<LocalDate> parseDate(String candidate) {
+        try {
+            return Optional.of(LocalDate.parse(candidate));
+        } catch (DateTimeParseException ignored) {
+            return Optional.empty();
+        }
     }
 
     private static void putFirst(

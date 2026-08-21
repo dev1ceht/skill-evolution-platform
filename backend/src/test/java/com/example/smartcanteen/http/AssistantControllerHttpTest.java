@@ -395,7 +395,7 @@ class AssistantControllerHttpTest {
                 "SELECT COUNT(*) FROM procurement_plans WHERE school_id = ?", Integer.class, SCHOOL_ID);
         mvc.perform(message(
                         "procurement-draft-preview-001",
-                        "帮我生成明天的采购申请草稿",
+                        "帮我生成 2026-08-22 的采购申请草稿",
                         "CONV-ASSIST-PROCUREMENT-DRAFT"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.kind").value("CONFIRMATION_REQUIRED"))
@@ -452,6 +452,61 @@ class AssistantControllerHttpTest {
                         "SELECT COUNT(*) FROM purchase_orders WHERE school_id = ?",
                         Integer.class,
                         SCHOOL_ID));
+
+        mvc.perform(message(
+                        "procurement-draft-confirm-001",
+                        "取消",
+                        "CONV-ASSIST-PROCUREMENT-DRAFT"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(40000));
+    }
+
+    @Test
+    void asks_for_the_period_before_starting_a_procurement_draft_run() throws Exception {
+        int runsBefore = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM agent_runs WHERE actor_user_id = ?", Integer.class,
+                PRINCIPAL.userId());
+
+        mvc.perform(message(
+                        "procurement-draft-clarification-001",
+                        "请生成采购申请草稿",
+                        "CONV-ASSIST-PROCUREMENT-DRAFT-CLARIFY"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.kind").value("CLARIFICATION"))
+                .andExpect(jsonPath("$.data.intent").value("procurement.plan.generate"))
+                .andExpect(jsonPath("$.data.missingFields[0]").value("periodStart"))
+                .andExpect(jsonPath("$.data.missingFields[1]").value("periodEnd"))
+                .andExpect(jsonPath("$.data.runId").value(org.hamcrest.Matchers.nullValue()));
+
+        assertEquals(
+                runsBefore,
+                jdbc.queryForObject(
+                        "SELECT COUNT(*) FROM agent_runs WHERE actor_user_id = ?", Integer.class,
+                        PRINCIPAL.userId()));
+    }
+
+    @Test
+    void resumes_a_procurement_draft_clarification_with_the_missing_date() throws Exception {
+        mvc.perform(message(
+                        "procurement-draft-resume-start-001",
+                        "请生成采购申请草稿",
+                        "CONV-ASSIST-PROCUREMENT-DRAFT-RESUME"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.kind").value("CLARIFICATION"))
+                .andExpect(jsonPath("$.data.intent").value("procurement.plan.generate"));
+
+        mvc.perform(message(
+                        "procurement-draft-resume-date-001",
+                        "2026-08-22",
+                        "CONV-ASSIST-PROCUREMENT-DRAFT-RESUME"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.kind").value("CONFIRMATION_REQUIRED"))
+                .andExpect(jsonPath("$.data.intent").value("procurement.plan.generate"))
+                .andExpect(jsonPath("$.data.runStatus").value("WAITING_CONFIRMATION"))
+                .andExpect(jsonPath("$.data.result.businessParameters.periodStart")
+                        .value("2026-08-22"))
+                .andExpect(jsonPath("$.data.result.businessParameters.periodEnd")
+                        .value("2026-08-22"));
     }
 
     @Test

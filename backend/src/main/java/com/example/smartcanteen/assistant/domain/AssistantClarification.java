@@ -20,7 +20,8 @@ public record AssistantClarification(
                 && !intent.equals("menu.query")
                 && !intent.equals("menu.publish")
                 && !intent.equals("traffic.forecast.query")
-                && !intent.equals("meal_plan.query")) {
+                && !intent.equals("meal_plan.query")
+                && !intent.equals("procurement.plan.generate")) {
             throw new IllegalArgumentException("Unsupported clarification intent: " + intent);
         }
         requireText("originalMessage", originalMessage, 2000);

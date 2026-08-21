@@ -174,6 +174,30 @@ class BusinessAuthorizationPolicyTest {
     }
 
     @Test
+    void procurement_plan_drafts_require_the_operations_write_permission() {
+        ExecutionContext operatorContext = new ExecutionContext(
+                "request-plan-draft",
+                "USER-OPERATOR",
+                "operator",
+                scope,
+                Set.of(Role.CANTEEN_STAFF),
+                Set.of("PROCUREMENT_PLAN_WRITE"));
+        ExecutionContext dinerContext = new ExecutionContext(
+                "request-diner-plan-draft",
+                "USER-DINER",
+                "diner",
+                scope,
+                Set.of(Role.DINER),
+                Set.of("MENU_READ"));
+
+        policy.requireIntentAccess(operatorContext, "procurement.plan.generate");
+        assertThatThrownBy(() -> policy.requireIntentAccess(
+                        dinerContext, "procurement.plan.generate"))
+                .isInstanceOf(ForbiddenException.class)
+                .hasMessageContaining("PROCUREMENT_PLAN_WRITE");
+    }
+
+    @Test
     void forecast_and_meal_plan_queries_require_operations_read_permissions() {
         ExecutionContext operatorContext = new ExecutionContext(
                 "request-forecast-read",
