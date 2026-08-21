@@ -1,7 +1,7 @@
 {
   "taskId": "SC-008",
   "title": "实现采购申请 Draft 生成",
-  "status": "in_progress",
+  "status": "completed",
   "owner": "Codex",
   "governanceMode": "post-completion-iteration-after-SC-007",
   "goal": "让食堂运营人员和管理者通过助手从指定日期的已发布菜单生成可确认、可审阅、幂等的采购计划 Draft；不接入真实预测服务，不提交采购订单。",
@@ -30,7 +30,8 @@
     "缺少日期时进入持久化澄清，不启动 Agent Run",
     "预览与确认 HTTP 流程可生成 DRAFT，计划项 shortage/required/inventory 可审计",
     "确认后采购计划只创建一次，purchase_orders 数量保持为零",
-    "既有采购计划闭环、缺口只读、客流预测和备餐建议测试不回归"
+    "既有采购计划闭环、缺口只读、客流预测和备餐建议测试不回归",
+    "定向/全量 Java、Python、SOP、治理校验和 Standards/Spec 双轴复审通过"
   ],
   "checks": [
     "mvn -q -Dtest=RuleBasedAssistantIntentResolverTest,AssistantControllerHttpTest,OperationsToolExecutorTest,ProcurementPlanServiceModuleTest test",
@@ -46,6 +47,10 @@
     "SC-003 AgentScope HarnessAgent、角色上下文与权限基线",
     "SC-006 菜单原料缺口只读分析",
     "SC-007 客流预测与备餐建议只读分析"
+  ],
+  "evidence": [
+    "E-SC008-TESTS",
+    "E-SC008-REVIEW"
   ],
   "rollback": "回退 SC-008 提交即可移除采购申请草稿自然语言入口和本轮证据；保留既有采购计划 API、procurement.plan.generate Tool 及 SC-006/SC-007 只读能力。"
 }
