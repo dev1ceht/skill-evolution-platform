@@ -91,13 +91,16 @@ public class RuleBasedAssistantIntentResolver implements AssistantIntentResolver
                 && UNSUPPORTED_REQUEST.matcher(message).find()
                 && !isInventoryReadRequest(message)
                 && !isProcurementGapReadRequest(message)
+                && !isTrafficForecastReadRequest(message)
+                && !isMealPrepReadRequest(message)
                 && resolveExplicitWrite(message) == null;
     }
 
     private AssistantResolution resolveDirect(String message) {
         if (message == null || message.isBlank()) {
             return AssistantResolution.clarification(
-                    "请告诉我你要查询的内容；当前可以先查询食品溯源或日菜单。", "message");
+                    "请告诉我你要查询的内容；当前可以查询菜单、库存、原料缺口、客流预测和备餐建议。",
+                    "message");
         }
         AssistantResolution write = resolveExplicitWrite(message);
         if (write != null) {
@@ -123,6 +126,41 @@ public class RuleBasedAssistantIntentResolver implements AssistantIntentResolver
             }
             return AssistantResolution.procurementGapQuery(
                     menuDate.get(), findMealTime(message).orElse(null));
+        }
+        if (isMealPrepReadRequest(message)) {
+            Optional<LocalDate> menuDate = findMenuDate(message);
+            if (menuDate.isEmpty()) {
+                return AssistantResolution.clarificationFor(
+                        "meal_plan.query",
+                        "请提供要分析的备餐日期，例如“明天午餐应该备多少份”。",
+                        "menuDate");
+            }
+            Optional<String> mealTime = findMealTime(message);
+            if (mealTime.isEmpty()) {
+                return AssistantResolution.clarificationFor(
+                        "meal_plan.query",
+                        "请提供备餐餐次，例如早餐、午餐或晚餐。",
+                        "mealTime");
+            }
+            return AssistantResolution.mealPlanQuery(
+                    menuDate.get(), mealTime.get());
+        }
+        if (isTrafficForecastReadRequest(message)) {
+            Optional<LocalDate> forecastDate = findMenuDate(message);
+            if (forecastDate.isEmpty()) {
+                return AssistantResolution.clarificationFor(
+                        "traffic.forecast.query",
+                        "请提供要查询的客流预测日期，例如“明天午餐预计有多少人”。",
+                        "forecastDate");
+            }
+            Optional<String> mealTime = findMealTime(message);
+            if (mealTime.isEmpty()) {
+                return AssistantResolution.clarificationFor(
+                        "traffic.forecast.query",
+                        "请提供预测餐次，例如早餐、午餐或晚餐。",
+                        "mealTime");
+            }
+            return AssistantResolution.trafficForecastQuery(forecastDate.get(), mealTime.get());
         }
         if (isExplicitNewUnsupportedRequest(message)) {
             return AssistantResolution.unsupported(
@@ -179,8 +217,8 @@ public class RuleBasedAssistantIntentResolver implements AssistantIntentResolver
                     "请提供菜单日期，例如“今天的菜单”或“2026-08-17 的菜单”。", "menuDate");
         }
         return AssistantResolution.unsupported(
-                "当前助手已开放食品溯源、日菜单和库存只读查询。请说明“查询 TRACE-001 的溯源信息”"
-                        + "、“查询 M001 的菜单”或“查询库存”；采购、库存和预警写入需要明确的灰度与确认。");
+                "当前助手已开放食品溯源、日菜单、库存、原料缺口、客流预测和备餐建议只读查询。"
+                        + "请补充日期、餐次或资源编号；采购、库存和预警写入需要明确的灰度与确认。");
     }
 
     private Optional<AssistantResolution> resolvePendingAnswer(
@@ -234,6 +272,40 @@ public class RuleBasedAssistantIntentResolver implements AssistantIntentResolver
                     "请提供要检查的菜单日期，例如“明天的菜单有没有原材料不足”。",
                     "menuDate"));
         }
+        if ("meal_plan.query".equals(pending.intent())) {
+            String mergedMessage = mergeClarificationMessage(pending, message);
+            Optional<LocalDate> menuDate = findMenuDate(mergedMessage);
+            Optional<String> mealTime = findMealTime(mergedMessage);
+            if (menuDate.isPresent() && mealTime.isPresent()) {
+                return Optional.of(AssistantResolution.mealPlanQuery(
+                        menuDate.get(), mealTime.get()));
+            }
+            return Optional.of(AssistantResolution.clarificationFor(
+                    "meal_plan.query",
+                    menuDate.isEmpty()
+                            ? "请提供要分析的备餐日期，例如“明天午餐应该备多少份”。"
+                            : "请提供备餐餐次，例如早餐、午餐或晚餐。",
+                    menuDate.isEmpty() ? "menuDate" : "mealTime"));
+        }
+        if ("traffic.forecast.query".equals(pending.intent())) {
+            String mergedMessage = mergeClarificationMessage(pending, message);
+            Optional<LocalDate> forecastDate = findMenuDate(mergedMessage);
+            Optional<String> mealTime = findMealTime(mergedMessage);
+            if (forecastDate.isPresent() && mealTime.isPresent()) {
+                return Optional.of(AssistantResolution.trafficForecastQuery(
+                        forecastDate.get(), mealTime.get()));
+            }
+            if (forecastDate.isEmpty()) {
+                return Optional.of(AssistantResolution.clarificationFor(
+                        "traffic.forecast.query",
+                        "请提供要查询的客流预测日期，例如“明天午餐预计有多少人”。",
+                        "forecastDate"));
+            }
+            return Optional.of(AssistantResolution.clarificationFor(
+                    "traffic.forecast.query",
+                    "请提供预测餐次，例如早餐、午餐或晚餐。",
+                    "mealTime"));
+        }
         if ("menu.publish".equals(pending.intent())) {
             return Optional.of(AssistantResolution.clarificationFor(
                     "menu.publish",
@@ -247,6 +319,11 @@ public class RuleBasedAssistantIntentResolver implements AssistantIntentResolver
             }
         }
         return Optional.empty();
+    }
+
+    private static String mergeClarificationMessage(
+            AssistantClarification pending, String answer) {
+        return pending.originalMessage() + " " + (answer == null ? "" : answer);
     }
 
     private static boolean isTraceabilityId(String value) {
@@ -297,6 +374,39 @@ public class RuleBasedAssistantIntentResolver implements AssistantIntentResolver
                 || normalized.contains("明日")
                 || normalized.contains("tomorrow");
         return material && shortage && planningContext;
+    }
+
+    private static boolean isMealPrepReadRequest(String message) {
+        if (message == null || message.isBlank()) {
+            return false;
+        }
+        String normalized = message.trim().toLowerCase(Locale.ROOT);
+        return normalized.contains("备餐")
+                || normalized.contains("备菜")
+                || normalized.contains("备多少")
+                || normalized.contains("准备多少份")
+                || normalized.contains("meal prep")
+                || normalized.contains("meal_plan");
+    }
+
+    private static boolean isTrafficForecastReadRequest(String message) {
+        if (message == null || message.isBlank()) {
+            return false;
+        }
+        String normalized = message.trim().toLowerCase(Locale.ROOT);
+        boolean traffic = normalized.contains("客流")
+                || normalized.contains("人流")
+                || normalized.contains("用餐人数")
+                || normalized.contains("预计有多少人")
+                || normalized.contains("预计人数")
+                || normalized.contains("traffic")
+                || normalized.contains("forecast");
+        boolean forecastContext = normalized.contains("预测")
+                || normalized.contains("预计")
+                || normalized.contains("明天")
+                || normalized.contains("明日")
+                || normalized.contains("tomorrow");
+        return traffic && forecastContext && !isMealPrepReadRequest(message);
     }
 
     private static boolean isWarningOnlyInventoryRequest(String message) {

@@ -235,6 +235,80 @@ sops:
       evidence: "required"
     status: "implemented"
 
+  - id: "smart-canteen.traffic-forecast-query"
+    version: "1.0.0"
+    trigger: ["查询明日客流预测", "预计午餐有多少人", "查看客流预测"]
+    risk_level: "low"
+    approval: "not-required"
+    permissions: ["TRAFFIC_FORECAST_READ"]
+    scope: "schoolId + canteenId"
+    preconditions: ["预测事实属于当前学校和食堂范围", "没有预测事实时不得由模型猜测人数"]
+    idempotency: "只读查询可安全重放"
+    timeout: { mode: "request-bound", enforced: true }
+    steps: ["resolve-forecast-date-and-meal", "load-versioned-forecast-fact", "return-forecast-evidence"]
+    rollback: "not-applicable"
+    requirements: ["FORECAST-001"]
+    references: ["skills/smart-canteen-sop/references/procurement.md"]
+    implementation:
+      modules: ["backend/src/main/java/com/example/smartcanteen/application/TrafficForecastService.java", "backend/src/main/java/com/example/smartcanteen/agent/infrastructure/TrafficForecastToolExecutor.java"]
+      apis: ["contracts/smart-canteen.openapi.yaml"]
+      migrations: ["backend/src/main/resources/db/migration/V31__create_traffic_forecasts.sql", "backend/src/main/resources/db/migration/V32__add_forecast_and_meal_plan_read_permissions.sql", "backend/src/main/resources/db/migration/V33__retain_traffic_forecast_versions.sql"]
+      tests: ["backend/src/test/java/com/example/smartcanteen/assistant/RuleBasedAssistantIntentResolverTest.java", "backend/src/test/java/com/example/smartcanteen/agent/TrafficForecastToolExecutorTest.java", "backend/src/test/java/com/example/smartcanteen/application/TrafficForecastServiceTest.java"]
+      verification: [".project-to-act/tasks/SC-007/evidence/E-SC007-TESTS.md"]
+    adapters: [{ name: "JdbcTrafficForecastStore", status: "implemented" }]
+    evidence: [".project-to-act/tasks/SC-007/evidence/E-SC007-TESTS.md"]
+    runtime:
+      intents: ["traffic.forecast.query"]
+      input_schema: "#/components/schemas/TrafficForecastQueryIntent"
+      output_schema: "#/components/schemas/TrafficForecastQueryResult"
+      tools: ["traffic.forecast.query"]
+      tool_by_intent: { traffic.forecast.query: "traffic.forecast.query" }
+      side_effect: "read"
+      run_confirmation: "not-required"
+      domain_approval: "not-applicable"
+      activation: "active"
+      deadline_ms: 3000
+      retry_policy: "read-only-bounded"
+      evidence: "required"
+    status: "implemented"
+
+  - id: "smart-canteen.meal-plan-query"
+    version: "1.0.0"
+    trigger: ["分析明日备餐", "午餐应该备多少份", "生成备餐建议"]
+    risk_level: "low"
+    approval: "not-required"
+    permissions: ["MEAL_PLAN_ANALYSIS_READ"]
+    scope: "schoolId + canteenId"
+    preconditions: ["客流预测事实和已发布菜单均属于当前范围", "按确定性最大余数法分配建议份数", "不创建备餐或采购写入"]
+    idempotency: "只读分析可安全重放"
+    timeout: { mode: "request-bound", enforced: true }
+    steps: ["resolve-menu-date-and-meal", "load-forecast-fact", "load-published-menu", "allocate-recommended-quantities", "return-plan-evidence"]
+    rollback: "not-applicable"
+    requirements: ["FORECAST-001"]
+    references: ["skills/smart-canteen-sop/references/procurement.md"]
+    implementation:
+      modules: ["backend/src/main/java/com/example/smartcanteen/application/MealPrepRecommendationService.java", "backend/src/main/java/com/example/smartcanteen/agent/infrastructure/MealPrepRecommendationToolExecutor.java"]
+      apis: ["contracts/smart-canteen.openapi.yaml"]
+      migrations: ["backend/src/main/resources/db/migration/V31__create_traffic_forecasts.sql", "backend/src/main/resources/db/migration/V32__add_forecast_and_meal_plan_read_permissions.sql", "backend/src/main/resources/db/migration/V33__retain_traffic_forecast_versions.sql"]
+      tests: ["backend/src/test/java/com/example/smartcanteen/assistant/RuleBasedAssistantIntentResolverTest.java", "backend/src/test/java/com/example/smartcanteen/agent/MealPrepRecommendationToolExecutorTest.java", "backend/src/test/java/com/example/smartcanteen/application/MealPrepRecommendationServiceTest.java"]
+      verification: [".project-to-act/tasks/SC-007/evidence/E-SC007-TESTS.md"]
+    adapters: [{ name: "DailyMenuService + JdbcOperationalStore", status: "implemented" }]
+    evidence: [".project-to-act/tasks/SC-007/evidence/E-SC007-TESTS.md"]
+    runtime:
+      intents: ["meal_plan.query"]
+      input_schema: "#/components/schemas/MealPlanQueryIntent"
+      output_schema: "#/components/schemas/MealPlanQueryResult"
+      tools: ["meal_plan.query"]
+      tool_by_intent: { meal_plan.query: "meal_plan.query" }
+      side_effect: "read"
+      run_confirmation: "not-required"
+      domain_approval: "not-applicable"
+      activation: "active"
+      deadline_ms: 3000
+      retry_policy: "read-only-bounded"
+      evidence: "required"
+    status: "implemented"
+
   - id: "smart-canteen.inventory"
     version: "1.0.0"
     trigger: ["验收入库", "执行库存出库"]

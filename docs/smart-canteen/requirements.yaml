@@ -21,5 +21,7 @@ requirements:
     title: 业务数据必须保留范围和来源
   - id: ARCH-005
     title: 外部系统必须通过适配器接入
+  - id: FORECAST-001
+    title: 客流预测和备餐建议必须基于可追溯的版本化事实
   - id: DASHBOARD-001
     title: 溯源结果必须返回可核验链路

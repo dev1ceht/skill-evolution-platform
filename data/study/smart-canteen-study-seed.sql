@@ -102,6 +102,20 @@ ON DUPLICATE KEY UPDATE
     menu_date = VALUES(menu_date), meal_time = VALUES(meal_time),
     status = VALUES(status), version = VALUES(version), updated_at = CURRENT_TIMESTAMP;
 
+INSERT INTO traffic_forecasts (
+    school_id, canteen_id, forecast_date, meal_time, expected_diner_count,
+    lower_bound, upper_bound, model_version, source, generated_at
+)
+VALUES (
+    'SCHOOL-001', 'CANTEEN-001', '2026-08-22', 'LUNCH', 850,
+    810, 880, 'study-traffic-v1', 'GENERATED_STUDY_FACT', '2026-08-21 09:00:00'
+)
+ON DUPLICATE KEY UPDATE
+    expected_diner_count = VALUES(expected_diner_count),
+    lower_bound = VALUES(lower_bound), upper_bound = VALUES(upper_bound),
+    model_version = VALUES(model_version), source = VALUES(source),
+    generated_at = VALUES(generated_at);
+
 DELETE FROM daily_menu_items
 WHERE school_id = 'SCHOOL-001' AND canteen_id = 'CANTEEN-001'
   AND menu_id IN ('M818', 'M819', 'M820', 'M821', 'M822');

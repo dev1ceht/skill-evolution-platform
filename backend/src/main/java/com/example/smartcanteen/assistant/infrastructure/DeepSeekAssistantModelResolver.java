@@ -53,11 +53,13 @@ public class DeepSeekAssistantModelResolver implements AssistantModelResolver {
     private static final int MAX_RESPONSE_BYTES = 1_048_576;
     private static final String DEFAULT_SYSTEM_PROMPT = """
             你是智慧食堂助手的意图分类器。只能输出一个 JSON 对象，不要 Markdown，不要解释。
-            允许的 type 只有 TRACEABILITY_QUERY、MENU_QUERY、INVENTORY_QUERY、PROCUREMENT_GAP_QUERY、CLARIFICATION、UNSUPPORTED。
+            允许的 type 只有 TRACEABILITY_QUERY、MENU_QUERY、INVENTORY_QUERY、PROCUREMENT_GAP_QUERY、TRAFFIC_FORECAST_QUERY、MEAL_PLAN_QUERY、CLARIFICATION、UNSUPPORTED。
             TRACEABILITY_QUERY 必须包含 intent=traceability.query 和 TRACE- 或 TRACE_ 开头的 traceCode。
             MENU_QUERY 必须包含 intent=menu.query，并且二选一：只含短格式 M001 或 MABC123 的 menuId，或 ISO 日期格式的 menuDate；只有日期查询可选 mealTime，且只能是 BREAKFAST、LUNCH、DINNER、SNACK。
             INVENTORY_QUERY 必须包含 intent=inventory.query；可选 keyword 文本和 warningOnly 布尔值，只表示库存只读筛选。
             PROCUREMENT_GAP_QUERY 必须包含 intent=procurement.gap.query、ISO 日期格式的 menuDate；可选 mealTime，表示按已发布菜单和库存事实进行只读原料缺口分析。
+            TRAFFIC_FORECAST_QUERY 必须包含 intent=traffic.forecast.query、ISO 日期格式的 forecastDate 和 mealTime，表示读取版本化客流预测事实，不得自行猜测人数。
+            MEAL_PLAN_QUERY 必须包含 intent=meal_plan.query、ISO 日期格式的 menuDate 和 mealTime，表示按客流预测事实与已发布菜单生成只读备餐建议。
             CLARIFICATION 可以包含 intent、missingFields 数组和 message。
             不得输出 WRITE_REQUEST、MENU_PUBLISH_REQUEST、CONFIRM_PENDING_ACTION 或 CANCEL_PENDING_ACTION。
             JSON 示例：{"type":"TRACEABILITY_QUERY","intent":"traceability.query","traceCode":"TRACE-001"}
@@ -210,6 +212,8 @@ public class DeepSeekAssistantModelResolver implements AssistantModelResolver {
             case "MENU_QUERY" -> menu(result);
             case "INVENTORY_QUERY" -> inventory(result);
             case "PROCUREMENT_GAP_QUERY" -> procurementGap(result);
+            case "TRAFFIC_FORECAST_QUERY" -> trafficForecast(result);
+            case "MEAL_PLAN_QUERY" -> mealPlan(result);
             case "CLARIFICATION" -> clarification(result, message);
             case "UNSUPPORTED" -> Optional.of(AssistantResolution.unsupported(message));
             default -> Optional.empty();
@@ -270,6 +274,34 @@ public class DeepSeekAssistantModelResolver implements AssistantModelResolver {
         String mealTime = result.path("mealTime").asText(null);
         try {
             return Optional.of(AssistantResolution.procurementGapQuery(
+                    LocalDate.parse(menuDate.trim()), mealTime));
+        } catch (DateTimeParseException | IllegalArgumentException exception) {
+            return Optional.empty();
+        }
+    }
+
+    private Optional<AssistantResolution> trafficForecast(JsonNode result) {
+        String forecastDate = result.path("forecastDate").asText(null);
+        String mealTime = result.path("mealTime").asText(null);
+        if (forecastDate == null || forecastDate.isBlank() || mealTime == null || mealTime.isBlank()) {
+            return Optional.empty();
+        }
+        try {
+            return Optional.of(AssistantResolution.trafficForecastQuery(
+                    LocalDate.parse(forecastDate.trim()), mealTime));
+        } catch (DateTimeParseException | IllegalArgumentException exception) {
+            return Optional.empty();
+        }
+    }
+
+    private Optional<AssistantResolution> mealPlan(JsonNode result) {
+        String menuDate = result.path("menuDate").asText(null);
+        String mealTime = result.path("mealTime").asText(null);
+        if (menuDate == null || menuDate.isBlank() || mealTime == null || mealTime.isBlank()) {
+            return Optional.empty();
+        }
+        try {
+            return Optional.of(AssistantResolution.mealPlanQuery(
                     LocalDate.parse(menuDate.trim()), mealTime));
         } catch (DateTimeParseException | IllegalArgumentException exception) {
             return Optional.empty();

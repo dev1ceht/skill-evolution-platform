@@ -96,6 +96,34 @@ class DeepSeekAssistantModelResolverTest {
     }
 
     @Test
+    void resolves_a_read_only_traffic_forecast_result_from_openai_compatible_response() {
+        RestClient.Builder builder = RestClient.builder();
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        DeepSeekAssistantModelResolver resolver = new DeepSeekAssistantModelResolver(
+                builder.baseUrl("https://deepseek.test").build(),
+                new ObjectMapper(),
+                "deepseek-v4-flash",
+                "test-key",
+                true);
+        server.expect(requestTo("https://deepseek.test/chat/completions"))
+                .andRespond(withSuccess(
+                        """
+                        {"choices":[{"message":{"content":"{\\"type\\":\\"TRAFFIC_FORECAST_QUERY\\",\\"intent\\":\\"traffic.forecast.query\\",\\"forecastDate\\":\\"2026-08-22\\",\\"mealTime\\":\\"LUNCH\\"}"}}]}
+                        """,
+                        MediaType.APPLICATION_JSON));
+
+        Optional<AssistantResolution> result = resolver.resolve("查询明日午餐客流预测", Optional.empty());
+
+        assertThat(result).get().extracting(AssistantResolution::type)
+                .isEqualTo(AssistantResolution.Type.TRAFFIC_FORECAST_QUERY);
+        assertThat(result).get().extracting(item -> item.parameters().get("forecastDate"))
+                .isEqualTo("2026-08-22");
+        assertThat(result).get().extracting(item -> item.parameters().get("mealTime"))
+                .isEqualTo("LUNCH");
+        server.verify();
+    }
+
+    @Test
     void fails_closed_when_provider_response_exceeds_the_buffer_limit() {
         RestClient.Builder builder = RestClient.builder();
         MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();

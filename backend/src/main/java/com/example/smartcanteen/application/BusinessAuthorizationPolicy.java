@@ -245,6 +245,8 @@ public class BusinessAuthorizationPolicy {
             case "menu.publish" -> "MENU_PUBLISH";
             case "inventory.query" -> "INVENTORY_READ";
             case "procurement.gap.query" -> "PROCUREMENT_ANALYSIS_READ";
+            case "traffic.forecast.query" -> "TRAFFIC_FORECAST_READ";
+            case "meal_plan.query" -> "MEAL_PLAN_ANALYSIS_READ";
             case "procurement.plan.generate" -> "PROCUREMENT_PLAN_WRITE";
             case "procurement.order.create" -> "PROCUREMENT_ORDER_WRITE";
             case "procurement.order.receive" -> "PROCUREMENT_RECEIVE";

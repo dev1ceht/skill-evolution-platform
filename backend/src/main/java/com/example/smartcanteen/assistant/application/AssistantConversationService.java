@@ -248,6 +248,18 @@ public class AssistantConversationService {
                         normalizedKey,
                         context,
                         principal);
+                case TRAFFIC_FORECAST_QUERY -> executeTrafficForecast(
+                        conversation,
+                        resolution,
+                        normalizedKey,
+                        context,
+                        principal);
+                case MEAL_PLAN_QUERY -> executeMealPlan(
+                        conversation,
+                        resolution,
+                        normalizedKey,
+                        context,
+                        principal);
                 case MENU_PUBLISH_REQUEST -> previewMenuPublish(
                         conversation,
                         resolution,
@@ -790,6 +802,38 @@ public class AssistantConversationService {
                 AssistantConversationService::assistantProcurementGapMessage);
     }
 
+    private AssistantTurn executeTrafficForecast(
+            AssistantConversation conversation,
+            AssistantResolution resolution,
+            String idempotencyKey,
+            ExecutionContext context,
+            AuthPrincipal principal) {
+        return executeReadOnly(
+                conversation,
+                resolution.intent(),
+                new LinkedHashMap<>(resolution.parameters()),
+                idempotencyKey,
+                context,
+                principal,
+                AssistantConversationService::assistantTrafficForecastMessage);
+    }
+
+    private AssistantTurn executeMealPlan(
+            AssistantConversation conversation,
+            AssistantResolution resolution,
+            String idempotencyKey,
+            ExecutionContext context,
+            AuthPrincipal principal) {
+        return executeReadOnly(
+                conversation,
+                resolution.intent(),
+                new LinkedHashMap<>(resolution.parameters()),
+                idempotencyKey,
+                context,
+                principal,
+                AssistantConversationService::assistantMealPlanMessage);
+    }
+
     private AssistantTurn executeReadOnly(
             AssistantConversation conversation,
             String intent,
@@ -934,6 +978,50 @@ public class AssistantConversationService {
         return "已完成原料缺口分析：日期「" + date + "」、餐次「" + mealTime
                 + "」，共 " + menuCount + " 个菜单、" + itemCount + " 项原料，其中 "
                 + shortageCount + " 项存在缺口；本次仅查询和分析，未创建采购计划。";
+    }
+
+    private static String assistantTrafficForecastMessage(AgentRun run, JsonNode result) {
+        if (!"SUCCEEDED".equals(run.status().name())) {
+            return "客流预测查询未完成，请查看运行状态后重试或人工处理。";
+        }
+        String date = textOr(result, "forecastDate", "未知日期");
+        String mealTime = textOr(result, "mealTime", "未知餐次");
+        if (result == null || !result.path("available").asBoolean(false)) {
+            return "未找到日期「" + date + "」、餐次「" + mealTime
+                    + "」的客流预测事实，未进行客流猜测。原因："
+                    + textOr(result, "reason", "NO_FORECAST_FACT") + "。";
+        }
+        long expected = result.path("expectedDinerCount").canConvertToLong()
+                ? result.path("expectedDinerCount").asLong() : 0;
+        long lower = result.path("lowerBound").canConvertToLong()
+                ? result.path("lowerBound").asLong() : expected;
+        long upper = result.path("upperBound").canConvertToLong()
+                ? result.path("upperBound").asLong() : expected;
+        return "已完成客流预测查询：日期「" + date + "」、餐次「" + mealTime
+                + "」，预计 " + expected + " 人，预测区间 " + lower + "～" + upper
+                + " 人；模型版本「" + textOr(result, "modelVersion", "未知")
+                + "」、来源「" + textOr(result, "source", "未知") + "」。";
+    }
+
+    private static String assistantMealPlanMessage(AgentRun run, JsonNode result) {
+        if (!"SUCCEEDED".equals(run.status().name())) {
+            return "备餐建议分析未完成，请查看运行状态后重试或人工处理。";
+        }
+        String date = textOr(result, "menuDate", "未知日期");
+        String mealTime = textOr(result, "mealTime", "未知餐次");
+        if (result == null || !result.path("available").asBoolean(false)) {
+            return "未能生成日期「" + date + "」、餐次「" + mealTime
+                    + "」的备餐建议，未生成备餐数量。原因："
+                    + textOr(result, "reason", "NO_MEAL_PLAN_FACT") + "。";
+        }
+        long total = result.path("totalRecommendedQuantity").canConvertToLong()
+                ? result.path("totalRecommendedQuantity").asLong() : 0;
+        int itemCount = result.path("items").isArray() ? result.path("items").size() : 0;
+        return "已完成备餐建议：日期「" + date + "」、餐次「" + mealTime
+                + "」、菜单「" + textOr(result, "sourceMenuId", "未知") + "」，建议总量 "
+                + total + " 份，共 " + itemCount + " 道菜；分配方法「"
+                + textOr(result, "allocationMethod", "未知")
+                + "」。本次仅查询和分析，未创建备餐计划，也未创建采购计划。";
     }
 
     private static String textOr(JsonNode node, String field, String fallback) {

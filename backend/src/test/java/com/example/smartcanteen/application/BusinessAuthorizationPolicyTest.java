@@ -174,6 +174,35 @@ class BusinessAuthorizationPolicyTest {
     }
 
     @Test
+    void forecast_and_meal_plan_queries_require_operations_read_permissions() {
+        ExecutionContext operatorContext = new ExecutionContext(
+                "request-forecast-read",
+                "USER-OPERATOR",
+                "operator",
+                scope,
+                Set.of(Role.CANTEEN_STAFF),
+                Set.of("TRAFFIC_FORECAST_READ", "MEAL_PLAN_ANALYSIS_READ"));
+        ExecutionContext dinerContext = new ExecutionContext(
+                "request-diner-forecast",
+                "USER-DINER",
+                "diner",
+                scope,
+                Set.of(Role.DINER),
+                Set.of("MENU_READ"));
+
+        policy.requireIntentAccess(operatorContext, "traffic.forecast.query");
+        policy.requireIntentAccess(operatorContext, "meal_plan.query");
+        assertThatThrownBy(() -> policy.requireIntentAccess(
+                        dinerContext, "traffic.forecast.query"))
+                .isInstanceOf(ForbiddenException.class)
+                .hasMessageContaining("TRAFFIC_FORECAST_READ");
+        assertThatThrownBy(() -> policy.requireIntentAccess(
+                        dinerContext, "meal_plan.query"))
+                .isInstanceOf(ForbiddenException.class)
+                .hasMessageContaining("MEAL_PLAN_ANALYSIS_READ");
+    }
+
+    @Test
     void domain_approval_reloads_current_roles_before_high_risk_execution() {
         AuthService authentication = mock(AuthService.class);
         BusinessAuthorizationPolicy currentPolicy = new BusinessAuthorizationPolicy(

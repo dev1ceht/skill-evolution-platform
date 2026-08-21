@@ -1,0 +1,59 @@
+{
+  "taskId": "SC-007",
+  "title": "实现客流预测与备餐建议只读分析",
+  "status": "completed",
+  "owner": "Codex",
+  "governanceMode": "post-completion-iteration-after-SC-006",
+  "goal": "让食堂运营人员和管理者通过智慧食堂助手读取版本化客流预测事实，并基于已发布菜单生成确定性、可解释、只读的备餐建议。",
+  "allowedPaths": [
+    "backend/src/main/java/com/example/smartcanteen/domain/**",
+    "backend/src/main/java/com/example/smartcanteen/application/**",
+    "backend/src/main/java/com/example/smartcanteen/agent/**",
+    "backend/src/main/java/com/example/smartcanteen/assistant/**",
+    "backend/src/main/java/com/example/smartcanteen/infrastructure/**",
+    "backend/src/main/resources/db/migration/V31__create_traffic_forecasts.sql",
+    "backend/src/main/resources/db/migration/V32__add_forecast_and_meal_plan_read_permissions.sql",
+    "backend/src/main/resources/db/migration/V33__retain_traffic_forecast_versions.sql",
+    "backend/src/test/java/**",
+    "data/study/smart-canteen-study-seed.sql",
+    "contracts/smart-canteen.openapi.yaml",
+    "docs/smart-canteen/**",
+    "tests/test_smart_canteen_sop.py",
+    ".project-to-act/**",
+    "README.md"
+  ],
+  "invariants": [
+    "客流人数必须来自 TrafficForecastStore 的版本化事实；LLM 不能预测或修改人数。",
+    "备餐建议必须只读取已发布菜单；份数由 MealPrepRecommendationService 的确定性比例分配计算。",
+    "缺少预测事实或已发布菜单时返回不可用及原因，不猜测、不生成默认数量。",
+    "Tool 始终使用服务端 ExecutionContext/CanteenScope，用户输入不能扩大范围。",
+    "TRAFFIC_FORECAST_READ 和 MEAL_PLAN_ANALYSIS_READ 只授予 CANTEEN_STAFF、SCHOOL_ADMIN、SYSTEM_ADMIN；DINER 拒绝。",
+    "本轮所有 Tool 只读、可安全重放，不创建 meal plan、采购计划、采购订单或库存写入。"
+  ],
+  "acceptance": [
+    "规则解析器能将‘明天午餐预计有多少人’解析为 traffic.forecast.query，并将‘明天午餐应该备多少’解析为 meal_plan.query。",
+    "客流预测 Tool 严格校验日期、餐次和未知字段，返回 forecastDate、mealTime、expectedDinerCount、区间、modelVersion 和 source。",
+    "备餐建议读取已发布菜单和预测事实，使用确定性比例分配，推荐总份数等于预测人数，返回 allocationMethod 和菜品证据。",
+    "没有预测事实或菜单时返回 available=false 和明确 reason，不创建任何业务写入。",
+    "助手沿现有 Skill/Agent Runtime 执行两个只读 Tool，运营/管理角色可用，DINER 无权限。",
+    "学习数据包含 2026-08-22 一食堂午餐预测事实；V31/V32/V33 迁移和重复导入可校验，多个生成版本可保留并读取最新版本。",
+    "定向测试、全量 Java、Python SOP/契约、治理校验和双轴代码审查通过。"
+  ],
+  "checks": [
+    "mvn -q -Dtest=RuleBasedAssistantIntentResolverTest,TrafficForecastToolExecutorTest,MealPrepRecommendationServiceTest,BusinessAuthorizationPolicyTest,YamlSkillRegistryTest test",
+    "mvn -q -Dtest=AssistantControllerHttpTest test",
+    "mvn -q test",
+    "python -m pytest -q --basetemp .pytest-tmp-sc007",
+    "python skills/smart-canteen-sop/scripts/validate_sop_manifest.py --manifest docs/smart-canteen/sop-manifests.yaml --run sop-runs/menu-to-traceability.yaml",
+    "python C:\\Users\\th\\.agents\\skills\\project-to-act\\scripts\\init_project_management.py --project-root D:\\project\\smart-canteen --validate",
+    "python C:\\Users\\th\\.agents\\skills\\develop-ai-agents\\scripts\\manage_lifecycle.py --project-root D:\\project\\smart-canteen validate"
+  ],
+  "dependencies": [
+    "SC-002 学习环境菜单和业务事实数据集",
+    "SC-003 AgentScope HarnessAgent、角色上下文与权限基线",
+    "SC-004 员工/学生菜单只读助手切片",
+    "SC-005 运营/管理库存只读切片",
+    "SC-006 菜单原料缺口只读分析"
+  ],
+  "rollback": "回退 SC-007 提交即可移除 traffic.forecast.query、meal_plan.query、V31/V33 预测事实表版本链路、V32 相关权限；不触碰 SC-006 采购缺口与既有采购写入链路。"
+}

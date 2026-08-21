@@ -83,6 +83,17 @@ SC-006 已接入菜单原料缺口只读分析。`procurement.gap.query` 根据�
 明天的菜单有没有原材料不足”不会创建采购计划。缺口计算由 `ProcurementPlanService` 确定性
 完成，模型只负责理解请求和解释结果；员工/学生角色不拥有 `PROCUREMENT_ANALYSIS_READ` 权限。
 
+SC-007 已接入运营人员/管理者的客流预测与备餐建议只读分析。`traffic.forecast.query` 读取
+`traffic_forecasts` 中版本化的学习数据事实；`meal_plan.query` 再按已发布菜单的
+`estimatedQuantity` 比例，以最大余数法分配预测人数。没有预测事实或已发布菜单时返回不可用原因，
+不会让模型猜测人数，也不会创建备餐计划、采购计划或库存写入；员工/学生角色不拥有
+`TRAFFIC_FORECAST_READ` 和 `MEAL_PLAN_ANALYSIS_READ` 权限。示例消息：
+
+```text
+查询 2026-08-22 午餐预计有多少人用餐
+分析 2026-08-22 午餐备餐应该准备多少份
+```
+
 > `infra/verify-stack.ps1` 只负责启动和验收基础设施，不会启动前端或后端。
 
 ## 快速验证

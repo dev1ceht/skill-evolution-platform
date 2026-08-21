@@ -1,0 +1,29 @@
+{
+  "taskId": "SC-007",
+  "title": "实现客流预测与备餐建议只读分析",
+  "currentBehavior": "助手已能查询菜单、库存和原料缺口，但没有客流预测事实查询，也不能把预测人数按已发布菜单生成可解释的备餐建议。",
+  "desiredBehavior": "食堂运营人员和管理者可以按日期/餐次查询版本化客流预测事实，并让助手基于该事实和已发布菜单的 estimatedQuantity 按确定性比例生成备餐建议。",
+  "nonGoals": [
+    "不让 LLM 猜测客流或备餐数量",
+    "不接入真实 POS、门禁、预约、天气或节假日服务",
+    "不创建 meal plan Draft、采购计划、采购订单或库存调整",
+    "不引入 Multi-Agent、MCP、RAG 或持久 Memory"
+  ],
+  "assumptions": [
+    "当前个人学习项目允许把 study dataset 中的生成预测事实作为可复现业务事实。",
+    "SC-007 作为 SC-006 阶段 8 条件收口后的后续迭代记录；既有生命周期 revision 9 和历史决定不被篡改。",
+    "本轮只覆盖午餐等已有 study forecast fact 的日期/餐次；缺少事实时必须返回不可用而不是回退猜测。"
+  ],
+  "deterministicBoundary": {
+    "model": "只解释和路由，不预测人数，不分配份数",
+    "trafficForecast": "TrafficForecastStore 按生成时间保留并返回同一业务切片的最新版本化预测事实",
+    "mealPrep": "MealPrepRecommendationService 按菜单 estimatedQuantity 权重和最大余数法分配预测人数",
+    "businessWrites": "本轮没有写 Tool"
+  },
+  "evidencePlan": [
+    "单元测试覆盖预测事实、比例分配、边界和空数据",
+    "Spring/H2 端到端测试覆盖自然语言请求、权限和无写入",
+    "Python/SOP/OpenAPI/治理校验",
+    "Standards/Spec 双轴代码审查"
+  ]
+}

@@ -103,11 +103,17 @@ public class AssistantIntentResolverRouter implements AssistantIntentResolver {
                     && isInventoryQuery(resolution);
             case PROCUREMENT_GAP_QUERY -> resolution.intent().equals("procurement.gap.query")
                     && isProcurementGapQuery(resolution);
+            case TRAFFIC_FORECAST_QUERY -> resolution.intent().equals("traffic.forecast.query")
+                    && isDateMealQuery(resolution, "forecastDate");
+            case MEAL_PLAN_QUERY -> resolution.intent().equals("meal_plan.query")
+                    && isDateMealQuery(resolution, "menuDate");
             case MENU_PUBLISH_REQUEST, WRITE_REQUEST, CONFIRM_PENDING_ACTION, CANCEL_PENDING_ACTION -> false;
             case CLARIFICATION -> resolution.intent() == null
                     || resolution.intent().equals("traceability.query")
                     || resolution.intent().equals("menu.query")
                     || resolution.intent().equals("procurement.gap.query")
+                    || resolution.intent().equals("traffic.forecast.query")
+                    || resolution.intent().equals("meal_plan.query")
                     || AssistantResolution.isWriteIntent(resolution.intent());
             case UNSUPPORTED -> true;
         };
@@ -145,5 +151,15 @@ public class AssistantIntentResolverRouter implements AssistantIntentResolver {
                 && (mealTime == null
                 || Set.of("BREAKFAST", "LUNCH", "DINNER", "SNACK")
                 .contains(mealTime.toUpperCase(Locale.ROOT)));
+    }
+
+    private static boolean isDateMealQuery(AssistantResolution resolution, String dateField) {
+        String date = resolution.parameters().get(dateField);
+        String mealTime = resolution.parameters().get("mealTime");
+        return date != null
+                && !date.isBlank()
+                && mealTime != null
+                && Set.of("BREAKFAST", "LUNCH", "DINNER", "SNACK")
+                .contains(mealTime.toUpperCase(Locale.ROOT));
     }
 }

@@ -300,6 +300,55 @@ class RuleBasedAssistantIntentResolverTest {
     }
 
     @Test
+    void resolves_a_tomorrow_lunch_traffic_forecast_query() {
+        AssistantResolution result = resolver.resolve("明天午餐预计有多少人用餐？");
+
+        assertThat(result.type()).isEqualTo(AssistantResolution.Type.TRAFFIC_FORECAST_QUERY);
+        assertThat(result.intent()).isEqualTo("traffic.forecast.query");
+        assertThat(result.parameters())
+                .containsEntry("forecastDate", LocalDate.now().plusDays(1).toString())
+                .containsEntry("mealTime", "LUNCH");
+    }
+
+    @Test
+    void resolves_a_tomorrow_lunch_meal_prep_recommendation_query() {
+        AssistantResolution result = resolver.resolve("明天午餐应该备多少份？");
+
+        assertThat(result.type()).isEqualTo(AssistantResolution.Type.MEAL_PLAN_QUERY);
+        assertThat(result.intent()).isEqualTo("meal_plan.query");
+        assertThat(result.parameters())
+                .containsEntry("menuDate", LocalDate.now().plusDays(1).toString())
+                .containsEntry("mealTime", "LUNCH");
+    }
+
+    @Test
+    void asks_for_the_meal_time_when_meal_prep_request_has_only_a_date() {
+        AssistantResolution result = resolver.resolve("明天应该备多少份？");
+
+        assertThat(result.type()).isEqualTo(AssistantResolution.Type.CLARIFICATION);
+        assertThat(result.intent()).isEqualTo("meal_plan.query");
+        assertThat(result.missingFields()).containsExactly("mealTime");
+    }
+
+    @Test
+    void merges_a_meal_time_answer_with_the_original_traffic_forecast_date() {
+        AssistantClarification pending = new AssistantClarification(
+                "CONV-TRAFFIC-001",
+                "traffic.forecast.query",
+                "明天预计有多少人用餐？",
+                java.util.List.of("mealTime"),
+                Instant.parse("2026-08-17T05:00:00Z"),
+                Instant.parse("2026-08-17T05:00:00Z"));
+
+        AssistantResolution result = resolver.resolve("午餐", Optional.of(pending));
+
+        assertThat(result.type()).isEqualTo(AssistantResolution.Type.TRAFFIC_FORECAST_QUERY);
+        assertThat(result.parameters())
+                .containsEntry("forecastDate", LocalDate.now().plusDays(1).toString())
+                .containsEntry("mealTime", "LUNCH");
+    }
+
+    @Test
     void asks_for_an_alert_id_before_allowing_disposal() {
         AssistantResolution result = resolver.resolve("处置预警，说明已整改");
 

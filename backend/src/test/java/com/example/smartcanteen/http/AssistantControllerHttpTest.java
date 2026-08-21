@@ -64,6 +64,7 @@ class AssistantControllerHttpTest {
         jdbc.update("DELETE FROM inventory_batches WHERE school_id = ?", SCHOOL_ID);
         jdbc.update("DELETE FROM ingredients WHERE school_id = ?", SCHOOL_ID);
         jdbc.update("DELETE FROM suppliers WHERE school_id = ?", SCHOOL_ID);
+        jdbc.update("DELETE FROM traffic_forecasts WHERE school_id = ?", SCHOOL_ID);
         jdbc.update("DELETE FROM daily_menu_items WHERE school_id = ?", SCHOOL_ID);
         jdbc.update("DELETE FROM daily_menus WHERE school_id = ?", SCHOOL_ID);
         jdbc.update("DELETE FROM dish_ingredients WHERE school_id = ?", SCHOOL_ID);
@@ -358,6 +359,169 @@ class AssistantControllerHttpTest {
                         "SELECT COUNT(*) FROM procurement_plans WHERE school_id = ?",
                         Integer.class,
                         SCHOOL_ID));
+    }
+
+    @Test
+    void resolves_a_versioned_traffic_forecast_without_guessing_or_writing() throws Exception {
+        jdbc.update(
+                "INSERT INTO traffic_forecasts (school_id, canteen_id, forecast_date, meal_time, "
+                        + "expected_diner_count, lower_bound, upper_bound, model_version, source, generated_at) "
+                        + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                SCHOOL_ID, CANTEEN_ID, "2026-08-22", "LUNCH", 850, 810, 880,
+                "study-traffic-v1", "GENERATED_STUDY_FACT", "2026-08-21 09:00:00");
+
+        int runsBefore = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM agent_runs WHERE actor_user_id = ?", Integer.class,
+                PRINCIPAL.userId());
+        mvc.perform(message(
+                        "traffic-message-001",
+                        "查询 2026-08-22 午餐预计有多少人用餐",
+                        "CONV-ASSIST-TRAFFIC"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.kind").value("RESULT"))
+                .andExpect(jsonPath("$.data.intent").value("traffic.forecast.query"))
+                .andExpect(jsonPath("$.data.runStatus").value("SUCCEEDED"))
+                .andExpect(jsonPath("$.data.result.available").value(true))
+                .andExpect(jsonPath("$.data.result.expectedDinerCount").value(850))
+                .andExpect(jsonPath("$.data.result.lowerBound").value(810))
+                .andExpect(jsonPath("$.data.result.upperBound").value(880))
+                .andExpect(jsonPath("$.data.message").value(
+                        org.hamcrest.Matchers.containsString("预测区间")));
+        assertEquals(
+                runsBefore + 1,
+                jdbc.queryForObject(
+                        "SELECT COUNT(*) FROM agent_runs WHERE actor_user_id = ?", Integer.class,
+                        PRINCIPAL.userId()));
+    }
+
+    @Test
+    void selects_the_latest_retained_forecast_version_for_the_same_business_slice() throws Exception {
+        jdbc.update(
+                "INSERT INTO traffic_forecasts (school_id, canteen_id, forecast_date, meal_time, "
+                        + "expected_diner_count, lower_bound, upper_bound, model_version, source, generated_at) "
+                        + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                SCHOOL_ID, CANTEEN_ID, "2026-08-22", "LUNCH", 790, 760, 820,
+                "study-traffic-v0", "GENERATED_STUDY_FACT", "2026-08-21 08:00:00",
+                SCHOOL_ID, CANTEEN_ID, "2026-08-22", "LUNCH", 850, 810, 880,
+                "study-traffic-v1", "GENERATED_STUDY_FACT", "2026-08-21 09:00:00");
+
+        mvc.perform(message(
+                        "traffic-version-message-001",
+                        "查询 2026-08-22 午餐预计有多少人用餐",
+                        "CONV-ASSIST-TRAFFIC-VERSION"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.result.expectedDinerCount").value(850))
+                .andExpect(jsonPath("$.data.result.modelVersion").value("study-traffic-v1"));
+        assertEquals(
+                2,
+                jdbc.queryForObject(
+                        "SELECT COUNT(*) FROM traffic_forecasts WHERE school_id = ? "
+                                + "AND forecast_date = ? AND meal_time = ?", Integer.class,
+                        SCHOOL_ID, "2026-08-22", "LUNCH"));
+    }
+
+    @Test
+    void asks_for_the_date_when_meal_prep_request_is_missing_it() throws Exception {
+        mvc.perform(message(
+                        "meal-prep-clarification-001",
+                        "午餐应该备多少份？",
+                        "CONV-ASSIST-MEAL-PREP-CLARIFY"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.kind").value("CLARIFICATION"))
+                .andExpect(jsonPath("$.data.intent").value("meal_plan.query"))
+                .andExpect(jsonPath("$.data.missingFields[0]").value("menuDate"))
+                .andExpect(jsonPath("$.data.runId").value(org.hamcrest.Matchers.nullValue()));
+    }
+
+    @Test
+    void asks_for_the_meal_time_when_traffic_forecast_request_is_missing_it() throws Exception {
+        mvc.perform(message(
+                        "traffic-clarification-001",
+                        "明天预计有多少人用餐？",
+                        "CONV-ASSIST-TRAFFIC-CLARIFY"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.kind").value("CLARIFICATION"))
+                .andExpect(jsonPath("$.data.intent").value("traffic.forecast.query"))
+                .andExpect(jsonPath("$.data.missingFields[0]").value("mealTime"))
+                .andExpect(jsonPath("$.data.runId").value(org.hamcrest.Matchers.nullValue()));
+    }
+
+    @Test
+    void resumes_a_traffic_clarification_without_losing_the_original_date() throws Exception {
+        mvc.perform(message(
+                        "traffic-clarification-start-001",
+                        "明天预计有多少人用餐？",
+                        "CONV-ASSIST-TRAFFIC-RESUME"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.kind").value("CLARIFICATION"))
+                .andExpect(jsonPath("$.data.missingFields[0]").value("mealTime"));
+
+        mvc.perform(message(
+                        "traffic-clarification-answer-001",
+                        "午餐",
+                        "CONV-ASSIST-TRAFFIC-RESUME"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.kind").value("RESULT"))
+                .andExpect(jsonPath("$.data.intent").value("traffic.forecast.query"))
+                .andExpect(jsonPath("$.data.result.forecastDate").value("2026-08-22"))
+                .andExpect(jsonPath("$.data.result.mealTime").value("LUNCH"))
+                .andExpect(jsonPath("$.data.result.available").value(false))
+                .andExpect(jsonPath("$.data.result.reason").value("NO_FORECAST_FACT"));
+    }
+
+    @Test
+    void returns_a_deterministic_meal_prep_recommendation_without_creating_a_plan() throws Exception {
+        jdbc.update(
+                "INSERT INTO traffic_forecasts (school_id, canteen_id, forecast_date, meal_time, "
+                        + "expected_diner_count, lower_bound, upper_bound, model_version, source, generated_at) "
+                        + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                SCHOOL_ID, CANTEEN_ID, "2026-08-22", "LUNCH", 850, 810, 880,
+                "study-traffic-v1", "GENERATED_STUDY_FACT", "2026-08-21 09:00:00");
+        jdbc.update(
+                "INSERT INTO dishes (school_id, canteen_id, dish_id, name, category, status, version) "
+                        + "VALUES (?, ?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?, ?)",
+                SCHOOL_ID, CANTEEN_ID, "DISH-PREP-001", "番茄牛腩", "主菜", "ACTIVE", 1,
+                SCHOOL_ID, CANTEEN_ID, "DISH-PREP-002", "宫保鸡丁", "主菜", "ACTIVE", 1);
+        jdbc.update(
+                "INSERT INTO daily_menus (school_id, canteen_id, menu_id, menu_date, meal_time, status, version) "
+                        + "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                SCHOOL_ID, CANTEEN_ID, "M006", "2026-08-22", "LUNCH", "PUBLISHED", 1);
+        jdbc.update(
+                "INSERT INTO daily_menu_items (school_id, canteen_id, menu_id, dish_id, estimated_quantity, sort_order) "
+                        + "VALUES (?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?)",
+                SCHOOL_ID, CANTEEN_ID, "M006", "DISH-PREP-001", 100, 1,
+                SCHOOL_ID, CANTEEN_ID, "M006", "DISH-PREP-002", 200, 2);
+
+        int plansBefore = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM procurement_plans WHERE school_id = ?", Integer.class, SCHOOL_ID);
+        mvc.perform(message(
+                        "meal-prep-message-001",
+                        "分析 2026-08-22 午餐备餐应该准备多少份",
+                        "CONV-ASSIST-MEAL-PREP"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.kind").value("RESULT"))
+                .andExpect(jsonPath("$.data.intent").value("meal_plan.query"))
+                .andExpect(jsonPath("$.data.runStatus").value("SUCCEEDED"))
+                .andExpect(jsonPath("$.data.result.available").value(true))
+                .andExpect(jsonPath("$.data.result.sourceMenuId").value("M006"))
+                .andExpect(jsonPath("$.data.result.totalRecommendedQuantity").value(850))
+                .andExpect(jsonPath("$.data.result.items[0].recommendedQuantity").value(283))
+                .andExpect(jsonPath("$.data.result.items[1].recommendedQuantity").value(567))
+                .andExpect(jsonPath("$.data.message").value(
+                        org.hamcrest.Matchers.allOf(
+                                org.hamcrest.Matchers.containsString("未创建备餐计划"),
+                                org.hamcrest.Matchers.containsString("未创建采购计划"))));
+        assertEquals(
+                plansBefore,
+                jdbc.queryForObject(
+                        "SELECT COUNT(*) FROM procurement_plans WHERE school_id = ?", Integer.class,
+                        SCHOOL_ID));
+        assertEquals(
+                "PUBLISHED",
+                jdbc.queryForObject(
+                        "SELECT status FROM daily_menus WHERE school_id = ? AND canteen_id = ? "
+                                + "AND menu_id = ?", String.class,
+                        SCHOOL_ID, CANTEEN_ID, "M006"));
     }
 
     @Test

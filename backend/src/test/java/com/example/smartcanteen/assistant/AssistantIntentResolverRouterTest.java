@@ -133,6 +133,22 @@ class AssistantIntentResolverRouterTest {
     }
 
     @Test
+    void accepts_a_valid_model_read_only_meal_plan_result() {
+        RuleBasedAssistantIntentResolver rules = new RuleBasedAssistantIntentResolver();
+        AssistantModelResolver model = mock(AssistantModelResolver.class);
+        when(model.resolve("分析餐饮趋势", Optional.empty()))
+                .thenReturn(Optional.of(AssistantResolution.mealPlanQuery(
+                        LocalDate.of(2026, 8, 22), "LUNCH")));
+        AssistantIntentResolverRouter router = new AssistantIntentResolverRouter(
+                rules, model, true);
+
+        AssistantResolution result = router.resolve("分析餐饮趋势");
+
+        assertThat(result.type()).isEqualTo(AssistantResolution.Type.MEAL_PLAN_QUERY);
+        assertThat(result.intent()).isEqualTo("meal_plan.query");
+    }
+
+    @Test
     void rejects_model_clarification_that_would_lead_to_a_write_action() {
         RuleBasedAssistantIntentResolver rules = new RuleBasedAssistantIntentResolver();
         AssistantModelResolver model = mock(AssistantModelResolver.class);

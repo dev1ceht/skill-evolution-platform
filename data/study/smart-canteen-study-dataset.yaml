@@ -14,6 +14,7 @@ entity_counts:
   purchase_orders: 2
   inventory_batches: 9
   procurement_plans: 1
+  traffic_forecasts: 1
   alerts: 2
   compliance_records: 1
 scenarios:
@@ -37,6 +38,17 @@ scenarios:
         quantity: 10
         unit: count
     expected_in_transit_order: PO-20260821-001
+    expected_traffic_forecast:
+      forecast_date: 2026-08-22
+      meal_time: LUNCH
+      expected_diner_count: 850
+      lower_bound: 810
+      upper_bound: 880
+      model_version: study-traffic-v1
+      source: GENERATED_STUDY_FACT
+    expected_meal_prep_allocation:
+      method: PROPORTIONAL_MENU_ESTIMATE_LARGEST_REMAINDER
+      total_recommended_quantity: 850
   - id: traceability
     question: 查询鸡肉批次 TRACE-CHICKEN-20260820 的采购和供应商信息
     trace_code: TRACE-CHICKEN-20260820

@@ -2526,6 +2526,22 @@ components:
       properties:
         menuDate: { type: string, format: date }
         mealTime: { type: string, enum: [BREAKFAST, LUNCH, DINNER, SNACK] }
+    TrafficForecastQueryIntent:
+      type: object
+      description: 读取指定范围内版本化客流预测事实；没有事实时返回不可用，不由模型猜测人数。
+      required: [forecastDate, mealTime]
+      additionalProperties: false
+      properties:
+        forecastDate: { type: string, format: date }
+        mealTime: { type: string, enum: [BREAKFAST, LUNCH, DINNER, SNACK] }
+    MealPlanQueryIntent:
+      type: object
+      description: 基于客流预测事实和指定日期已发布菜单，生成只读备餐数量建议，不创建业务计划。
+      required: [menuDate, mealTime]
+      additionalProperties: false
+      properties:
+        menuDate: { type: string, format: date }
+        mealTime: { type: string, enum: [BREAKFAST, LUNCH, DINNER, SNACK] }
     AssistantTurn:
       type: object
       description: 助手响应；菜单发布以及采购、库存、预警写入必须先返回确认计划，之后仅由明确确认或取消推进 Agent Run。写入入口仍受部署灰度开关、scope、权限和幂等策略约束。
@@ -3303,6 +3319,48 @@ components:
         openOrderBaseQuantity: { type: number, format: double, minimum: 0 }
         shortageBaseQuantity: { type: number, format: double, minimum: 0 }
         baseUnit: { type: string }
+    TrafficForecastQueryResult:
+      type: object
+      required: [forecastDate, mealTime, available, reason]
+      properties:
+        forecastDate: { type: string, format: date }
+        mealTime: { type: string, enum: [BREAKFAST, LUNCH, DINNER, SNACK] }
+        available: { type: boolean }
+        expectedDinerCount: { type: integer, format: int64, minimum: 1, nullable: true }
+        lowerBound: { type: integer, format: int64, minimum: 0, nullable: true }
+        upperBound: { type: integer, format: int64, minimum: 1, nullable: true }
+        modelVersion: { type: string, nullable: true }
+        source: { type: string, nullable: true }
+        generatedAt: { type: string, format: date-time, nullable: true }
+        reason: { type: string, nullable: true }
+    MealPlanQueryResult:
+      type: object
+      required: [menuDate, mealTime, available, items, totalRecommendedQuantity, reason]
+      properties:
+        menuDate: { type: string, format: date }
+        mealTime: { type: string, enum: [BREAKFAST, LUNCH, DINNER, SNACK] }
+        available: { type: boolean }
+        sourceMenuId: { type: string, nullable: true }
+        forecast:
+          allOf:
+            - $ref: '#/components/schemas/TrafficForecastQueryResult'
+          nullable: true
+        allocationMethod: { type: string, nullable: true }
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/MealPrepItem'
+        totalRecommendedQuantity: { type: integer, format: int64, minimum: 0 }
+        reason: { type: string, nullable: true }
+    MealPrepItem:
+      type: object
+      required: [dishId, dishName, currentPlannedQuantity, recommendedQuantity, sortOrder]
+      properties:
+        dishId: { type: string }
+        dishName: { type: string }
+        currentPlannedQuantity: { type: number, format: double, exclusiveMinimum: true, minimum: 0 }
+        recommendedQuantity: { type: integer, format: int64, minimum: 0 }
+        sortOrder: { type: integer, minimum: 0 }
     DailyMenuDecisionRequest:
       type: object
       required: [version, decision]

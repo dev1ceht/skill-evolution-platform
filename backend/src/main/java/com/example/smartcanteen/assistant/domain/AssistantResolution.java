@@ -32,6 +32,8 @@ public record AssistantResolution(
         MENU_QUERY,
         INVENTORY_QUERY,
         PROCUREMENT_GAP_QUERY,
+        TRAFFIC_FORECAST_QUERY,
+        MEAL_PLAN_QUERY,
         MENU_PUBLISH_REQUEST,
         WRITE_REQUEST,
         CONFIRM_PENDING_ACTION,
@@ -116,6 +118,26 @@ public record AssistantResolution(
                         "Procurement gap resolution cannot contain menu or trace identifiers");
             }
             validateProcurementGapParameters(parameters);
+        } else if (type == Type.TRAFFIC_FORECAST_QUERY) {
+            if (!"traffic.forecast.query".equals(intent)) {
+                throw new IllegalArgumentException(
+                        "Traffic forecast resolution must select traffic.forecast.query");
+            }
+            if (traceCode != null || menuId != null) {
+                throw new IllegalArgumentException(
+                        "Traffic forecast resolution cannot contain resource identifiers");
+            }
+            validateTrafficForecastParameters(parameters);
+        } else if (type == Type.MEAL_PLAN_QUERY) {
+            if (!"meal_plan.query".equals(intent)) {
+                throw new IllegalArgumentException(
+                        "Meal plan resolution must select meal_plan.query");
+            }
+            if (traceCode != null || menuId != null) {
+                throw new IllegalArgumentException(
+                        "Meal plan resolution cannot contain resource identifiers");
+            }
+            validateMealPlanParameters(parameters);
         } else if (type == Type.CONFIRM_PENDING_ACTION || type == Type.CANCEL_PENDING_ACTION) {
             if (!"menu.publish".equals(intent) && !WRITE_INTENTS.contains(intent)) {
                 throw new IllegalArgumentException(
@@ -143,6 +165,8 @@ public record AssistantResolution(
                 && !intent.equals("menu.query")
                 && !intent.equals("inventory.query")
                 && !intent.equals("procurement.gap.query")
+                && !intent.equals("traffic.forecast.query")
+                && !intent.equals("meal_plan.query")
                 && !intent.equals("menu.publish")
                 && !WRITE_INTENTS.contains(intent)) {
             throw new IllegalArgumentException("Unsupported clarification intent: " + intent);
@@ -239,6 +263,37 @@ public record AssistantResolution(
                 null,
                 List.of(),
                 "已识别为菜单原料缺口只读分析。",
+                parameters);
+    }
+
+    public static AssistantResolution trafficForecastQuery(
+            LocalDate forecastDate, String mealTime) {
+        Objects.requireNonNull(forecastDate, "forecastDate");
+        Map<String, String> parameters = new LinkedHashMap<>();
+        parameters.put("forecastDate", forecastDate.toString());
+        parameters.put("mealTime", requireMealTime(mealTime));
+        return new AssistantResolution(
+                Type.TRAFFIC_FORECAST_QUERY,
+                "traffic.forecast.query",
+                null,
+                null,
+                List.of(),
+                "已识别为客流预测只读查询。",
+                parameters);
+    }
+
+    public static AssistantResolution mealPlanQuery(LocalDate menuDate, String mealTime) {
+        Objects.requireNonNull(menuDate, "menuDate");
+        Map<String, String> parameters = new LinkedHashMap<>();
+        parameters.put("menuDate", menuDate.toString());
+        parameters.put("mealTime", requireMealTime(mealTime));
+        return new AssistantResolution(
+                Type.MEAL_PLAN_QUERY,
+                "meal_plan.query",
+                null,
+                null,
+                List.of(),
+                "已识别为备餐建议只读分析。",
                 parameters);
     }
 
@@ -365,5 +420,46 @@ public record AssistantResolution(
                         "Unsupported procurement gap query parameter: " + key);
             }
         }
+    }
+
+    private static void validateTrafficForecastParameters(Map<String, String> parameters) {
+        String forecastDate = parameters.get("forecastDate");
+        if (forecastDate == null || forecastDate.isBlank()) {
+            throw new IllegalArgumentException("Traffic forecast resolution requires forecastDate");
+        }
+        validateMenuDate(forecastDate);
+        requireMealTime(parameters.get("mealTime"));
+        for (String key : parameters.keySet()) {
+            if (!Set.of("forecastDate", "mealTime").contains(key)) {
+                throw new IllegalArgumentException(
+                        "Unsupported traffic forecast query parameter: " + key);
+            }
+        }
+    }
+
+    private static void validateMealPlanParameters(Map<String, String> parameters) {
+        String menuDate = parameters.get("menuDate");
+        if (menuDate == null || menuDate.isBlank()) {
+            throw new IllegalArgumentException("Meal plan resolution requires menuDate");
+        }
+        validateMenuDate(menuDate);
+        requireMealTime(parameters.get("mealTime"));
+        for (String key : parameters.keySet()) {
+            if (!Set.of("menuDate", "mealTime").contains(key)) {
+                throw new IllegalArgumentException(
+                        "Unsupported meal plan query parameter: " + key);
+            }
+        }
+    }
+
+    private static String requireMealTime(String value) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException("mealTime is required");
+        }
+        String normalized = value.trim().toUpperCase(Locale.ROOT);
+        if (!Set.of("BREAKFAST", "LUNCH", "DINNER", "SNACK").contains(normalized)) {
+            throw new IllegalArgumentException("Unsupported mealTime: " + value);
+        }
+        return normalized;
     }
 }
