@@ -457,31 +457,6 @@ export type Nutrition = {
   carbohydrateG: number;
 };
 
-export type IngredientCategory =
-  | '蔬菜'
-  | '肉禽'
-  | '蛋奶'
-  | '水产'
-  | '主食'
-  | '豆制品'
-  | '调味品'
-  | '干货'
-  | '水果'
-  | '半成品'
-  | '其他';
-
-export type DishCategory =
-  | '主食'
-  | '荤菜'
-  | '素菜'
-  | '荤素搭配'
-  | '汤羹'
-  | '炒菜'
-  | '小吃'
-  | '饮品'
-  | '早餐'
-  | '其他';
-
 export type Ingredient = {
   id: string;
   name: string;
@@ -496,7 +471,7 @@ export type Ingredient = {
 export type IngredientRequest = {
   ingredientId?: string;
   name: string;
-  category: IngredientCategory;
+  category: string;
   baseUnit: string;
   specification?: string;
   energyKcal?: number;
@@ -552,7 +527,7 @@ export type Dish = {
 export type DishRequest = {
   dishId?: string;
   name: string;
-  category: DishCategory;
+  category: string;
   description?: string;
   imageUrl?: string;
   active?: boolean;
@@ -612,7 +587,7 @@ export type MealOrder = {
   mealDate: string;
   mealTime: string;
   status: string;
-  paymentStatus: string;
+  paymentStatus: 'UNPAID';
   totalAmount: number;
   items: Array<MealOrderItem>;
   version: number;

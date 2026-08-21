@@ -612,7 +612,7 @@ export type MealOrder = {
   mealDate: string;
   mealTime: string;
   status: string;
-  paymentStatus: string;
+  paymentStatus: 'UNPAID';
   totalAmount: number;
   items: Array<MealOrderItem>;
   version: number;

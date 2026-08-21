@@ -17,7 +17,7 @@
 - 生成客户端已同步：`contracts/generated/**` 与 `frontend/src/api/generated/**` 包含菜单/订单类型、4 个订单相关接口和 111 个生成客户端契约测试；保留既有员工端依赖的分类类型别名。
 - 助手 HTTP 测试已覆盖订单查询、确认后创建和确认后取消。
 - 幂等键已按 `school_id + canteen_id + actor_user_id + idempotency_key` 隔离；同一用户同键不同载荷仍拒绝复用。
-- `paymentStatus` 已由领域模型、V36 数据库约束和 OpenAPI 共同限制为 `UNPAID`。
+- `paymentStatus` 已由领域模型、V36 数据库约束、OpenAPI 和生成客户端类型共同限制为 `UNPAID`。
 - 前一轮发现的未使用 `DISH_ID` 已删除；助手取消订单保留订单号原始大小写，避免生成订单 UUID 的大小写不一致。
 - 未保留与 SC-009 无关的分类 OpenAPI 合同扩展；订单接口、类型和生成工件是本轮新增范围。
 
