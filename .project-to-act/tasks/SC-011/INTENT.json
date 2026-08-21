@@ -1,0 +1,28 @@
+{
+  "taskId": "SC-011",
+  "title": "员工/学生订单学习环境模拟支付",
+  "currentBehavior": "员工/学生可创建、查询和取消自己的未支付消费订单；订单 paymentStatus 固定为 UNPAID，系统没有个人支付入口。",
+  "desiredBehavior": "员工/学生可对自己的 CREATED + UNPAID 订单执行固定 STUDY_MOCK 模拟支付；支付成功后订单保持 CREATED、paymentStatus 变为 PAID；助手支付必须先确认。",
+  "publicSeams": [
+    "MealOrderService.pay/cancel",
+    "MealPaymentStore and MealOrderStore.markPaid",
+    "MealOrderController POST /api/v1/meal-orders/{orderId}/pay",
+    "MealOrderToolExecutor meal_order.pay",
+    "RuleBasedAssistantIntentResolver meal_order.pay",
+    "DinerWorkspace mock payment action"
+  ],
+  "deterministicBoundary": {
+    "actor": "身份由 AuthPrincipal/ExecutionContext 提供；不接受 userId 覆盖。",
+    "eligibility": "服务端只允许当前 actor 在当前 scope 下支付 CREATED + UNPAID 订单。",
+    "payment": "支付方式固定 STUDY_MOCK；只记录学习环境支付事实，不接真实网关或凭证。",
+    "state": "支付成功将 paymentStatus 从 UNPAID 更新为 PAID，业务 status 仍为 CREATED；PAID 订单不可取消。",
+    "assistantWrite": "助手 meal_order.pay 先生成 WAITING_CONFIRMATION 的 Agent Run，确认后再执行 Tool。"
+  },
+  "acceptancePlan": [
+    "HTTP 测试覆盖本人支付、支付后订单状态、取消/重复支付拒绝、幂等、跨用户和已取消订单边界",
+    "Tool 测试覆盖 meal_order.pay 输入白名单、actor 绑定和业务幂等键",
+    "Resolver/Assistant HTTP 测试覆盖支付识别、缺少订单号澄清和确认链路",
+    "前端测试覆盖支付按钮、成功刷新和错误反馈",
+    "全量 Java/前端/Python/SOP/Project-to-Act 校验通过"
+  ]
+}

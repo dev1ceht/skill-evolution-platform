@@ -15,6 +15,10 @@
     {
       "method": "POST",
       "path": "/api/v1/meal-reviews"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/meal-orders/{orderId}/pay"
     }
   ],
   "removed": [],

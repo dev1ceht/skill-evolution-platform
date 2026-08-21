@@ -1,0 +1,38 @@
+{
+  "taskId": "SC-011",
+  "baseRevision": "4d72546",
+  "capturedAt": "2026-08-22T09:00:00+08:00",
+  "freshness": "fresh",
+  "scope": "在学习数据集上增加员工/学生订单 STUDY_MOCK 模拟支付纵向切片；退款、真实网关、余额扣款和真实金额结算不进入本轮。",
+  "writeSet": [
+    "backend/src/main/java/com/example/smartcanteen/assistant/**",
+    "backend/src/main/java/com/example/smartcanteen/agent/**",
+    "backend/src/main/java/com/example/smartcanteen/application/**",
+    "backend/src/main/java/com/example/smartcanteen/domain/**",
+    "backend/src/main/java/com/example/smartcanteen/http/**",
+    "backend/src/main/java/com/example/smartcanteen/infrastructure/**",
+    "backend/src/main/resources/db/migration/**",
+    "backend/src/test/java/**",
+    "frontend/src/**",
+    "frontend/tests/**",
+    "contracts/smart-canteen.openapi.yaml",
+    "contracts/generated/**",
+    "docs/smart-canteen/**",
+    ".project-to-act/**",
+    "README.md"
+  ],
+  "conflicts": [],
+  "intendedChanges": [
+    "新增 meal_order_payments 持久化模型、支付幂等和订单 PAID 状态更新。",
+    "新增个人订单模拟支付 HTTP API、Tool、Skill 和 MEAL_PAYMENT_WRITE 权限。",
+    "新增 meal_order.pay 助手解析、确认计划和执行结果。",
+    "扩展员工端订单卡片，提供 STUDY_MOCK 模拟支付入口和刷新反馈。",
+    "更新 OpenAPI、生成客户端、SOP、测试和项目治理证据。"
+  ],
+  "outOfScope": [
+    "真实支付网关、支付回调、签名验签和支付令牌",
+    "余额扣款、银行卡、退款、撤销和对账",
+    "真实订单金额结算、POS、库存扣减和取餐核销",
+    "支付风控、优惠券、发票和财务入账"
+  ]
+}

@@ -139,6 +139,30 @@ public class JdbcMealOrderStore implements MealOrderStore {
                 .orElseThrow(() -> new IllegalStateException("Meal order disappeared: " + orderId));
     }
 
+    @Override
+    public MealOrder markPaid(
+            CanteenScope scope,
+            String orderId,
+            String actorUserId,
+            long expectedVersion) {
+        int changed = jdbc.update(
+                "UPDATE meal_orders SET payment_status = 'PAID', version = version + 1, "
+                        + "updated_at = CURRENT_TIMESTAMP WHERE school_id = ? AND canteen_id = ? "
+                        + "AND order_id = ? AND actor_user_id = ? AND status = 'CREATED' "
+                        + "AND payment_status = 'UNPAID' AND version = ?",
+                scope.schoolId(),
+                scope.canteenId(),
+                orderId,
+                actorUserId,
+                expectedVersion);
+        if (changed != 1) {
+            throw new IllegalStateException(
+                    "Meal order was changed concurrently or is no longer payable: " + orderId);
+        }
+        return find(scope, orderId)
+                .orElseThrow(() -> new IllegalStateException("Meal order disappeared: " + orderId));
+    }
+
     private Optional<MealOrder> findByIdempotency(
             CanteenScope scope, String actorUserId, String idempotencyKey) {
         return jdbc.query(

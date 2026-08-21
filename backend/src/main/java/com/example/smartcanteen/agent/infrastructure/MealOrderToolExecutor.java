@@ -22,7 +22,8 @@ public class MealOrderToolExecutor implements ToolExecutor {
     private static final Set<String> TOOLS = Set.of(
             "meal_order.query",
             "meal_order.create",
-            "meal_order.cancel");
+            "meal_order.cancel",
+            "meal_order.pay");
     private static final Set<String> INPUT_FIELDS = Set.of(
             "menuId", "menuDate", "mealTime", "items", "orderId", "status",
             "businessIdempotencyKey");
@@ -68,6 +69,11 @@ public class MealOrderToolExecutor implements ToolExecutor {
                         context.scope(),
                         context.actorUserId(),
                         requiredText(input, "orderId"));
+                case "meal_order.pay" -> orders.pay(
+                        context.scope(),
+                        context.actorUserId(),
+                        requiredText(input, "orderId"),
+                        requiredText(input, "businessIdempotencyKey"));
                 default -> throw new IllegalArgumentException(
                         "Tool is not registered: " + toolName);
             };

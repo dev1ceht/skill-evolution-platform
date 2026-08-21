@@ -21,6 +21,7 @@ public record AssistantClarification(
                 && !intent.equals("menu.publish")
                 && !intent.equals("meal_order.create")
                 && !intent.equals("meal_order.cancel")
+                && !intent.equals("meal_order.pay")
                 && !intent.equals("traffic.forecast.query")
                 && !intent.equals("meal_plan.query")
                 && !intent.equals("procurement.plan.generate")) {

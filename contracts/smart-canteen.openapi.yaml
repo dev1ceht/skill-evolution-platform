@@ -834,6 +834,29 @@ paths:
           $ref: '#/components/responses/BusinessError'
         '403':
           $ref: '#/components/responses/ForbiddenError'
+  /api/v1/meal-orders/{orderId}/pay:
+    post:
+      operationId: payMealOrder
+      tags: [diner]
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema: { type: string, minLength: 1, maxLength: 64 }
+        - $ref: '#/components/parameters/OperationalSchoolId'
+        - $ref: '#/components/parameters/OperationalCanteenId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: 已完成学习环境模拟支付的个人消费订单
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MealOrderResponse'
+        '400':
+          $ref: '#/components/responses/BusinessError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
   /api/v1/meal-reviews:
     get:
       operationId: listMealReviews
@@ -3497,7 +3520,7 @@ components:
         mealDate: { type: string, format: date }
         mealTime: { type: string, enum: [BREAKFAST, LUNCH, DINNER, SNACK] }
         status: { type: string, enum: [CREATED, CANCELLED] }
-        paymentStatus: { type: string, enum: [UNPAID], description: 本轮未接入支付，固定为 UNPAID }
+        paymentStatus: { type: string, enum: [UNPAID, PAID], description: 学习环境支持 UNPAID 到 PAID 的 STUDY_MOCK 模拟支付状态转换，不代表真实支付结算 }
         totalAmount: { type: number, format: double, minimum: 0 }
         items:
           type: array

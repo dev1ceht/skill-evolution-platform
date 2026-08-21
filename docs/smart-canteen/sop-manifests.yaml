@@ -157,6 +157,43 @@ sops:
       evidence: "required"
     status: "implemented"
 
+  - id: "smart-canteen.meal-order-payment"
+    version: "1.0.0"
+    trigger: ["支付订单", "帮我支付消费订单", "模拟支付"]
+    risk_level: "medium"
+    approval: "assistant-confirmation-before-payment"
+    permissions: ["MEAL_PAYMENT_WRITE"]
+    scope: "schoolId + canteenId + actorUserId"
+    preconditions: ["只允许支付当前用户自己的 CREATED + UNPAID 订单", "支付方式固定为 STUDY_MOCK", "不接收第三方支付凭证"]
+    idempotency: "按当前 actor + scope + Idempotency-Key 隔离；同键同载荷重放，不同载荷和同订单不同 Key 拒绝"
+    timeout: { mode: "request-bound", enforced: false }
+    steps: ["resolve-actor-and-order", "validate-unpaid-order", "record-study-mock-payment", "mark-order-paid", "return-order-snapshot"]
+    rollback: "本轮不做退款；失败事务回滚支付记录和订单状态更新"
+    requirements: ["DINER-004"]
+    references: [".project-to-act/PROJECT_FEATURES.md", ".project-to-act/tasks/SC-011/INTENT.json"]
+    implementation:
+      modules: ["backend/src/main/java/com/example/smartcanteen/application/MealOrderService.java", "backend/src/main/java/com/example/smartcanteen/application/port/MealPaymentStore.java", "backend/src/main/java/com/example/smartcanteen/infrastructure/JdbcMealPaymentStore.java", "backend/src/main/java/com/example/smartcanteen/agent/infrastructure/MealOrderToolExecutor.java"]
+      apis: ["contracts/smart-canteen.openapi.yaml"]
+      migrations: ["backend/src/main/resources/db/migration/V39__create_meal_order_payments.sql", "backend/src/main/resources/db/migration/V40__allow_meal_order_payment_assistant_action.sql", "backend/src/main/resources/db/migration/V41__allow_paid_meal_orders.sql"]
+      tests: ["backend/src/test/java/com/example/smartcanteen/agent/MealOrderToolExecutorTest.java", "backend/src/test/java/com/example/smartcanteen/http/MealOrderControllerHttpTest.java", "backend/src/test/java/com/example/smartcanteen/assistant/RuleBasedAssistantIntentResolverTest.java"]
+      verification: [".project-to-act/tasks/SC-011/evidence/E-SC011-TESTS.md"]
+    adapters: [{ name: "JdbcMealPaymentStore", status: "implemented" }]
+    evidence: [".project-to-act/tasks/SC-011/evidence/E-SC011-TESTS.md"]
+    runtime:
+      intents: ["meal_order.pay"]
+      input_schema: "agent/meal-order-payment-input-v1"
+      output_schema: "agent/meal-order-action-result-v1"
+      tools: ["meal_order.pay"]
+      tool_by_intent: { meal_order.pay: "meal_order.pay" }
+      side_effect: "write"
+      run_confirmation: "required-before-write"
+      domain_approval: "not-applicable"
+      activation: "active"
+      deadline_ms: 10000
+      retry_policy: "no-retry-after-write"
+      evidence: "required"
+    status: "implemented"
+
   - id: "smart-canteen.meal-review-query"
     version: "1.0.0"
     trigger: ["查看我的评价", "查询评价记录", "查看个人评价"]

@@ -166,6 +166,29 @@ class RuleBasedAssistantIntentResolverTest {
     }
 
     @Test
+    void resolves_mock_payment_with_order_id_and_asks_for_order_id_when_missing() {
+        AssistantResolution resolved = resolver.resolve("支付订单 MEAL-001");
+
+        assertThat(resolved.type()).isEqualTo(AssistantResolution.Type.WRITE_REQUEST);
+        assertThat(resolved.intent()).isEqualTo("meal_order.pay");
+        assertThat(resolved.parameters()).containsEntry("orderId", "MEAL-001");
+
+        AssistantResolution clarification = resolver.resolve("帮我支付订单");
+
+        assertThat(clarification.type()).isEqualTo(AssistantResolution.Type.CLARIFICATION);
+        assertThat(clarification.intent()).isEqualTo("meal_order.pay");
+        assertThat(clarification.missingFields()).containsExactly("orderId");
+    }
+
+    @Test
+    void treats_payment_status_as_a_read_query_instead_of_a_payment_request() {
+        AssistantResolution result = resolver.resolve("查询 MEAL-001 的支付状态");
+
+        assertThat(result.type()).isEqualTo(AssistantResolution.Type.MEAL_ORDER_QUERY);
+        assertThat(result.intent()).isEqualTo("meal_order.query");
+    }
+
+    @Test
     void accepts_an_iso_date_outside_the_current_century() {
         AssistantResolution result = resolver.resolve("查询 1999-08-17 的菜单");
 

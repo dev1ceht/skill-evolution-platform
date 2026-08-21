@@ -42,6 +42,7 @@ class MealOrderToolExecutorTest {
         assertThat(executor.supports("meal_order.query")).isTrue();
         assertThat(executor.supports("meal_order.create")).isTrue();
         assertThat(executor.supports("meal_order.cancel")).isTrue();
+        assertThat(executor.supports("meal_order.pay")).isTrue();
         assertThat(executor.supports("payment.create")).isFalse();
     }
 
@@ -103,6 +104,25 @@ class MealOrderToolExecutorTest {
                 .hasMessageContaining("businessIdempotencyKey is required");
     }
 
+    @Test
+    void delegates_mock_payment_with_actor_from_execution_context() {
+        when(orders.pay(
+                        eq(context.scope()),
+                        eq(context.actorUserId()),
+                        eq("MEAL-001"),
+                        eq("PAY-KEY-001")))
+                .thenReturn(paidOrder());
+
+        var result = executor.execute(
+                "meal_order.pay",
+                context,
+                "{\"orderId\":\"MEAL-001\",\"businessIdempotencyKey\":\"PAY-KEY-001\"}");
+
+        assertThat(result.resultJson()).contains("MEAL-001").contains("PAID");
+        verify(orders).pay(
+                context.scope(), context.actorUserId(), "MEAL-001", "PAY-KEY-001");
+    }
+
     private static MealOrder order() {
         Instant now = Instant.parse("2026-08-21T03:00:00Z");
         return new MealOrder(
@@ -118,6 +138,25 @@ class MealOrderToolExecutorTest {
                 List.of(new MealOrderItem(
                         "DISH-001", "番茄鸡蛋", 1, BigDecimal.ZERO, BigDecimal.ZERO)),
                 0,
+                now,
+                now);
+    }
+
+    private static MealOrder paidOrder() {
+        Instant now = Instant.parse("2026-08-21T03:00:00Z");
+        return new MealOrder(
+                "MEAL-001",
+                "MO-001",
+                "USER-DINER-001",
+                "M001",
+                LocalDate.of(2026, 8, 21),
+                "LUNCH",
+                "CREATED",
+                "PAID",
+                BigDecimal.ZERO,
+                List.of(new MealOrderItem(
+                        "DISH-001", "番茄鸡蛋", 1, BigDecimal.ZERO, BigDecimal.ZERO)),
+                1,
                 now,
                 now);
     }

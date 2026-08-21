@@ -72,11 +72,54 @@ describe('DinerWorkspace', () => {
     const wrapper = mount(DinerWorkspace, { props: { api, scope } });
     await flushPromises();
 
-    await wrapper.get('.order-bottom button').trigger('click');
+    await wrapper.get('[aria-label="取消订单"]').trigger('click');
     await flushPromises();
 
     expect(cancelMealOrder).toHaveBeenCalledWith('MEAL-001', scope);
     expect(wrapper.text()).toContain('订单 MO-001 已取消');
+  });
+
+  it('completes a study mock payment for an own unpaid order and refreshes the list', async () => {
+    const listMealOrders = vi.fn()
+      .mockResolvedValueOnce([order])
+      .mockResolvedValueOnce([{ ...order, paymentStatus: 'PAID' as const }]);
+    const payMealOrder = vi.fn().mockResolvedValue({ ...order, paymentStatus: 'PAID' as const });
+    const api: SmartCanteenApiPort = {
+      listDinerMenus: vi.fn().mockResolvedValue([menu]),
+      listMealOrders,
+      payMealOrder,
+    };
+    const wrapper = mount(DinerWorkspace, { props: { api, scope } });
+    await flushPromises();
+
+    await wrapper.get('[aria-label="模拟支付"]').trigger('click');
+    await flushPromises();
+
+    expect(payMealOrder).toHaveBeenCalledWith('MEAL-001', expect.stringContaining('diner-payment-'), scope);
+    expect(wrapper.text()).toContain('订单 MO-001 已完成学习环境模拟支付');
+    expect(wrapper.text()).toContain('已支付');
+  });
+
+  it('refreshes the order list when study mock payment reports an error', async () => {
+    const listMealOrders = vi.fn()
+      .mockResolvedValueOnce([order])
+      .mockResolvedValueOnce([{ ...order, paymentStatus: 'PAID' as const }]);
+    const payMealOrder = vi.fn().mockRejectedValue(new Error('支付服务暂不可用'));
+    const api: SmartCanteenApiPort = {
+      listDinerMenus: vi.fn().mockResolvedValue([menu]),
+      listMealOrders,
+      payMealOrder,
+    };
+    const wrapper = mount(DinerWorkspace, { props: { api, scope } });
+    await flushPromises();
+
+    await wrapper.get('[aria-label="模拟支付"]').trigger('click');
+    await flushPromises();
+
+    expect(payMealOrder).toHaveBeenCalledTimes(1);
+    expect(listMealOrders).toHaveBeenCalledTimes(2);
+    expect(wrapper.text()).toContain('支付服务暂不可用');
+    expect(wrapper.text()).toContain('已支付');
   });
 
   it('submits a review for an own active order and reloads personal reviews', async () => {

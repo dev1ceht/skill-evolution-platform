@@ -17,7 +17,7 @@ class YamlSkillRegistryTest {
 
     @Test
     void loads_all_manifest_entries_and_only_exposes_active_runtime_intents() {
-        assertThat(registry.list()).hasSize(18);
+        assertThat(registry.list()).hasSize(19);
         SkillDefinition traceability = registry.findByIntent("traceability.query").orElseThrow();
 
         assertThat(traceability.id()).isEqualTo("smart-canteen.traceability");
@@ -31,6 +31,7 @@ class YamlSkillRegistryTest {
         assertThat(registry.findByIntent("meal_order.query")).isPresent();
         assertThat(registry.findByIntent("meal_order.create")).isPresent();
         assertThat(registry.findByIntent("meal_order.cancel")).isPresent();
+        assertThat(registry.findByIntent("meal_order.pay")).isPresent();
         assertThat(registry.findByIntent("inventory.query")).isPresent();
         assertThat(registry.findByIntent("procurement.plan.generate")).isPresent();
         assertThat(registry.findByIntent("procurement.order.create")).isPresent();

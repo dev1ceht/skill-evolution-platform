@@ -36,8 +36,8 @@ public record MealOrder(
         if (!List.of("CREATED", "CANCELLED").contains(status)) {
             throw new IllegalArgumentException("Unsupported meal order status: " + status);
         }
-        if (!"UNPAID".equals(paymentStatus)) {
-            throw new IllegalArgumentException("Payment is not implemented for meal orders");
+        if (!List.of("UNPAID", "PAID").contains(paymentStatus)) {
+            throw new IllegalArgumentException("Unsupported meal order payment status: " + paymentStatus);
         }
         totalAmount = nonNegative(totalAmount, "totalAmount");
         items = items == null ? List.of() : List.copyOf(items);

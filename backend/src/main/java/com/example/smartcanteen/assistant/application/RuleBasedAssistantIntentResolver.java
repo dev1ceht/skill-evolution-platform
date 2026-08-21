@@ -388,6 +388,7 @@ public class RuleBasedAssistantIntentResolver implements AssistantIntentResolver
         return normalized.contains("我的订单")
                 || normalized.contains("订单记录")
                 || normalized.contains("订单状态")
+                || normalized.contains("支付状态")
                 || normalized.contains("查订单")
                 || normalized.contains("查看订单")
                 || normalized.contains("meal_order.query");
@@ -650,6 +651,21 @@ public class RuleBasedAssistantIntentResolver implements AssistantIntentResolver
             return AssistantResolution.writeRequest(
                     "meal_order.create", parameters, "已识别为消费订单创建请求，将先生成待确认订单。");
         }
+        if (isMealOrderPayRequest(normalized)) {
+            Map<String, String> parameters = new LinkedHashMap<>();
+            Matcher matcher = MEAL_ORDER_ID.matcher(message);
+            if (matcher.find()) {
+                parameters.put("orderId", matcher.group());
+            }
+            if (!parameters.containsKey("orderId")) {
+                return AssistantResolution.clarificationFor(
+                        "meal_order.pay",
+                        "请提供要支付的消费订单号，例如“支付订单 MEAL-001”。",
+                        "orderId");
+            }
+            return AssistantResolution.writeRequest(
+                    "meal_order.pay", parameters, "已识别为消费订单模拟支付请求，将先生成待确认操作。");
+        }
         if (isMealOrderCancelRequest(normalized)) {
             Map<String, String> parameters = new LinkedHashMap<>();
             Matcher matcher = MEAL_ORDER_ID.matcher(message);
@@ -808,6 +824,20 @@ public class RuleBasedAssistantIntentResolver implements AssistantIntentResolver
                 || normalized.contains("帮我订")
                 || normalized.contains("创建消费订单")
                 || normalized.contains("meal_order.create");
+    }
+
+    private static boolean isMealOrderPayRequest(String normalized) {
+        if (normalized.contains("查询") || normalized.contains("查看")
+                || normalized.contains("状态")) {
+            return false;
+        }
+        return (normalized.contains("支付订单")
+                || normalized.contains("付款订单")
+                || normalized.contains("支付消费订单")
+                || normalized.contains("meal_order.pay")
+                || (normalized.contains("支付") && MEAL_ORDER_ID.matcher(normalized).find()))
+                && !normalized.contains("投诉")
+                && !normalized.contains("评价");
     }
 
     private static boolean isMealReviewCreateRequest(String normalized) {

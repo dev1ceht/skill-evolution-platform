@@ -538,6 +538,13 @@ describe("Smart Canteen Workflow API contract", () => {
     expect(new URL(requestUrl).pathname).toBe("/api/v1/meal-orders/fixture/cancel");
     expect(options.method).toBe("POST");
   });
+  it("payMealOrder sends POST /api/v1/meal-orders/{orderId}/pay", async () => {
+    await client.payMealOrder('fixture', 'fixture', 'fixture', 'fixture');
+    const [requestUrl, options] = fetchMock.mock.calls[0];
+    expect(new URL(requestUrl).pathname).toBe("/api/v1/meal-orders/fixture/pay");
+    expect(options.method).toBe("POST");
+    expect(options.headers["Idempotency-Key"]).toBe('fixture');
+  });
   it("listMealReviews sends GET /api/v1/meal-reviews", async () => {
     await client.listMealReviews('fixture', 'fixture', undefined, undefined);
     const [requestUrl, options] = fetchMock.mock.calls[0];

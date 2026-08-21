@@ -155,7 +155,7 @@ export interface MealOrder {
   mealDate: string;
   mealTime: string;
   status: 'CREATED' | 'CANCELLED' | string;
-  paymentStatus: 'UNPAID';
+  paymentStatus: 'UNPAID' | 'PAID';
   totalAmount: number;
   items: MealOrderItem[];
   version: number;
@@ -201,6 +201,11 @@ export interface SmartCanteenApiPort {
     scope: CanteenScope,
   ): Promise<MealOrder>;
   cancelMealOrder?(orderId: string, scope: CanteenScope): Promise<MealOrder>;
+  payMealOrder?(
+    orderId: string,
+    idempotencyKey: string,
+    scope: CanteenScope,
+  ): Promise<MealOrder>;
   listMealReviews?(scope: CanteenScope): Promise<MealReview[]>;
   createMealReview?(
     request: EmployeeMealReviewRequest,
@@ -897,6 +902,19 @@ export class SmartCanteenApi implements SmartCanteenApiPort {
       `/api/v1/meal-orders/${encodeURIComponent(orderId)}/cancel`,
       undefined,
       { params: scope },
+    );
+    return unwrap(response);
+  }
+
+  async payMealOrder(
+    orderId: string,
+    idempotencyKey: string,
+    scope: CanteenScope,
+  ): Promise<MealOrder> {
+    const response = await this.client.post<ApiEnvelope<MealOrder>>(
+      `/api/v1/meal-orders/${encodeURIComponent(orderId)}/pay`,
+      undefined,
+      { params: scope, headers: { 'Idempotency-Key': idempotencyKey } },
     );
     return unwrap(response);
   }

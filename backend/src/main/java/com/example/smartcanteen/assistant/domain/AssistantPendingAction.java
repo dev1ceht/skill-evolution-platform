@@ -25,6 +25,7 @@ public record AssistantPendingAction(
                         "procurement.order.receive",
                         "meal_order.create",
                         "meal_order.cancel",
+                        "meal_order.pay",
                         "meal_review.create",
                         "diner_complaint.create",
                         "inventory.receive",

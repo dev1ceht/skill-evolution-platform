@@ -591,7 +591,7 @@ export type MealOrder = {
   mealDate: string;
   mealTime: string;
   status: string;
-  paymentStatus: string;
+  paymentStatus: "UNPAID" | "PAID";
   totalAmount: number;
   items: Array<MealOrderItem>;
   version: number;
@@ -2556,6 +2556,20 @@ export async function cancelMealOrder(orderId: string, schoolId: string, canteen
   if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
   if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
   const response = await fetch(url, { method: 'POST' });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<MealOrderResponse>;
+}
+
+export async function payMealOrder(orderId: string, schoolId: string, canteenId: string, idempotencyKey: string): Promise<MealOrderResponse> {
+  const encodedOrderId = encodeURIComponent(String(orderId));
+  let path = "/api/v1/meal-orders/{orderId}/pay";
+  path = path.replace("{orderId}", encodedOrderId);
+  const url = new URL(path, window.location.origin);
+  if (schoolId !== undefined) url.searchParams.set("schoolId", String(schoolId));
+  if (canteenId !== undefined) url.searchParams.set("canteenId", String(canteenId));
+  const headers: Record<string, string> = {};
+  headers["Idempotency-Key"] = String(idempotencyKey);
+  const response = await fetch(url, { method: 'POST', headers: headers });
   if (!response.ok) throw new Error(`API request failed: ${response.status}`);
   return response.json() as Promise<MealOrderResponse>;
 }

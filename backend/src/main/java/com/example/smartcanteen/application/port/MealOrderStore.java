@@ -23,4 +23,10 @@ public interface MealOrderStore {
             String orderId,
             String actorUserId,
             long expectedVersion);
+
+    MealOrder markPaid(
+            CanteenScope scope,
+            String orderId,
+            String actorUserId,
+            long expectedVersion);
 }

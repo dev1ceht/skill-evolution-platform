@@ -5,9 +5,9 @@
 
 ## 当前验收结论
 
-- 结论：SC-010 员工/学生评价与投诉学习环境条件通过；SC-009 员工/学生菜单与消费订单学习环境条件通过；SC-008 采购申请 Draft、SC-007/SC-006/SC-005 条件通过；SC-004 通过；SC-003 仍为条件通过
-- 验收范围：SC-010 个人评价/投诉 API、幂等、actor/scope 隔离、助手确认链路、OpenAPI、员工端页面和边界测试；支付、退款、评价分析、投诉管理端流转、POS、库存扣减和真实预测服务不在范围内
-- 最后检查：2026-08-21（SC-010 Java/Python/前端/SOP 回归、治理校验和最终双轴代码复审）
+- 结论：SC-011 员工/学生订单模拟支付学习环境条件通过；SC-010 员工/学生评价与投诉学习环境条件通过；SC-009 员工/学生菜单与消费订单学习环境条件通过；SC-008 采购申请 Draft、SC-007/SC-006/SC-005 条件通过；SC-004 通过；SC-003 仍为条件通过
+- 验收范围：SC-011 个人 `STUDY_MOCK` 支付 API/Tool、幂等、actor/scope/权限隔离、助手确认链路、OpenAPI、员工端成功/失败刷新、迁移和边界测试；真实支付、退款、余额扣款、真实结算、POS、库存扣减和真实预测服务不在范围内
+- 最后检查：2026-08-22（SC-011 Java/Python/前端/SOP 回归、治理校验和最终双轴代码复审）
 - 遗留问题：未配置真实模型密钥，真实 AgentScope Provider 烟囱测试延期；支付、退款、评价分析、投诉管理端流转、POS、库存扣减、真实预测服务、天气/预约数据、采购提交、供应商系统和 MCP 扩展留待后续；生产 SLO、灰度和真实系统集成不在学习环境范围
 
 ## 验收标准
@@ -24,6 +24,7 @@
 | A-008 | SC-008 采购申请 Draft 满足验收条件 | 条件通过（学习环境） | Java 定向/全量测试、HTTP 集成、Python/SOP/治理/生命周期校验和 Standards/Spec 双轴评审 | E-SC008-TESTS、E-SC008-REVIEW |
 | A-009 | SC-009 员工/学生菜单与消费订单满足验收条件 | 条件通过（学习环境） | Java 定向/全量测试、HTTP 集成、前端构建/测试、Python/SOP/治理/生命周期校验和 Standards/Spec 双轴评审 | E-SC009-TESTS、E-SC009-REVIEW |
 | A-010 | SC-010 员工/学生评价与投诉满足验收条件 | 条件通过（学习环境） | Java 定向/全量测试、HTTP 集成、前端构建/测试、Python/SOP/治理/生命周期校验和 Standards/Spec 双轴评审 | E-SC010-TESTS、E-SC010-REVIEW |
+| A-011 | SC-011 员工/学生订单模拟支付满足验收条件 | 条件通过（学习环境） | Java 定向/全量测试、HTTP 集成、前端构建/测试、Python/SOP/治理/生命周期校验和 Standards/Spec 双轴评审 | E-SC011-TESTS、E-SC011-REVIEW |
 
 ## 证据索引
 
@@ -44,6 +45,8 @@
 | E-SC009-REVIEW | 2026-08-21 | 固定点 `f2980c4` 的 Standards/Spec 双轴复审及问题修正后的复核 | 通过（无 P0/P1） | 提交 `b333370`、`b058f89` 及收口变更 | 生成客户端、助手取消 HTTP、actor 幂等隔离、UNPAID-only 和订单号大小写问题已补齐；非阻塞重构建议留待后续 | `.project-to-act/tasks/SC-009/evidence/E-SC009-REVIEW.md` | 当前学习环境 |
 | E-SC010-TESTS | 2026-08-21 | SC-010 Java/前端/Python/SOP/项目治理回归 | 0 | 工作区 SC-010 变更 | 个人评价/投诉 API、幂等、actor/scope 隔离、助手确认、员工端页面和生成客户端通过；Java 296（2 skipped）、前端 145、Python 20 | `.project-to-act/tasks/SC-010/evidence/E-SC010-TESTS.md` | 当前学习环境 |
 | E-SC010-REVIEW | 2026-08-21 | 固定点 `bb828a2` 的 Standards/Spec 双轴代码复审及 P2 覆盖补强后的复核 | 通过（无 P0/P1） | 工作区 SC-010 变更 | 补齐投诉幂等、评价列表隔离和非法评分测试；重复校验/原始字符串等非阻塞重构建议留待后续 | `.project-to-act/tasks/SC-010/evidence/E-SC010-REVIEW.md` | 当前学习环境 |
+| E-SC011-TESTS | 2026-08-22 | SC-011 Java 定向/全量测试、前端构建/测试、Python/SOP、Project-to-Act 和生命周期校验 | 0 | 工作区 SC-011 变更 + `V39/V40/V41` | `STUDY_MOCK` 支付、订单状态、actor/scope/权限隔离、幂等/并发重放、助手确认和员工端成功/失败刷新通过；Java 301（2 skipped）、前端 149、Python 20 | `.project-to-act/tasks/SC-011/evidence/E-SC011-TESTS.md` | 当前学习环境 |
+| E-SC011-REVIEW | 2026-08-22 | 固定点 `4d72546` 的 Standards/Spec 双轴代码复审及问题修正后的复核 | 通过（无 P0/P1） | 工作区 SC-011 变更 | 失败刷新、业务时钟边界、支付权限、并发重放和支付状态只读识别问题已修正；哈希重复/幂等数据簇已收敛，集中意图元数据等低优先级建议留待后续 | `.project-to-act/tasks/SC-011/evidence/E-SC011-REVIEW.md` | 当前学习环境 |
 
 ## Gate 记录
 
@@ -56,6 +59,7 @@
 | G-004 | 2026-08-21 | SC-008 学习环境交付 | procurement.plan.generate Draft 闭环 | 条件通过 | E-SC008-TESTS、E-SC008-REVIEW | 个人学习环境；真实预测服务、采购订单提交/收货、真实 Provider、MCP 和生产集成延期；负责人：用户/Codex |
 | G-005 | 2026-08-21 | SC-009 学习环境交付 | diner menu + meal order 闭环 | 条件通过 | E-SC009-TESTS、E-SC009-REVIEW | 个人学习环境；支付、评价/投诉、POS、库存扣减、真实预测服务、真实 Provider、MCP 和生产集成延期；负责人：用户/Codex |
 | G-006 | 2026-08-21 | SC-010 学习环境交付 | diner meal review + complaint 闭环 | 条件通过 | E-SC010-TESTS、E-SC010-REVIEW | 个人学习环境；支付、退款、评价分析、投诉管理端流转、POS、库存扣减、真实预测服务、真实 Provider、MCP 和生产集成延期；负责人：用户/Codex |
+| G-007 | 2026-08-22 | SC-011 学习环境交付 | diner study mock payment 闭环 | 条件通过 | E-SC011-TESTS、E-SC011-REVIEW | 个人学习环境；真实支付、退款、余额扣款、真实结算、POS、库存扣减、真实预测服务、真实 Provider、MCP 和生产集成延期；负责人：用户/Codex |
 
 ## 验收记录
 
@@ -69,3 +73,4 @@
 - 2026-08-21：SC-008 定向/全量 Java 测试、HTTP 预览/确认/澄清续答、Python/SOP/Project-to-Act/生命周期校验和最终双轴复审通过；采购 Draft 复用确定性采购计划服务，确认后只创建 DRAFT、不创建采购订单；真实预测服务、采购提交和生产集成不在本轮范围；SC-008 学习环境条件通过。
 - 2026-08-21：SC-009 定向/全量 Java、HTTP 菜单/订单/助手确认链路、前端构建与测试、Python/SOP/Project-to-Act/生命周期校验和最终双轴复审通过；订单创建为 `CREATED + UNPAID`，金额为学习环境占位值，取消限定本人；支付、评价/投诉、POS、库存扣减和真实预测服务不在本轮范围；SC-009 学习环境条件通过。
 - 2026-08-21：SC-010 定向/全量 Java、HTTP 评价/投诉/助手确认链路、前端构建与测试、Python/SOP/Project-to-Act/生命周期校验和最终双轴复审通过；补齐投诉幂等回放/冲突、评价列表 actor 隔离和非法评分边界；支付、退款、评价分析、投诉管理端流转、POS、库存扣减和真实预测服务不在本轮范围；SC-010 学习环境条件通过。
+- 2026-08-22：SC-011 定向/全量 Java、HTTP 支付/权限/助手确认链路、前端构建与测试、Python/SOP/Project-to-Act/生命周期校验和最终双轴复审通过；补齐失败刷新、业务时钟边界、支付权限、并发重放和支付状态只读识别；真实支付、退款、余额扣款、真实结算、POS、库存扣减和真实预测服务不在本轮范围；SC-011 学习环境条件通过。

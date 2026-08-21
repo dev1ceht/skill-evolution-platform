@@ -9,6 +9,12 @@
       "dependencies": []
     },
     {
+      "page": "DinerWorkspace",
+      "operations": ["listDinerMenus", "listMealOrders", "createMealOrder", "cancelMealOrder", "payMealOrder", "listMealReviews", "createMealReview", "listDinerComplaints", "createDinerComplaint"],
+      "states": ["loading", "empty", "ready", "creating-order", "payment-confirmation", "paid", "cancelled", "submitting-feedback", "business-error"],
+      "dependencies": ["AuthPanel:authenticated"]
+    },
+    {
       "page": "OperationsOverview",
       "operations": ["getDashboardSummary", "getDashboardRisk", "listInventory"],
       "states": ["loading", "empty", "ready", "business-error"],

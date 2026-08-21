@@ -103,6 +103,22 @@ public class MealOrderController {
                 scopes.require(request, schoolId, canteenId), actorUserId(request), orderId));
     }
 
+    @PostMapping("/meal-orders/{orderId}/pay")
+    public ApiResponse<MealOrder> pay(
+            HttpServletRequest request,
+            @PathVariable String orderId,
+            @RequestHeader("Idempotency-Key") String idempotencyKey,
+            @RequestParam String schoolId,
+            @RequestParam String canteenId) {
+        requireConsumerAccess(request);
+        roles.requirePermission(request, "MEAL_PAYMENT_WRITE");
+        return ApiResponse.ok(orders.pay(
+                scopes.require(request, schoolId, canteenId),
+                actorUserId(request),
+                orderId,
+                idempotencyKey));
+    }
+
     private void requireConsumerAccess(HttpServletRequest request) {
         roles.requireAny(
                 request,

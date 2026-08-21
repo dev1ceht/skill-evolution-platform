@@ -727,6 +727,8 @@ public class AssistantConversationService {
                     "menuId", "消费订单");
             case "meal_order.cancel" -> resolution.parameters().getOrDefault(
                     "orderId", "消费订单");
+            case "meal_order.pay" -> resolution.parameters().getOrDefault(
+                    "orderId", "消费订单支付");
             case "meal_review.create" -> resolution.parameters().getOrDefault(
                     "orderId", "个人评价");
             case "diner_complaint.create" -> resolution.parameters().getOrDefault(

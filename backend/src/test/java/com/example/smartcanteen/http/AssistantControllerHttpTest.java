@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 import com.example.smartcanteen.security.AuthPrincipal;
 import com.example.smartcanteen.security.Role;
+import java.time.LocalDate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -611,7 +612,8 @@ class AssistantControllerHttpTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.kind").value("RESULT"))
                 .andExpect(jsonPath("$.data.intent").value("traffic.forecast.query"))
-                .andExpect(jsonPath("$.data.result.forecastDate").value("2026-08-22"))
+                .andExpect(jsonPath("$.data.result.forecastDate")
+                        .value(LocalDate.now().plusDays(1).toString()))
                 .andExpect(jsonPath("$.data.result.mealTime").value("LUNCH"))
                 .andExpect(jsonPath("$.data.result.available").value(false))
                 .andExpect(jsonPath("$.data.result.reason").value("NO_FORECAST_FACT"));

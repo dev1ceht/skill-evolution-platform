@@ -1,6 +1,7 @@
 package com.example.smartcanteen.application;
 
 import com.example.smartcanteen.application.port.MealOrderStore;
+import com.example.smartcanteen.application.port.MealPaymentStore;
 import com.example.smartcanteen.application.port.OperationalStore;
 import com.example.smartcanteen.domain.CanteenScope;
 import com.example.smartcanteen.domain.DailyMenu;
@@ -10,6 +11,7 @@ import com.example.smartcanteen.domain.DinerMenuItem;
 import com.example.smartcanteen.domain.Dish;
 import com.example.smartcanteen.domain.MealOrder;
 import com.example.smartcanteen.domain.MealOrderItem;
+import com.example.smartcanteen.domain.MealPayment;
 import com.example.smartcanteen.domain.PageResult;
 import com.example.smartcanteen.security.ForbiddenException;
 import java.math.BigDecimal;
@@ -19,12 +21,14 @@ import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,24 +41,28 @@ public class MealOrderService {
     private final DailyMenuService menus;
     private final OperationalStore catalog;
     private final MealOrderStore store;
+    private final MealPaymentStore payments;
     private final Clock clock;
 
     @Autowired
     public MealOrderService(
             DailyMenuService menus,
             OperationalStore catalog,
-            MealOrderStore store) {
-        this(menus, catalog, store, Clock.systemUTC());
+            MealOrderStore store,
+            MealPaymentStore payments) {
+        this(menus, catalog, store, payments, Clock.systemUTC());
     }
 
     public MealOrderService(
             DailyMenuService menus,
             OperationalStore catalog,
             MealOrderStore store,
+            MealPaymentStore payments,
             Clock clock) {
         this.menus = Objects.requireNonNull(menus, "menus");
         this.catalog = Objects.requireNonNull(catalog, "catalog");
         this.store = Objects.requireNonNull(store, "store");
+        this.payments = Objects.requireNonNull(payments, "payments");
         this.clock = Objects.requireNonNull(clock, "clock");
     }
 
@@ -66,7 +74,9 @@ public class MealOrderService {
             int page,
             int size) {
         String normalizedMealTime = normalizeMealTime(mealTime);
-        LocalDate date = menuDate == null ? LocalDate.now(clock) : menuDate;
+        LocalDate date = menuDate == null
+                ? LocalDate.now(clock.withZone(ZoneId.systemDefault()))
+                : menuDate;
         PageResult<DailyMenu> source = menus.listPublished(
                 scope, date, date, normalizedMealTime, page, size);
         List<DinerMenu> result = source.records().stream()
@@ -162,7 +172,68 @@ public class MealOrderService {
             throw new IllegalStateException(
                     "Meal order cannot be cancelled from status " + current.status());
         }
+        if (!"UNPAID".equals(current.paymentStatus())) {
+            throw new IllegalArgumentException("Only unpaid meal orders can be cancelled");
+        }
         return store.cancel(scope, normalizedOrderId, actorUserId, current.version());
+    }
+
+    @Transactional
+    public MealOrder pay(
+            CanteenScope scope,
+            String actorUserId,
+            String orderId,
+            String idempotencyKey) {
+        requireActor(actorUserId);
+        String normalizedOrderId = requireText(orderId, "orderId", 64);
+        String normalizedKey = requireText(idempotencyKey, "idempotencyKey", 128);
+        MealOrder current = store.find(scope, normalizedOrderId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Meal order not found: " + normalizedOrderId));
+        if (!actorUserId.equals(current.actorUserId())) {
+            throw new ForbiddenException("Only the order owner can pay a meal order");
+        }
+        String requestHash = paymentRequestHash(current);
+        Optional<MealPayment> replay = payments.findByIdempotency(
+                scope, actorUserId, normalizedKey);
+        if (replay.isPresent()) {
+            if (!requestHash.equals(replay.get().requestHash())) {
+                throw new IllegalArgumentException(
+                        "Idempotency-Key was already used for a different meal payment");
+            }
+            return current;
+        }
+        if ("CANCELLED".equals(current.status())) {
+            throw new IllegalArgumentException("Cancelled meal order cannot be paid");
+        }
+        if (!"CREATED".equals(current.status())) {
+            throw new IllegalStateException(
+                    "Meal order cannot be paid from status " + current.status());
+        }
+        if ("PAID".equals(current.paymentStatus())
+                || payments.findByOrder(scope, current.id()).isPresent()) {
+            throw new IllegalArgumentException("Meal order has already been paid");
+        }
+        Instant now = clock.instant();
+        MealPayment payment = new MealPayment(
+                "PAY-" + UUID.randomUUID(),
+                actorUserId,
+                current.id(),
+                current.totalAmount(),
+                "STUDY_MOCK",
+                "SUCCEEDED",
+                normalizedKey,
+                requestHash,
+                0,
+                now,
+                now);
+        MealPayment persisted = payments.create(scope, payment);
+        if (!payment.id().equals(persisted.id())) {
+            return store.find(scope, current.id())
+                    .orElseThrow(() -> new IllegalStateException(
+                            "Meal order disappeared during payment replay"));
+        }
+        return store.markPaid(scope, current.id(), actorUserId, current.version());
     }
 
     private DailyMenu resolveMenu(
@@ -230,12 +301,20 @@ public class MealOrderService {
                 .sorted()
                 .reduce((left, right) -> left + "," + right)
                 .orElse("");
+        return sha256(canonical);
+    }
+
+    private static String paymentRequestHash(MealOrder order) {
+        return sha256(order.id() + "|" + order.totalAmount() + "|STUDY_MOCK");
+    }
+
+    private static String sha256(String value) {
         try {
             byte[] digest = MessageDigest.getInstance("SHA-256")
-                    .digest(canonical.getBytes(StandardCharsets.UTF_8));
+                    .digest(value.getBytes(StandardCharsets.UTF_8));
             StringBuilder result = new StringBuilder(digest.length * 2);
-            for (byte value : digest) {
-                result.append(String.format("%02x", value));
+            for (byte item : digest) {
+                result.append(String.format("%02x", item));
             }
             return result.toString();
         } catch (NoSuchAlgorithmException exception) {

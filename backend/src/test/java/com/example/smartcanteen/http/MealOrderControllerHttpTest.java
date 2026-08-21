@@ -37,6 +37,8 @@ class MealOrderControllerHttpTest {
             USER, "diner-http", "Diner", Role.DINER, SCHOOL, CANTEEN);
     private static final AuthPrincipal OTHER_DINER = new AuthPrincipal(
             OTHER_USER, "diner-other", "Other Diner", Role.DINER, SCHOOL, CANTEEN);
+    private static final AuthPrincipal CANTEEN_STAFF = new AuthPrincipal(
+            "USER-DINER-STAFF", "canteen-staff", "Canteen Staff", Role.CANTEEN_STAFF, SCHOOL, CANTEEN);
 
     @Autowired
     private MockMvc mvc;
@@ -46,6 +48,7 @@ class MealOrderControllerHttpTest {
 
     @BeforeEach
     void resetScope() {
+        jdbc.update("DELETE FROM meal_order_payments WHERE school_id = ?", SCHOOL);
         jdbc.update("DELETE FROM meal_order_items WHERE school_id = ?", SCHOOL);
         jdbc.update("DELETE FROM meal_orders WHERE school_id = ?", SCHOOL);
         jdbc.update("DELETE FROM daily_menu_items WHERE school_id = ?", SCHOOL);
@@ -176,6 +179,52 @@ class MealOrderControllerHttpTest {
     }
 
     @Test
+    void diner_can_pay_own_unpaid_order_once_and_paid_order_cannot_be_cancelled() throws Exception {
+        MvcResult created = mvc.perform(post("/api/v1/meal-orders?" + SCOPE)
+                        .requestAttr(AuthPrincipal.class.getName(), DINER)
+                        .header("Idempotency-Key", "PAY-ORDER-CREATE")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"menuId\":\"M901\",\"items\":[{\"dishId\":\"DISH-001\",\"quantity\":1}]}") )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.paymentStatus").value("UNPAID"))
+                .andReturn();
+        String orderId = JsonPath.read(created.getResponse().getContentAsString(), "$.data.id");
+
+        MvcResult paid = mvc.perform(post("/api/v1/meal-orders/" + orderId + "/pay?" + SCOPE)
+                        .requestAttr(AuthPrincipal.class.getName(), DINER)
+                        .header("Idempotency-Key", "PAY-KEY-001"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("CREATED"))
+                .andExpect(jsonPath("$.data.paymentStatus").value("PAID"))
+                .andReturn();
+        String paidOrderId = JsonPath.read(paid.getResponse().getContentAsString(), "$.data.id");
+        org.assertj.core.api.Assertions.assertThat(paidOrderId).isEqualTo(orderId);
+
+        mvc.perform(post("/api/v1/meal-orders/" + orderId + "/pay?" + SCOPE)
+                        .requestAttr(AuthPrincipal.class.getName(), DINER)
+                        .header("Idempotency-Key", "PAY-KEY-001"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.paymentStatus").value("PAID"));
+        mvc.perform(post("/api/v1/meal-orders/" + orderId + "/pay?" + SCOPE)
+                        .requestAttr(AuthPrincipal.class.getName(), DINER)
+                        .header("Idempotency-Key", "PAY-KEY-002"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message", containsString("already been paid")));
+        mvc.perform(post("/api/v1/meal-orders/" + orderId + "/cancel?" + SCOPE)
+                        .requestAttr(AuthPrincipal.class.getName(), DINER))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message", containsString("Only unpaid")));
+        mvc.perform(post("/api/v1/meal-orders/" + orderId + "/pay?" + SCOPE)
+                        .requestAttr(AuthPrincipal.class.getName(), OTHER_DINER)
+                        .header("Idempotency-Key", "PAY-OTHER"))
+                .andExpect(status().isForbidden());
+        mvc.perform(post("/api/v1/meal-orders/" + orderId + "/pay?" + SCOPE)
+                        .requestAttr(AuthPrincipal.class.getName(), CANTEEN_STAFF)
+                        .header("Idempotency-Key", "PAY-STAFF"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void assistant_queries_orders_and_requires_confirmation_before_creating_one() throws Exception {
         mvc.perform(assistantMessage(
                         "assistant-order-query", "查看我的订单", "CONV-DINER-QUERY"))
@@ -221,6 +270,36 @@ class MealOrderControllerHttpTest {
                 .andExpect(jsonPath("$.data.intent").value("meal_order.cancel"))
                 .andExpect(jsonPath("$.data.runStatus").value("SUCCEEDED"))
                 .andExpect(jsonPath("$.data.result.status").value("CANCELLED"));
+    }
+
+    @Test
+    void assistant_requires_confirmation_before_mock_payment() throws Exception {
+        MvcResult created = mvc.perform(post("/api/v1/meal-orders?" + SCOPE)
+                        .requestAttr(AuthPrincipal.class.getName(), DINER)
+                        .header("Idempotency-Key", "ASSIST-PAY-CREATE")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"menuId\":\"M901\",\"items\":[{\"dishId\":\"DISH-001\",\"quantity\":1}]}") )
+                .andExpect(status().isOk())
+                .andReturn();
+        String orderId = JsonPath.read(created.getResponse().getContentAsString(), "$.data.id");
+
+        mvc.perform(assistantMessage(
+                        "assistant-payment-preview", "支付订单 " + orderId, "CONV-DINER-PAY"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.kind").value("CONFIRMATION_REQUIRED"))
+                .andExpect(jsonPath("$.data.intent").value("meal_order.pay"))
+                .andExpect(jsonPath("$.data.runStatus").value("WAITING_CONFIRMATION"));
+        org.assertj.core.api.Assertions.assertThat(jdbc.queryForObject(
+                "SELECT payment_status FROM meal_orders WHERE school_id = ? AND canteen_id = ? AND order_id = ?",
+                String.class, SCHOOL, CANTEEN, orderId)).isEqualTo("UNPAID");
+
+        mvc.perform(assistantMessage(
+                        "assistant-payment-confirm", "确认", "CONV-DINER-PAY"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.kind").value("RESULT"))
+                .andExpect(jsonPath("$.data.intent").value("meal_order.pay"))
+                .andExpect(jsonPath("$.data.runStatus").value("SUCCEEDED"))
+                .andExpect(jsonPath("$.data.result.paymentStatus").value("PAID"));
     }
 
     private MockHttpServletRequestBuilder assistantMessage(

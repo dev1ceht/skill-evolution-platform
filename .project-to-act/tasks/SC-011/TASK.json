@@ -1,0 +1,63 @@
+{
+  "taskId": "SC-011",
+  "title": "实现员工/学生订单学习环境模拟支付切片",
+  "status": "completed",
+  "owner": "Codex",
+  "governanceMode": "post-completion-iteration-after-SC-010",
+  "goal": "让 DINER 用户能够对自己的 CREATED + UNPAID 消费订单执行一次 STUDY_MOCK 模拟支付，查询结果通过个人订单 paymentStatus 体现；对应助手写入必须先确认。",
+  "allowedPaths": [
+    "backend/src/main/java/com/example/smartcanteen/assistant/**",
+    "backend/src/main/java/com/example/smartcanteen/agent/**",
+    "backend/src/main/java/com/example/smartcanteen/application/**",
+    "backend/src/main/java/com/example/smartcanteen/domain/**",
+    "backend/src/main/java/com/example/smartcanteen/http/**",
+    "backend/src/main/java/com/example/smartcanteen/infrastructure/**",
+    "backend/src/main/resources/db/migration/**",
+    "backend/src/test/java/**",
+    "frontend/src/**",
+    "frontend/tests/**",
+    "contracts/smart-canteen.openapi.yaml",
+    "contracts/generated/**",
+    "docs/smart-canteen/**",
+    ".project-to-act/**",
+    "README.md"
+  ],
+  "invariants": [
+    "支付 actorUserId 只能来自当前认证身份，请求体和 Agent 参数不能覆盖身份。",
+    "只能支付当前 scope 下当前用户自己的 CREATED + UNPAID 订单；CANCELLED 或已支付订单拒绝重复支付。",
+    "模拟支付方式固定为 STUDY_MOCK，不接收银行卡、余额、支付令牌或第三方凭证。",
+    "同一 actor + scope + Idempotency-Key 同载荷重放返回同一结果，不同载荷拒绝复用；同一订单不同 Key 不能重复支付。",
+    "支付成功只将订单 paymentStatus 更新为 PAID，订单业务 status 保持 CREATED；已支付订单不可取消。",
+    "meal_order.pay 通过助手执行时必须先进入 WAITING_CONFIRMATION，确认后才执行。",
+    "本轮不接退款、余额扣款、支付回调、真实支付网关、真实金额结算、POS 或库存扣减。"
+  ],
+  "acceptance": [
+    "DINER 能通过 API 对自己的 CREATED + UNPAID 订单执行 STUDY_MOCK 模拟支付，并看到 PAID。",
+    "支付成功后订单仍为 CREATED，支付后取消被拒绝；已取消订单不能支付。",
+    "支付同键同载荷重放返回同一订单，不同载荷和同订单不同 Key 被拒绝。",
+    "跨用户或跨 scope 支付被拒绝，服务端不接受请求体中的 actorUserId。",
+    "助手可识别“支付订单”请求，先返回确认计划，确认后才完成模拟支付。",
+    "员工端对 CREATED + UNPAID 订单显示模拟支付入口，并在成功/失败后刷新订单。",
+    "OpenAPI、生成客户端、Tool、Skill、权限、SOP、测试和项目治理证据同步。"
+  ],
+  "checks": [
+    "mvn -q \"-Dtest=MealOrderServiceTest,MealOrderToolExecutorTest,MealOrderControllerHttpTest,RuleBasedAssistantIntentResolverTest,YamlSkillRegistryTest\" test",
+    "mvn -q test",
+    "npm run build",
+    "npm run test",
+    "python -m pytest -q --basetemp .pytest-tmp-sc011",
+    "python skills/smart-canteen-sop/scripts/validate_sop_manifest.py --manifest docs/smart-canteen/sop-manifests.yaml --run sop-runs/menu-to-traceability.yaml",
+    "python C:\\Users\\th\\.agents\\skills\\project-to-act\\scripts\\init_project_management.py --project-root D:\\project\\smart-canteen --validate",
+    "git diff --check"
+  ],
+  "dependencies": [
+    "SC-009 员工/学生菜单与个人消费订单切片",
+    "SC-010 员工/学生评价与投诉切片",
+    "现有订单状态、Agent Run 确认链路和 DINER 角色权限"
+  ],
+  "evidence": [
+    "E-SC011-TESTS",
+    "E-SC011-REVIEW"
+  ],
+  "rollback": "回退 SC-011 变更即可移除模拟支付表、支付 API/Tool/Skill、助手入口和员工端支付按钮；保留订单 paymentStatus=UNPAID 的既有学习环境行为。"
+}

@@ -250,4 +250,24 @@ describe('SmartCanteenApi', () => {
       { params: scope, headers: { 'Idempotency-Key': 'COMPLAINT-KEY-1' } },
     );
   });
+
+  it('maps study mock payment with the personal scope and idempotency header', async () => {
+    const post = vi.fn().mockResolvedValue({
+      data: {
+        code: 0,
+        message: 'success',
+        data: { id: 'MEAL-001', paymentStatus: 'PAID' },
+      },
+    });
+    const api = new SmartCanteenApi({ post } as unknown as AxiosInstance);
+    const scope = { schoolId: 'SCHOOL-PAY', canteenId: 'CANTEEN-PAY' };
+
+    await api.payMealOrder('MEAL-001/1', 'PAY-KEY-1', scope);
+
+    expect(post).toHaveBeenCalledWith(
+      '/api/v1/meal-orders/MEAL-001%2F1/pay',
+      undefined,
+      { params: scope, headers: { 'Idempotency-Key': 'PAY-KEY-1' } },
+    );
+  });
 });
