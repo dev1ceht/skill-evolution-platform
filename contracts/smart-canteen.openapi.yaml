@@ -3233,6 +3233,12 @@ components:
         proteinG: { type: number, format: double, minimum: 0 }
         fatG: { type: number, format: double, minimum: 0 }
         carbohydrateG: { type: number, format: double, minimum: 0 }
+    IngredientCategory:
+      type: string
+      enum: [蔬菜, 肉禽, 蛋奶, 水产, 主食, 豆制品, 调味品, 干货, 水果, 半成品, 其他]
+    DishCategory:
+      type: string
+      enum: [主食, 荤菜, 素菜, 荤素搭配, 汤羹, 炒菜, 小吃, 饮品, 早餐, 其他]
     Ingredient:
       type: object
       required: [id, name, category, baseUnit, nutrition, warningThreshold, active]
@@ -3252,7 +3258,7 @@ components:
       properties:
         ingredientId: { type: string, nullable: true }
         name: { type: string, minLength: 1 }
-        category: { type: string, minLength: 1 }
+        category: { $ref: '#/components/schemas/IngredientCategory' }
         baseUnit: { type: string, minLength: 1 }
         specification: { type: string, nullable: true }
         energyKcal: { type: number, format: double, minimum: 0 }
@@ -3325,7 +3331,7 @@ components:
       properties:
         dishId: { type: string, nullable: true }
         name: { type: string, minLength: 1 }
-        category: { type: string, minLength: 1 }
+        category: { $ref: '#/components/schemas/DishCategory' }
         description: { type: string, nullable: true }
         imageUrl: { type: string, nullable: true }
         active: { type: boolean, default: true }
@@ -3405,7 +3411,7 @@ components:
         mealDate: { type: string, format: date }
         mealTime: { type: string, enum: [BREAKFAST, LUNCH, DINNER, SNACK] }
         status: { type: string, enum: [CREATED, CANCELLED] }
-        paymentStatus: { type: string, enum: [UNPAID, PAID, REFUNDED] }
+        paymentStatus: { type: string, enum: [UNPAID], description: 本轮未接入支付，固定为 UNPAID }
         totalAmount: { type: number, format: double, minimum: 0 }
         items:
           type: array

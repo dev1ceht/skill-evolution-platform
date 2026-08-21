@@ -34,8 +34,6 @@ public class RuleBasedAssistantIntentResolver implements AssistantIntentResolver
             "(?i)(?<![A-Za-z0-9])PO[-_][A-Za-z0-9_-]+(?![A-Za-z0-9])");
     private static final Pattern MEAL_ORDER_ID = Pattern.compile(
             "(?i)(?<![A-Za-z0-9])MEAL[-_][A-Za-z0-9_-]+(?![A-Za-z0-9])");
-    private static final Pattern DISH_ID = Pattern.compile(
-            "(?i)(?<![A-Za-z0-9])DISH[-_][A-Za-z0-9_-]+(?![A-Za-z0-9])");
     private static final Pattern MEAL_ORDER_ITEM = Pattern.compile(
             "(?i)(?<![A-Za-z0-9])(DISH[-_][A-Za-z0-9_-]+)(?:\\s*(?:x|×|\\*)\\s*(\\d+))?(?:\\s*份)?(?![A-Za-z0-9])");
     private static final Pattern PROCUREMENT_PLAN_ID = Pattern.compile(
@@ -565,7 +563,7 @@ public class RuleBasedAssistantIntentResolver implements AssistantIntentResolver
             Map<String, String> parameters = new LinkedHashMap<>();
             Matcher matcher = MEAL_ORDER_ID.matcher(message);
             if (matcher.find()) {
-                parameters.put("orderId", matcher.group().toUpperCase(Locale.ROOT));
+                parameters.put("orderId", matcher.group());
             }
             if (!parameters.containsKey("orderId")) {
                 return AssistantResolution.clarificationFor(
@@ -725,6 +723,7 @@ public class RuleBasedAssistantIntentResolver implements AssistantIntentResolver
         return (normalized.contains("取消订单")
                 || normalized.contains("取消消费订单")
                 || (normalized.contains("取消") && normalized.contains("我的订单"))
+                || (normalized.contains("取消") && MEAL_ORDER_ID.matcher(normalized).find())
                 || normalized.contains("meal_order.cancel"))
                 && !normalized.contains("采购订单");
     }

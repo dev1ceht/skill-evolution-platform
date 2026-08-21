@@ -1,7 +1,7 @@
 {
   "title": "Smart Canteen Workflow API",
   "version": "1.0.0",
-  "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+  "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
   "schemas": {
     "AssistantMessageRequest": {
       "type": "object",
@@ -19,14 +19,130 @@
       }
     },
     "MenuQueryIntent": {
+      "description": "按菜单 ID 或日期查询已发布菜单，二者必须且只能提供一个。",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "menuId"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "menuId": {
+              "$ref": "#/components/schemas/MenuId"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "menuDate"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "menuDate": {
+              "type": "string",
+              "format": "date"
+            },
+            "mealTime": {
+              "type": "string",
+              "enum": [
+                "BREAKFAST",
+                "LUNCH",
+                "DINNER",
+                "SNACK"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "InventoryQueryIntent": {
       "type": "object",
+      "description": "在服务端已确定的食堂范围内查询库存；warningOnly=true 只返回数量不高于预警阈值的食材。",
+      "additionalProperties": false,
+      "properties": {
+        "keyword": {
+          "type": "string",
+          "maxLength": 100,
+          "nullable": true,
+          "description": "食材 ID 或名称的可选筛选词。"
+        },
+        "warningOnly": {
+          "type": "boolean",
+          "default": false,
+          "description": "是否只返回库存预警记录。"
+        }
+      }
+    },
+    "ProcurementGapQueryIntent": {
+      "type": "object",
+      "description": "比较指定日期已发布菜单的 Recipe/BOM 需求与当前库存、未完成采购快照；只读，不创建采购计划。",
       "required": [
-        "menuId"
+        "menuDate"
       ],
       "additionalProperties": false,
       "properties": {
-        "menuId": {
-          "$ref": "#/components/schemas/MenuId"
+        "menuDate": {
+          "type": "string",
+          "format": "date"
+        },
+        "mealTime": {
+          "type": "string",
+          "enum": [
+            "BREAKFAST",
+            "LUNCH",
+            "DINNER",
+            "SNACK"
+          ]
+        }
+      }
+    },
+    "TrafficForecastQueryIntent": {
+      "type": "object",
+      "description": "读取指定范围内版本化客流预测事实；没有事实时返回不可用，不由模型猜测人数。",
+      "required": [
+        "forecastDate",
+        "mealTime"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "forecastDate": {
+          "type": "string",
+          "format": "date"
+        },
+        "mealTime": {
+          "type": "string",
+          "enum": [
+            "BREAKFAST",
+            "LUNCH",
+            "DINNER",
+            "SNACK"
+          ]
+        }
+      }
+    },
+    "MealPlanQueryIntent": {
+      "type": "object",
+      "description": "基于客流预测事实和指定日期已发布菜单，生成只读备餐数量建议，不创建业务计划。",
+      "required": [
+        "menuDate",
+        "mealTime"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "menuDate": {
+          "type": "string",
+          "format": "date"
+        },
+        "mealTime": {
+          "type": "string",
+          "enum": [
+            "BREAKFAST",
+            "LUNCH",
+            "DINNER",
+            "SNACK"
+          ]
         }
       }
     },
@@ -1668,6 +1784,37 @@
         }
       }
     },
+    "IngredientCategory": {
+      "type": "string",
+      "enum": [
+        "蔬菜",
+        "肉禽",
+        "蛋奶",
+        "水产",
+        "主食",
+        "豆制品",
+        "调味品",
+        "干货",
+        "水果",
+        "半成品",
+        "其他"
+      ]
+    },
+    "DishCategory": {
+      "type": "string",
+      "enum": [
+        "主食",
+        "荤菜",
+        "素菜",
+        "荤素搭配",
+        "汤羹",
+        "炒菜",
+        "小吃",
+        "饮品",
+        "早餐",
+        "其他"
+      ]
+    },
     "Ingredient": {
       "type": "object",
       "required": [
@@ -1726,8 +1873,7 @@
           "minLength": 1
         },
         "category": {
-          "type": "string",
-          "minLength": 1
+          "$ref": "#/components/schemas/IngredientCategory"
         },
         "baseUnit": {
           "type": "string",
@@ -1825,6 +1971,21 @@
         "active": {
           "type": "boolean",
           "default": true
+        }
+      }
+    },
+    "IngredientUnitsRequest": {
+      "type": "object",
+      "required": [
+        "units"
+      ],
+      "properties": {
+        "units": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/components/schemas/IngredientUnitRequest"
+          }
         }
       }
     },
@@ -1932,8 +2093,7 @@
           "minLength": 1
         },
         "category": {
-          "type": "string",
-          "minLength": 1
+          "$ref": "#/components/schemas/DishCategory"
         },
         "description": {
           "type": "string",
@@ -2053,6 +2213,545 @@
         "publishedBy": {
           "type": "string",
           "nullable": true
+        }
+      }
+    },
+    "DinerMenuItem": {
+      "type": "object",
+      "required": [
+        "dishId",
+        "name",
+        "category",
+        "description"
+      ],
+      "properties": {
+        "dishId": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "imageUrl": {
+          "type": "string",
+          "nullable": true
+        }
+      }
+    },
+    "DinerMenu": {
+      "type": "object",
+      "required": [
+        "id",
+        "menuDate",
+        "mealTime",
+        "items"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "menuDate": {
+          "type": "string",
+          "format": "date"
+        },
+        "mealTime": {
+          "type": "string",
+          "enum": [
+            "BREAKFAST",
+            "LUNCH",
+            "DINNER",
+            "SNACK"
+          ]
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/DinerMenuItem"
+          }
+        }
+      }
+    },
+    "MealOrderItem": {
+      "type": "object",
+      "required": [
+        "dishId",
+        "dishName",
+        "quantity",
+        "unitPrice",
+        "amount"
+      ],
+      "properties": {
+        "dishId": {
+          "type": "string"
+        },
+        "dishName": {
+          "type": "string"
+        },
+        "quantity": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20
+        },
+        "unitPrice": {
+          "type": "number",
+          "format": "double",
+          "minimum": 0
+        },
+        "amount": {
+          "type": "number",
+          "format": "double",
+          "minimum": 0
+        }
+      }
+    },
+    "MealOrder": {
+      "type": "object",
+      "required": [
+        "id",
+        "orderNo",
+        "actorUserId",
+        "menuId",
+        "mealDate",
+        "mealTime",
+        "status",
+        "paymentStatus",
+        "totalAmount",
+        "items",
+        "version",
+        "createdAt",
+        "updatedAt"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "orderNo": {
+          "type": "string"
+        },
+        "actorUserId": {
+          "type": "string"
+        },
+        "menuId": {
+          "type": "string"
+        },
+        "mealDate": {
+          "type": "string",
+          "format": "date"
+        },
+        "mealTime": {
+          "type": "string",
+          "enum": [
+            "BREAKFAST",
+            "LUNCH",
+            "DINNER",
+            "SNACK"
+          ]
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "CREATED",
+            "CANCELLED"
+          ]
+        },
+        "paymentStatus": {
+          "type": "string",
+          "enum": [
+            "UNPAID"
+          ],
+          "description": "本轮未接入支付，固定为 UNPAID"
+        },
+        "totalAmount": {
+          "type": "number",
+          "format": "double",
+          "minimum": 0
+        },
+        "items": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/components/schemas/MealOrderItem"
+          }
+        },
+        "version": {
+          "type": "integer",
+          "format": "int64",
+          "minimum": 0
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "MealOrderRequest": {
+      "type": "object",
+      "required": [
+        "items"
+      ],
+      "properties": {
+        "menuId": {
+          "type": "string",
+          "nullable": true
+        },
+        "menuDate": {
+          "type": "string",
+          "format": "date",
+          "nullable": true
+        },
+        "mealTime": {
+          "type": "string",
+          "enum": [
+            "BREAKFAST",
+            "LUNCH",
+            "DINNER",
+            "SNACK"
+          ],
+          "nullable": true
+        },
+        "items": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 20,
+          "items": {
+            "type": "object",
+            "required": [
+              "dishId",
+              "quantity"
+            ],
+            "properties": {
+              "dishId": {
+                "type": "string"
+              },
+              "quantity": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 20
+              }
+            }
+          }
+        }
+      }
+    },
+    "MenuQueryResult": {
+      "description": "menuId 查询返回单个菜单；日期查询返回已发布菜单分页结果。",
+      "oneOf": [
+        {
+          "$ref": "#/components/schemas/DailyMenu"
+        },
+        {
+          "type": "object",
+          "required": [
+            "records",
+            "current",
+            "size",
+            "total"
+          ],
+          "properties": {
+            "records": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/DailyMenu"
+              }
+            },
+            "current": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "size": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "total": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 0
+            }
+          }
+        }
+      ]
+    },
+    "InventoryQueryResult": {
+      "type": "object",
+      "required": [
+        "records",
+        "current",
+        "size",
+        "total"
+      ],
+      "properties": {
+        "records": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/InventoryLine"
+          }
+        },
+        "current": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "size": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "total": {
+          "type": "integer",
+          "format": "int64",
+          "minimum": 0
+        }
+      }
+    },
+    "ProcurementGapQueryResult": {
+      "type": "object",
+      "required": [
+        "menuDate",
+        "sourceMenuIds",
+        "items",
+        "shortageCount"
+      ],
+      "properties": {
+        "menuDate": {
+          "type": "string",
+          "format": "date"
+        },
+        "mealTime": {
+          "type": "string",
+          "enum": [
+            "BREAKFAST",
+            "LUNCH",
+            "DINNER",
+            "SNACK"
+          ],
+          "nullable": true
+        },
+        "sourceMenuIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/ProcurementGapItem"
+          }
+        },
+        "shortageCount": {
+          "type": "integer",
+          "format": "int64",
+          "minimum": 0
+        }
+      }
+    },
+    "ProcurementGapItem": {
+      "type": "object",
+      "required": [
+        "ingredientId",
+        "ingredientName",
+        "category",
+        "requiredBaseQuantity",
+        "inventoryBaseQuantity",
+        "openOrderBaseQuantity",
+        "shortageBaseQuantity",
+        "baseUnit"
+      ],
+      "properties": {
+        "ingredientId": {
+          "type": "string"
+        },
+        "ingredientName": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        },
+        "requiredBaseQuantity": {
+          "type": "number",
+          "format": "double",
+          "exclusiveMinimum": true,
+          "minimum": 0
+        },
+        "inventoryBaseQuantity": {
+          "type": "number",
+          "format": "double",
+          "minimum": 0
+        },
+        "openOrderBaseQuantity": {
+          "type": "number",
+          "format": "double",
+          "minimum": 0
+        },
+        "shortageBaseQuantity": {
+          "type": "number",
+          "format": "double",
+          "minimum": 0
+        },
+        "baseUnit": {
+          "type": "string"
+        }
+      }
+    },
+    "TrafficForecastQueryResult": {
+      "type": "object",
+      "required": [
+        "forecastDate",
+        "mealTime",
+        "available",
+        "reason"
+      ],
+      "properties": {
+        "forecastDate": {
+          "type": "string",
+          "format": "date"
+        },
+        "mealTime": {
+          "type": "string",
+          "enum": [
+            "BREAKFAST",
+            "LUNCH",
+            "DINNER",
+            "SNACK"
+          ]
+        },
+        "available": {
+          "type": "boolean"
+        },
+        "expectedDinerCount": {
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1,
+          "nullable": true
+        },
+        "lowerBound": {
+          "type": "integer",
+          "format": "int64",
+          "minimum": 0,
+          "nullable": true
+        },
+        "upperBound": {
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1,
+          "nullable": true
+        },
+        "modelVersion": {
+          "type": "string",
+          "nullable": true
+        },
+        "source": {
+          "type": "string",
+          "nullable": true
+        },
+        "generatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "nullable": true
+        },
+        "reason": {
+          "type": "string",
+          "nullable": true
+        }
+      }
+    },
+    "MealPlanQueryResult": {
+      "type": "object",
+      "required": [
+        "menuDate",
+        "mealTime",
+        "available",
+        "items",
+        "totalRecommendedQuantity",
+        "reason"
+      ],
+      "properties": {
+        "menuDate": {
+          "type": "string",
+          "format": "date"
+        },
+        "mealTime": {
+          "type": "string",
+          "enum": [
+            "BREAKFAST",
+            "LUNCH",
+            "DINNER",
+            "SNACK"
+          ]
+        },
+        "available": {
+          "type": "boolean"
+        },
+        "sourceMenuId": {
+          "type": "string",
+          "nullable": true
+        },
+        "forecast": {
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/TrafficForecastQueryResult"
+            }
+          ],
+          "nullable": true
+        },
+        "allocationMethod": {
+          "type": "string",
+          "nullable": true
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/MealPrepItem"
+          }
+        },
+        "totalRecommendedQuantity": {
+          "type": "integer",
+          "format": "int64",
+          "minimum": 0
+        },
+        "reason": {
+          "type": "string",
+          "nullable": true
+        }
+      }
+    },
+    "MealPrepItem": {
+      "type": "object",
+      "required": [
+        "dishId",
+        "dishName",
+        "currentPlannedQuantity",
+        "recommendedQuantity",
+        "sortOrder"
+      ],
+      "properties": {
+        "dishId": {
+          "type": "string"
+        },
+        "dishName": {
+          "type": "string"
+        },
+        "currentPlannedQuantity": {
+          "type": "number",
+          "format": "double",
+          "exclusiveMinimum": true,
+          "minimum": 0
+        },
+        "recommendedQuantity": {
+          "type": "integer",
+          "format": "int64",
+          "minimum": 0
+        },
+        "sortOrder": {
+          "type": "integer",
+          "minimum": 0
         }
       }
     },
@@ -2886,6 +3585,70 @@
         }
       }
     },
+    "PageViewDinerMenu": {
+      "type": "object",
+      "required": [
+        "total",
+        "pages",
+        "current",
+        "size",
+        "records"
+      ],
+      "properties": {
+        "total": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "pages": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "current": {
+          "type": "integer"
+        },
+        "size": {
+          "type": "integer"
+        },
+        "records": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/DinerMenu"
+          }
+        }
+      }
+    },
+    "PageViewMealOrder": {
+      "type": "object",
+      "required": [
+        "total",
+        "pages",
+        "current",
+        "size",
+        "records"
+      ],
+      "properties": {
+        "total": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "pages": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "current": {
+          "type": "integer"
+        },
+        "size": {
+          "type": "integer"
+        },
+        "records": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/MealOrder"
+          }
+        }
+      }
+    },
     "PageViewSupplier": {
       "type": "object",
       "required": [
@@ -3071,6 +3834,44 @@
         }
       }
     },
+    "DinerMenuPageResponse": {
+      "type": "object",
+      "required": [
+        "code",
+        "message",
+        "data"
+      ],
+      "properties": {
+        "code": {
+          "type": "integer"
+        },
+        "message": {
+          "type": "string"
+        },
+        "data": {
+          "$ref": "#/components/schemas/PageViewDinerMenu"
+        }
+      }
+    },
+    "MealOrderPageResponse": {
+      "type": "object",
+      "required": [
+        "code",
+        "message",
+        "data"
+      ],
+      "properties": {
+        "code": {
+          "type": "integer"
+        },
+        "message": {
+          "type": "string"
+        },
+        "data": {
+          "$ref": "#/components/schemas/PageViewMealOrder"
+        }
+      }
+    },
     "SupplierPageResponse": {
       "type": "object",
       "required": [
@@ -3201,6 +4002,25 @@
         },
         "data": {
           "$ref": "#/components/schemas/DailyMenu"
+        }
+      }
+    },
+    "MealOrderResponse": {
+      "type": "object",
+      "required": [
+        "code",
+        "message",
+        "data"
+      ],
+      "properties": {
+        "code": {
+          "type": "integer"
+        },
+        "message": {
+          "type": "string"
+        },
+        "data": {
+          "$ref": "#/components/schemas/MealOrder"
         }
       }
     },
@@ -5437,7 +6257,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1agent~1metrics/get"
       }
     },
@@ -5517,7 +6337,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1agent~1runs/post"
       }
     },
@@ -5591,7 +6411,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1agent~1runs~1{runId}/get"
       }
     },
@@ -5677,7 +6497,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1agent~1runs~1{runId}~1cancel/post"
       }
     },
@@ -5766,7 +6586,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1agent~1runs~1{runId}~1decisions/post"
       }
     },
@@ -5834,7 +6654,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1agent~1runs~1{runId}~1events/get"
       }
     },
@@ -5920,7 +6740,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1agent~1runs~1{runId}~1resume/post"
       }
     },
@@ -5946,7 +6766,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1agent~1skills/get"
       }
     },
@@ -6077,7 +6897,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1alerts/get"
       }
     },
@@ -6115,7 +6935,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1alerts/post"
       }
     },
@@ -6162,7 +6982,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1alerts~1{warnId}~1disposal/post"
       }
     },
@@ -6245,7 +7065,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1assistant~1conversations~1{conversationId}~1messages/get"
       }
     },
@@ -6335,7 +7155,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1assistant~1conversations~1{conversationId}~1messages/post"
       }
     },
@@ -6376,7 +7196,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1audit-logs/get"
       }
     },
@@ -6414,7 +7234,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1auth~1login/post"
       }
     },
@@ -6449,7 +7269,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1auth~1logout/post"
       }
     },
@@ -6478,7 +7298,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1auth~1me/get"
       }
     },
@@ -6516,7 +7336,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1auth~1refresh-token/post"
       }
     },
@@ -6593,7 +7413,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1canteen-showcases/get"
       }
     },
@@ -6650,7 +7470,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1canteen-showcases/post"
       }
     },
@@ -6706,7 +7526,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1canteen-showcases~1{showcaseId}/get"
       }
     },
@@ -6771,7 +7591,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1canteen-showcases~1{showcaseId}/put"
       }
     },
@@ -6827,7 +7647,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1canteen-showcases~1{showcaseId}~1history/get"
       }
     },
@@ -6892,7 +7712,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1canteen-showcases~1{showcaseId}~1publish/post"
       }
     },
@@ -6957,7 +7777,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1canteen-showcases~1{showcaseId}~1review/post"
       }
     },
@@ -7022,7 +7842,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1canteen-showcases~1{showcaseId}~1revoke/post"
       }
     },
@@ -7087,7 +7907,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1canteen-showcases~1{showcaseId}~1submit/post"
       }
     },
@@ -7152,7 +7972,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1canteen-showcases~1{showcaseId}~1versions/post"
       }
     },
@@ -7207,7 +8027,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1canteens/get"
       }
     },
@@ -7245,7 +8065,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1canteens/post"
       }
     },
@@ -7293,7 +8113,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1canteens~1{canteenId}/put"
       }
     },
@@ -7341,7 +8161,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1canteens~1{canteenId}~1status/post"
       }
     },
@@ -7436,7 +8256,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1compliance-records/get"
       }
     },
@@ -7493,7 +8313,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1compliance-records/post"
       }
     },
@@ -7550,7 +8370,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1compliance-records~1expiry-scan/post"
       }
     },
@@ -7606,7 +8426,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1compliance-records~1{recordId}/get"
       }
     },
@@ -7671,7 +8491,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1compliance-records~1{recordId}/put"
       }
     },
@@ -7727,7 +8547,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1compliance-records~1{recordId}~1history/get"
       }
     },
@@ -7792,7 +8612,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1compliance-records~1{recordId}~1review/post"
       }
     },
@@ -7857,7 +8677,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1compliance-records~1{recordId}~1submit/post"
       }
     },
@@ -7939,7 +8759,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1daily-menus/get"
       }
     },
@@ -7993,7 +8813,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1daily-menus/post"
       }
     },
@@ -8046,7 +8866,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1daily-menus~1{menuId}/get"
       }
     },
@@ -8108,7 +8928,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1daily-menus~1{menuId}~1decision/post"
       }
     },
@@ -8161,7 +8981,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1daily-menus~1{menuId}~1publish/post"
       }
     },
@@ -8224,7 +9044,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1daily-menus~1{menuId}~1submit/post"
       }
     },
@@ -8277,7 +9097,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1dashboard~1risk/get"
       }
     },
@@ -8330,8 +9150,103 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1dashboard~1summary/get"
+      }
+    },
+    {
+      "operationId": "listDinerMenus",
+      "method": "GET",
+      "path": "/api/v1/diner/menus",
+      "tags": [
+        "diner"
+      ],
+      "parameters": [
+        {
+          "name": "schoolId",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        {
+          "name": "canteenId",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        {
+          "name": "date",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "type": "string",
+            "format": "date"
+          }
+        },
+        {
+          "name": "mealTime",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "type": "string",
+            "enum": [
+              "BREAKFAST",
+              "LUNCH",
+              "DINNER",
+              "SNACK"
+            ]
+          }
+        },
+        {
+          "name": "page",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1
+          }
+        },
+        {
+          "name": "size",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 20
+          }
+        }
+      ],
+      "requestBody": null,
+      "responses": {
+        "200": {
+          "description": "当前范围已公示菜单及菜品快照",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DinerMenuPageResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "$ref": "#/components/responses/BusinessError"
+        },
+        "403": {
+          "$ref": "#/components/responses/ForbiddenError"
+        }
+      },
+      "provenance": {
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
+        "pointer": "/paths/~1api~1v1~1diner~1menus/get"
       }
     },
     {
@@ -8410,7 +9325,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1dishes/get"
       }
     },
@@ -8464,7 +9379,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1dishes/post"
       }
     },
@@ -8526,7 +9441,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1dishes~1{dishId}/put"
       }
     },
@@ -8606,7 +9521,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1ingredients/get"
       }
     },
@@ -8660,7 +9575,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1ingredients/post"
       }
     },
@@ -8722,7 +9637,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1ingredients~1{ingredientId}/put"
       }
     },
@@ -8778,8 +9693,73 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1ingredients~1{ingredientId}~1units/get"
+      }
+    },
+    {
+      "operationId": "replaceIngredientUnits",
+      "method": "PUT",
+      "path": "/api/v1/ingredients/{ingredientId}/units",
+      "tags": [
+        "catalog"
+      ],
+      "parameters": [
+        {
+          "name": "ingredientId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "schoolId",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        {
+          "name": "canteenId",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      ],
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/IngredientUnitsRequest"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "食材业务单位配置已替换",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IngredientUnitListResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "$ref": "#/components/responses/BusinessError"
+        }
+      },
+      "provenance": {
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
+        "pointer": "/paths/~1api~1v1~1ingredients~1{ingredientId}~1units/put"
       }
     },
     {
@@ -8859,7 +9839,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1inventory/get"
       }
     },
@@ -8922,7 +9902,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1inventory~1stock-outs/post"
       }
     },
@@ -8979,7 +9959,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1ledger-configurations/get"
       }
     },
@@ -9036,7 +10016,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1ledger-configurations/post"
       }
     },
@@ -9101,7 +10081,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1ledger-configurations~1{configurationId}/put"
       }
     },
@@ -9158,7 +10138,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1ledger-cycles~1configured~1current/post"
       }
     },
@@ -9223,7 +10203,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1ledger-cycles~1configured~1{cycleId}~1records/post"
       }
     },
@@ -9326,7 +10306,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1ledger~1records/get"
       }
     },
@@ -9380,7 +10360,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1ledger~1records/post"
       }
     },
@@ -9441,8 +10421,222 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1ledger~1stats/get"
+      }
+    },
+    {
+      "operationId": "listMealOrders",
+      "method": "GET",
+      "path": "/api/v1/meal-orders",
+      "tags": [
+        "diner"
+      ],
+      "parameters": [
+        {
+          "name": "schoolId",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        {
+          "name": "canteenId",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        {
+          "name": "status",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "type": "string",
+            "enum": [
+              "CREATED",
+              "CANCELLED"
+            ]
+          }
+        },
+        {
+          "name": "page",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1
+          }
+        },
+        {
+          "name": "size",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 20
+          }
+        }
+      ],
+      "requestBody": null,
+      "responses": {
+        "200": {
+          "description": "当前登录用户的个人消费订单",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MealOrderPageResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "$ref": "#/components/responses/BusinessError"
+        },
+        "403": {
+          "$ref": "#/components/responses/ForbiddenError"
+        }
+      },
+      "provenance": {
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
+        "pointer": "/paths/~1api~1v1~1meal-orders/get"
+      }
+    },
+    {
+      "operationId": "createMealOrder",
+      "method": "POST",
+      "path": "/api/v1/meal-orders",
+      "tags": [
+        "diner"
+      ],
+      "parameters": [
+        {
+          "name": "schoolId",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        {
+          "name": "canteenId",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        {
+          "name": "Idempotency-Key",
+          "in": "header",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      ],
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/MealOrderRequest"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "已创建未支付个人消费订单",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MealOrderResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "$ref": "#/components/responses/BusinessError"
+        },
+        "403": {
+          "$ref": "#/components/responses/ForbiddenError"
+        }
+      },
+      "provenance": {
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
+        "pointer": "/paths/~1api~1v1~1meal-orders/post"
+      }
+    },
+    {
+      "operationId": "cancelMealOrder",
+      "method": "POST",
+      "path": "/api/v1/meal-orders/{orderId}/cancel",
+      "tags": [
+        "diner"
+      ],
+      "parameters": [
+        {
+          "name": "orderId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          }
+        },
+        {
+          "name": "schoolId",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        {
+          "name": "canteenId",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      ],
+      "requestBody": null,
+      "responses": {
+        "200": {
+          "description": "已取消个人消费订单",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MealOrderResponse"
+              }
+            }
+          }
+        },
+        "400": {
+          "$ref": "#/components/responses/BusinessError"
+        },
+        "403": {
+          "$ref": "#/components/responses/ForbiddenError"
+        }
+      },
+      "provenance": {
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
+        "pointer": "/paths/~1api~1v1~1meal-orders~1{orderId}~1cancel/post"
       }
     },
     {
@@ -9536,7 +10730,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1meal-suspensions/get"
       }
     },
@@ -9593,7 +10787,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1meal-suspensions/post"
       }
     },
@@ -9659,7 +10853,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1meal-suspensions~1stats/get"
       }
     },
@@ -9724,7 +10918,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1meal-suspensions~1{suspensionId}~1cancel/post"
       }
     },
@@ -9780,7 +10974,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1meal-suspensions~1{suspensionId}~1history/get"
       }
     },
@@ -9845,7 +11039,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1meal-suspensions~1{suspensionId}~1review/post"
       }
     },
@@ -9871,7 +11065,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1permissions/get"
       }
     },
@@ -9954,7 +11148,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1procurement-plans/get"
       }
     },
@@ -10006,7 +11200,7 @@
       },
       "responses": {
         "200": {
-          "description": "按已发布食谱生成的采购计划",
+          "description": "按已发布菜单/食谱、库存和在途采购快照生成采购计划 Draft；不会创建采购订单",
           "content": {
             "application/json": {
               "schema": {
@@ -10020,7 +11214,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1procurement-plans~1generate-range/post"
       }
     },
@@ -10076,7 +11270,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1procurement-plans~1{planId}/get"
       }
     },
@@ -10132,7 +11326,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1procurement-plans~1{planId}~1cancel/post"
       }
     },
@@ -10188,7 +11382,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1procurement-plans~1{planId}~1confirm/post"
       }
     },
@@ -10253,7 +11447,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1procurement-plans~1{planId}~1items/put"
       }
     },
@@ -10327,7 +11521,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1procurement-plans~1{planId}~1purchase-orders/post"
       }
     },
@@ -10400,7 +11594,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1purchase-orders/get"
       }
     },
@@ -10463,7 +11657,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1purchase-orders/post"
       }
     },
@@ -10534,7 +11728,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1purchase-orders~1{orderId}~1receive/post"
       }
     },
@@ -10596,7 +11790,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1purchase-orders~1{orderId}~1status/post"
       }
     },
@@ -10622,7 +11816,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1roles/get"
       }
     },
@@ -10669,7 +11863,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1roles~1{roleCode}~1permissions/put"
       }
     },
@@ -10716,7 +11910,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1schools/get"
       }
     },
@@ -10754,7 +11948,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1schools/post"
       }
     },
@@ -10802,7 +11996,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1schools~1{schoolId}/put"
       }
     },
@@ -10850,7 +12044,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1schools~1{schoolId}~1status/post"
       }
     },
@@ -10935,7 +12129,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1supplier-complaints/get"
       }
     },
@@ -10992,7 +12186,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1supplier-complaints/post"
       }
     },
@@ -11048,7 +12242,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1supplier-complaints~1{complaintId}/get"
       }
     },
@@ -11113,7 +12307,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1supplier-complaints~1{complaintId}~1close/post"
       }
     },
@@ -11169,7 +12363,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1supplier-complaints~1{complaintId}~1history/get"
       }
     },
@@ -11234,7 +12428,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1supplier-complaints~1{complaintId}~1process/post"
       }
     },
@@ -11299,7 +12493,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1supplier-complaints~1{complaintId}~1reply/post"
       }
     },
@@ -11364,7 +12558,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1supplier-complaints~1{complaintId}~1review/post"
       }
     },
@@ -11437,7 +12631,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1suppliers/get"
       }
     },
@@ -11491,7 +12685,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1suppliers/post"
       }
     },
@@ -11547,7 +12741,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1traceability~1{traceCode}/get"
       }
     },
@@ -11598,7 +12792,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1users/get"
       }
     },
@@ -11636,7 +12830,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1users/post"
       }
     },
@@ -11684,7 +12878,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1users~1{userId}/put"
       }
     },
@@ -11732,7 +12926,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1users~1{userId}~1roles/put"
       }
     },
@@ -11780,7 +12974,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1users~1{userId}~1scopes/put"
       }
     },
@@ -11828,7 +13022,7 @@
         }
       },
       "provenance": {
-        "documentHash": "51d6d3567037e88f59bbb42fb1a47ddd82c5596024606bef06af10129f7ab1d7",
+        "documentHash": "18ee03667766a98c06ac967f92bcb64e84f5f9ed4d2ed496808b64985dbfff85",
         "pointer": "/paths/~1api~1v1~1users~1{userId}~1status/post"
       }
     }

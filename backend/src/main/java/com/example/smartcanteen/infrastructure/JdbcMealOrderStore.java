@@ -67,7 +67,8 @@ public class JdbcMealOrderStore implements MealOrderStore {
             MealOrder order,
             String idempotencyKey,
             String requestHash) {
-        Optional<MealOrder> existing = findByIdempotency(scope, idempotencyKey);
+        Optional<MealOrder> existing = findByIdempotency(
+                scope, order.actorUserId(), idempotencyKey);
         if (existing.isPresent()) {
             ensureSameRequest(scope, existing.get(), order.actorUserId(), requestHash);
             return existing.get();
@@ -106,7 +107,8 @@ public class JdbcMealOrderStore implements MealOrderStore {
                         item.amount());
             }
         } catch (DuplicateKeyException exception) {
-            MealOrder concurrent = findByIdempotency(scope, idempotencyKey)
+            MealOrder concurrent = findByIdempotency(
+                            scope, order.actorUserId(), idempotencyKey)
                     .orElseThrow(() -> exception);
             ensureSameRequest(scope, concurrent, order.actorUserId(), requestHash);
             return concurrent;
@@ -137,13 +139,15 @@ public class JdbcMealOrderStore implements MealOrderStore {
                 .orElseThrow(() -> new IllegalStateException("Meal order disappeared: " + orderId));
     }
 
-    private Optional<MealOrder> findByIdempotency(CanteenScope scope, String idempotencyKey) {
+    private Optional<MealOrder> findByIdempotency(
+            CanteenScope scope, String actorUserId, String idempotencyKey) {
         return jdbc.query(
                         "SELECT * FROM meal_orders WHERE school_id = ? AND canteen_id = ? "
-                                + "AND idempotency_key = ?",
+                                + "AND actor_user_id = ? AND idempotency_key = ?",
                         orderMapper(),
                         scope.schoolId(),
                         scope.canteenId(),
+                        actorUserId,
                         idempotencyKey)
                 .stream()
                 .findFirst();

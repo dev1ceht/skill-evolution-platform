@@ -150,6 +150,32 @@ class MealOrderControllerHttpTest {
     }
 
     @Test
+    void scopes_idempotency_keys_to_the_actor() throws Exception {
+        String body = "{\"menuId\":\"M901\",\"items\":[{\"dishId\":\"DISH-001\",\"quantity\":1}]}";
+        MvcResult dinerOrder = mvc.perform(post("/api/v1/meal-orders?" + SCOPE)
+                        .requestAttr(AuthPrincipal.class.getName(), DINER)
+                        .header("Idempotency-Key", "SHARED-ACTOR-KEY")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.actorUserId").value(USER))
+                .andReturn();
+        MvcResult otherOrder = mvc.perform(post("/api/v1/meal-orders?" + SCOPE)
+                        .requestAttr(AuthPrincipal.class.getName(), OTHER_DINER)
+                        .header("Idempotency-Key", "SHARED-ACTOR-KEY")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.actorUserId").value(OTHER_USER))
+                .andReturn();
+        String dinerOrderId = JsonPath.read(
+                dinerOrder.getResponse().getContentAsString(), "$.data.id");
+        String otherOrderId = JsonPath.read(
+                otherOrder.getResponse().getContentAsString(), "$.data.id");
+        org.assertj.core.api.Assertions.assertThat(otherOrderId).isNotEqualTo(dinerOrderId);
+    }
+
+    @Test
     void assistant_queries_orders_and_requires_confirmation_before_creating_one() throws Exception {
         mvc.perform(assistantMessage(
                         "assistant-order-query", "查看我的订单", "CONV-DINER-QUERY"))
@@ -168,16 +194,33 @@ class MealOrderControllerHttpTest {
                 "SELECT COUNT(*) FROM meal_orders WHERE school_id = ? AND canteen_id = ?",
                 Integer.class, SCHOOL, CANTEEN)).isZero();
 
-        mvc.perform(assistantMessage(
+        MvcResult confirmed = mvc.perform(assistantMessage(
                         "assistant-order-confirm", "确认", "CONV-DINER-WRITE"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.kind").value("RESULT"))
                 .andExpect(jsonPath("$.data.intent").value("meal_order.create"))
                 .andExpect(jsonPath("$.data.runStatus").value("SUCCEEDED"))
-                .andExpect(jsonPath("$.data.result.paymentStatus").value("UNPAID"));
+                .andExpect(jsonPath("$.data.result.paymentStatus").value("UNPAID"))
+                .andReturn();
+        String orderId = JsonPath.read(
+                confirmed.getResponse().getContentAsString(), "$.data.result.id");
         org.assertj.core.api.Assertions.assertThat(jdbc.queryForObject(
                 "SELECT COUNT(*) FROM meal_orders WHERE school_id = ? AND canteen_id = ?",
                 Integer.class, SCHOOL, CANTEEN)).isEqualTo(1);
+
+        mvc.perform(assistantMessage(
+                        "assistant-order-cancel-preview", "取消 " + orderId, "CONV-DINER-CANCEL"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.kind").value("CONFIRMATION_REQUIRED"))
+                .andExpect(jsonPath("$.data.intent").value("meal_order.cancel"))
+                .andExpect(jsonPath("$.data.runStatus").value("WAITING_CONFIRMATION"));
+        mvc.perform(assistantMessage(
+                        "assistant-order-cancel-confirm", "确认", "CONV-DINER-CANCEL"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.kind").value("RESULT"))
+                .andExpect(jsonPath("$.data.intent").value("meal_order.cancel"))
+                .andExpect(jsonPath("$.data.runStatus").value("SUCCEEDED"))
+                .andExpect(jsonPath("$.data.result.status").value("CANCELLED"));
     }
 
     private MockHttpServletRequestBuilder assistantMessage(

@@ -147,7 +147,7 @@ export interface MealOrder {
   mealDate: string;
   mealTime: string;
   status: 'CREATED' | 'CANCELLED' | string;
-  paymentStatus: 'UNPAID' | 'PAID' | 'REFUNDED' | string;
+  paymentStatus: 'UNPAID';
   totalAmount: number;
   items: MealOrderItem[];
   version: number;

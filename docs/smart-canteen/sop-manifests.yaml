@@ -126,7 +126,7 @@ sops:
     permissions: ["MEAL_ORDER_WRITE"]
     scope: "schoolId + canteenId + actorUserId"
     preconditions: ["只允许订购当前范围内已发布菜单中的有效菜品", "当前切片只生成未支付消费订单", "取消只允许订单本人取消 CREATED 订单"]
-    idempotency: "业务 Idempotency-Key 同键重放；不同请求体拒绝复用"
+    idempotency: "按当前 actor + scope 隔离业务 Idempotency-Key；同键同载荷重放，不同请求体拒绝复用"
     timeout: { mode: "request-bound", enforced: false }
     steps: ["resolve-actor-and-menu", "validate-dish-snapshot", "create-or-cancel-order", "return-action-result"]
     rollback: "未接入支付、POS 和库存扣减；失败不产生业务写入"
