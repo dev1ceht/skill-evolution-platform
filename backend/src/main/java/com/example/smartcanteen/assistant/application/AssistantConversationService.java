@@ -705,7 +705,8 @@ public class AssistantConversationService {
                     "ingredientId", "库存出库");
             case "alert.dispose" -> resolution.parameters().getOrDefault(
                     "warnId", "预警处置");
-            default -> "采购计划";
+            case "procurement.plan.generate" -> "采购申请 Draft";
+            default -> "业务写入";
         };
     }
 

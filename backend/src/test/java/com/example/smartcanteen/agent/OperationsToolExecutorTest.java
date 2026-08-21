@@ -13,8 +13,15 @@ import com.example.smartcanteen.application.BusinessAuthorizationPolicy;
 import com.example.smartcanteen.application.ProcurementOperationsService;
 import com.example.smartcanteen.application.ProcurementPlanService;
 import com.example.smartcanteen.domain.CanteenScope;
+import com.example.smartcanteen.domain.ProcurementPlan;
+import com.example.smartcanteen.domain.ProcurementPlanItem;
+import com.example.smartcanteen.domain.ProcurementPlanStatus;
 import com.example.smartcanteen.security.Role;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 
@@ -25,7 +32,7 @@ class OperationsToolExecutorTest {
     private final AlertCenterService alerts = mock(AlertCenterService.class);
     private final BusinessAuthorizationPolicy authorization = mock(BusinessAuthorizationPolicy.class);
     private final OperationsToolExecutor executor = new OperationsToolExecutor(
-            plans, procurement, alerts, authorization, new ObjectMapper());
+            plans, procurement, alerts, authorization, new ObjectMapper().findAndRegisterModules());
     private final ExecutionContext context = new ExecutionContext(
             "REQ-001",
             "USER-001",
@@ -64,5 +71,46 @@ class OperationsToolExecutorTest {
                 eq("step-REQ"),
                 eq("SUP-001"),
                 org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    void delegates_procurement_draft_generation_without_creating_an_order() {
+        ProcurementPlan draft = new ProcurementPlan(
+                "PLAN-001",
+                "PLAN001",
+                LocalDate.of(2026, 8, 22),
+                LocalDate.of(2026, 8, 22),
+                ProcurementPlanStatus.DRAFT,
+                0,
+                Instant.parse("2026-08-21T00:00:00Z"),
+                List.of("M001"),
+                List.of(new ProcurementPlanItem(
+                        "ING-001",
+                        new BigDecimal("20000"),
+                        new BigDecimal("1000"),
+                        BigDecimal.ZERO,
+                        new BigDecimal("19000"),
+                        new BigDecimal("19000"),
+                        "g")),
+                List.of());
+        when(plans.generate(
+                        eq(context.scope()),
+                        eq(LocalDate.of(2026, 8, 22)),
+                        eq(LocalDate.of(2026, 8, 22)),
+                        eq("step-PLAN-DRAFT")))
+                .thenReturn(draft);
+
+        var result = executor.execute(
+                "procurement.plan.generate",
+                context,
+                "{\"periodStart\":\"2026-08-22\",\"periodEnd\":\"2026-08-22\","
+                        + "\"businessIdempotencyKey\":\"step-PLAN-DRAFT\"}");
+
+        assertThat(result.resultJson()).contains("\"status\":\"DRAFT\"");
+        verify(plans).generate(
+                eq(context.scope()),
+                eq(LocalDate.of(2026, 8, 22)),
+                eq(LocalDate.of(2026, 8, 22)),
+                eq("step-PLAN-DRAFT"));
     }
 }

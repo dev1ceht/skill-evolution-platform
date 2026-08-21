@@ -19,7 +19,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
-@SpringBootTest
+@SpringBootTest(properties = "agent.write.enabled=true")
 @AutoConfigureMockMvc
 class AssistantControllerHttpTest {
 
@@ -59,6 +59,12 @@ class AssistantControllerHttpTest {
         jdbc.update("DELETE FROM agent_run_decisions");
         jdbc.update("DELETE FROM agent_run_claims");
         jdbc.update("DELETE FROM agent_runs");
+        jdbc.update("DELETE FROM procurement_plan_orders WHERE school_id = ?", SCHOOL_ID);
+        jdbc.update("DELETE FROM procurement_plan_items WHERE school_id = ?", SCHOOL_ID);
+        jdbc.update("DELETE FROM procurement_plan_menus WHERE school_id = ?", SCHOOL_ID);
+        jdbc.update("DELETE FROM procurement_plans WHERE school_id = ?", SCHOOL_ID);
+        jdbc.update("DELETE FROM purchase_order_items WHERE school_id = ?", SCHOOL_ID);
+        jdbc.update("DELETE FROM purchase_orders WHERE school_id = ?", SCHOOL_ID);
         jdbc.update("DELETE FROM traceability_records WHERE school_id = ?", SCHOOL_ID);
         jdbc.update("DELETE FROM inventory WHERE school_id = ?", SCHOOL_ID);
         jdbc.update("DELETE FROM inventory_batches WHERE school_id = ?", SCHOOL_ID);
@@ -357,6 +363,93 @@ class AssistantControllerHttpTest {
                 0,
                 jdbc.queryForObject(
                         "SELECT COUNT(*) FROM procurement_plans WHERE school_id = ?",
+                        Integer.class,
+                SCHOOL_ID));
+    }
+
+    @Test
+    void previews_and_confirms_a_procurement_application_draft_without_creating_an_order()
+            throws Exception {
+        jdbc.update(
+                "INSERT INTO dishes (school_id, canteen_id, dish_id, name, category, status, version) "
+                        + "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                SCHOOL_ID, CANTEEN_ID, "DISH-DRAFT-001", "采购草稿菜", "主菜", "ACTIVE", 1);
+        jdbc.update(
+                "INSERT INTO dish_ingredients (school_id, canteen_id, dish_id, ingredient_id, quantity, unit) "
+                        + "VALUES (?, ?, ?, ?, ?, ?)",
+                SCHOOL_ID, CANTEEN_ID, "DISH-DRAFT-001", "ING-ASSIST", 500, "g");
+        jdbc.update(
+                "UPDATE inventory SET quantity_base = ?, base_unit = ? "
+                        + "WHERE school_id = ? AND canteen_id = ? AND material_id = ?",
+                1000, "g", SCHOOL_ID, CANTEEN_ID, "ING-ASSIST");
+        jdbc.update(
+                "INSERT INTO daily_menus (school_id, canteen_id, menu_id, menu_date, meal_time, status, version) "
+                        + "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                SCHOOL_ID, CANTEEN_ID, "M007", "2026-08-22", "LUNCH", "PUBLISHED", 1);
+        jdbc.update(
+                "INSERT INTO daily_menu_items (school_id, canteen_id, menu_id, dish_id, "
+                        + "estimated_quantity, sort_order) VALUES (?, ?, ?, ?, ?, ?)",
+                SCHOOL_ID, CANTEEN_ID, "M007", "DISH-DRAFT-001", 40, 1);
+
+        int plansBefore = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM procurement_plans WHERE school_id = ?", Integer.class, SCHOOL_ID);
+        mvc.perform(message(
+                        "procurement-draft-preview-001",
+                        "帮我生成明天的采购申请草稿",
+                        "CONV-ASSIST-PROCUREMENT-DRAFT"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.kind").value("CONFIRMATION_REQUIRED"))
+                .andExpect(jsonPath("$.data.intent").value("procurement.plan.generate"))
+                .andExpect(jsonPath("$.data.runStatus").value("WAITING_CONFIRMATION"))
+                .andExpect(jsonPath("$.data.result.businessParameters.periodStart")
+                        .value("2026-08-22"))
+                .andExpect(jsonPath("$.data.result.businessParameters.periodEnd")
+                        .value("2026-08-22"))
+                .andExpect(jsonPath("$.data.message")
+                        .value(org.hamcrest.Matchers.containsString("确认")));
+        assertEquals(
+                plansBefore,
+                jdbc.queryForObject(
+                        "SELECT COUNT(*) FROM procurement_plans WHERE school_id = ?",
+                        Integer.class,
+                        SCHOOL_ID));
+
+        String confirmed = mvc.perform(message(
+                        "procurement-draft-confirm-001",
+                        "确认",
+                        "CONV-ASSIST-PROCUREMENT-DRAFT"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.kind").value("RESULT"))
+                .andExpect(jsonPath("$.data.intent").value("procurement.plan.generate"))
+                .andExpect(jsonPath("$.data.runStatus").value("SUCCEEDED"))
+                .andExpect(jsonPath("$.data.result.status").value("DRAFT"))
+                .andExpect(jsonPath("$.data.result.items[0].requiredBaseQuantity").value(20000))
+                .andExpect(jsonPath("$.data.result.items[0].inventoryBaseQuantity").value(1000))
+                .andExpect(jsonPath("$.data.result.items[0].shortageBaseQuantity").value(19000))
+                .andExpect(jsonPath("$.data.message")
+                        .value(org.hamcrest.Matchers.containsString("采购申请 Draft")))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        String turnId = com.jayway.jsonpath.JsonPath.read(confirmed, "$.data.turnId");
+
+        mvc.perform(message(
+                        "procurement-draft-confirm-001",
+                        "确认",
+                        "CONV-ASSIST-PROCUREMENT-DRAFT"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.turnId").value(turnId))
+                .andExpect(jsonPath("$.data.result.status").value("DRAFT"));
+        assertEquals(
+                plansBefore + 1,
+                jdbc.queryForObject(
+                        "SELECT COUNT(*) FROM procurement_plans WHERE school_id = ?",
+                        Integer.class,
+                        SCHOOL_ID));
+        assertEquals(
+                0,
+                jdbc.queryForObject(
+                        "SELECT COUNT(*) FROM purchase_orders WHERE school_id = ?",
                         Integer.class,
                         SCHOOL_ID));
     }

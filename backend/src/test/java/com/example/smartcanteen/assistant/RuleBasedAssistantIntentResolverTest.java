@@ -204,6 +204,38 @@ class RuleBasedAssistantIntentResolverTest {
     }
 
     @Test
+    void resolves_a_tomorrow_procurement_application_draft_request() {
+        AssistantResolution result = resolver.resolve("帮我生成明天的采购申请草稿");
+
+        assertThat(result.type()).isEqualTo(AssistantResolution.Type.WRITE_REQUEST);
+        assertThat(result.intent()).isEqualTo("procurement.plan.generate");
+        assertThat(result.parameters())
+                .containsEntry("periodStart", LocalDate.now().plusDays(1).toString())
+                .containsEntry("periodEnd", LocalDate.now().plusDays(1).toString());
+        assertThat(result.message()).contains("Draft");
+    }
+
+    @Test
+    void resolves_a_single_day_procurement_draft_with_an_iso_date() {
+        AssistantResolution result = resolver.resolve("生成采购 Draft 2026-08-22");
+
+        assertThat(result.type()).isEqualTo(AssistantResolution.Type.WRITE_REQUEST);
+        assertThat(result.intent()).isEqualTo("procurement.plan.generate");
+        assertThat(result.parameters())
+                .containsEntry("periodStart", "2026-08-22")
+                .containsEntry("periodEnd", "2026-08-22");
+    }
+
+    @Test
+    void asks_for_the_date_when_a_procurement_draft_request_has_no_period() {
+        AssistantResolution result = resolver.resolve("请生成采购申请草稿");
+
+        assertThat(result.type()).isEqualTo(AssistantResolution.Type.CLARIFICATION);
+        assertThat(result.intent()).isEqualTo("procurement.plan.generate");
+        assertThat(result.missingFields()).containsExactly("periodStart", "periodEnd");
+    }
+
+    @Test
     void requires_a_confirmed_plan_before_creating_a_purchase_order() {
         AssistantResolution result = resolver.resolve(
                 "创建采购订单，供应商 SUP-001，食材 ING-001 10 kg，单价 8");

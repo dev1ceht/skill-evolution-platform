@@ -517,8 +517,10 @@ public class RuleBasedAssistantIntentResolver implements AssistantIntentResolver
             return null;
         }
         String normalized = message.trim().toLowerCase(Locale.ROOT);
-        if ((normalized.contains("生成采购计划") || normalized.contains("创建采购计划"))
-                && normalized.contains("采购")) {
+        boolean procurementDraft = isProcurementDraftRequest(normalized);
+        boolean procurementPlan = normalized.contains("生成采购计划")
+                || normalized.contains("创建采购计划");
+        if (procurementPlan || procurementDraft) {
             Map<String, String> parameters = new LinkedHashMap<>();
             Matcher dates = DATE.matcher(message);
             while (dates.find()) {
@@ -529,17 +531,29 @@ public class RuleBasedAssistantIntentResolver implements AssistantIntentResolver
                     parameters.put("periodEnd", date);
                 }
             }
+            if (procurementDraft) {
+                findMenuDate(message).ifPresent(date -> {
+                    parameters.putIfAbsent("periodStart", date.toString());
+                    parameters.putIfAbsent("periodEnd", parameters.get("periodStart"));
+                });
+            }
             if (!parameters.containsKey("periodStart") || !parameters.containsKey("periodEnd")) {
                 String[] missing = parameters.containsKey("periodStart")
                         ? new String[] {"periodEnd"}
                         : new String[] {"periodStart", "periodEnd"};
                 return AssistantResolution.clarificationFor(
                         "procurement.plan.generate",
-                        "请提供采购计划周期，例如“生成采购计划 2026-08-18 至 2026-08-24”。",
+                        procurementDraft
+                                ? "请提供采购草稿日期，例如“生成明天的采购申请草稿”或“采购 Draft 2026-08-22”。"
+                                : "请提供采购计划周期，例如“生成采购计划 2026-08-18 至 2026-08-24”。",
                         missing);
             }
             return AssistantResolution.writeRequest(
-                    "procurement.plan.generate", parameters, "已识别为采购计划生成请求，将先生成待确认计划。");
+                    "procurement.plan.generate",
+                    parameters,
+                    procurementDraft
+                            ? "已识别为采购申请 Draft 请求，将先生成待确认草稿。"
+                            : "已识别为采购计划生成请求，将先生成待确认计划。");
         }
         if (normalized.contains("创建采购订单") || normalized.contains("新建采购订单")) {
             Map<String, String> parameters = new LinkedHashMap<>();
@@ -631,6 +645,20 @@ public class RuleBasedAssistantIntentResolver implements AssistantIntentResolver
                     "alert.dispose", parameters, "已识别为预警处置请求，将先生成待确认处置记录。");
         }
         return null;
+    }
+
+    private static boolean isProcurementDraftRequest(String normalized) {
+        boolean explicitApplication = normalized.contains("采购申请")
+                && (normalized.contains("生成") || normalized.contains("创建"))
+                && !normalized.contains("订单");
+        return explicitApplication
+                || normalized.contains("采购申请草稿")
+                || normalized.contains("采购草稿")
+                || normalized.contains("采购 draft")
+                || normalized.contains("采购draft")
+                || normalized.contains("采购申请 draft")
+                || normalized.contains("采购申请draft")
+                || normalized.contains("purchase draft");
     }
 
     private static void putFirst(

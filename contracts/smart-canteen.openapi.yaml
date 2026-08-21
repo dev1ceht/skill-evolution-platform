@@ -323,7 +323,7 @@ paths:
               $ref: '#/components/schemas/GenerateProcurementRangeRequest'
       responses:
         '200':
-          description: 按已发布食谱生成的采购计划
+          description: 按已发布菜单/食谱、库存和在途采购快照生成采购计划 Draft；不会创建采购订单
           content:
             application/json:
               schema:

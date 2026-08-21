@@ -1,0 +1,32 @@
+{
+  "taskId": "SC-008",
+  "baseRevision": "8325fa1",
+  "capturedAt": "2026-08-21T20:05:00+08:00",
+  "freshness": "fresh",
+  "scope": "在学习数据集上增加采购申请 Draft 生成：助手识别明确的采购草稿请求，复用现有确定性采购计划服务，在确认后仅创建 DRAFT 采购计划。",
+  "writeSet": [
+    "backend/src/main/java/com/example/smartcanteen/assistant/**",
+    "backend/src/main/java/com/example/smartcanteen/agent/**",
+    "backend/src/main/java/com/example/smartcanteen/application/**",
+    "backend/src/main/java/com/example/smartcanteen/domain/**",
+    "backend/src/main/java/com/example/smartcanteen/infrastructure/**",
+    "backend/src/test/java/**",
+    "docs/smart-canteen/**",
+    "contracts/smart-canteen.openapi.yaml",
+    ".project-to-act/**",
+    "README.md"
+  ],
+  "conflicts": [],
+  "intendedChanges": [
+    "将“采购申请草稿”“采购 Draft”映射为既有 procurement.plan.generate 意图。",
+    "按用户给出的日期生成同日采购计划 Draft，仍由 ProcurementPlanService 确定性计算原料需求、库存、在途和缺口。",
+    "保留助手确认门槛和既有 PROCUREMENT_PLAN_WRITE 权限；不创建采购订单、不提交采购、不调用真实预测服务。",
+    "补充助手 HTTP 端到端测试、幂等/不越界断言、Skill/SOP/项目治理证据。"
+  ],
+  "outOfScope": [
+    "真实客流预测、天气、预约或 POS 接入",
+    "LLM 生成采购数量或成本",
+    "采购订单创建、提交、供应商选择和收货入库",
+    "MealPlan Draft、MCP、SubAgent、RAG、Memory"
+  ]
+}

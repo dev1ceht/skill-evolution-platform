@@ -82,6 +82,8 @@ class ProcurementPlanServiceModuleTest {
         ProcurementPlan plan = service.generate(
                 scope, LocalDate.of(2026, 8, 14), LocalDate.of(2026, 8, 14), "PLAN-MODULE-1");
 
+        assertThat(plan.status()).isEqualTo(com.example.smartcanteen.domain.ProcurementPlanStatus.DRAFT);
+        assertThat(plan.orderIds()).isEmpty();
         assertThat(plan.items()).singleElement().satisfies(item -> {
             assertThat(item.ingredientId()).isEqualTo("RICE");
             assertThat(item.requiredBaseQuantity()).isEqualByComparingTo("10000");

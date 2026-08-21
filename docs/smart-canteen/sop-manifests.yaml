@@ -123,15 +123,15 @@ sops:
 
   - id: "smart-canteen.procurement"
     version: "1.0.0"
-    trigger: ["生成采购计划", "创建采购订单", "收货入库"]
+    trigger: ["生成采购申请草稿", "采购 Draft", "生成采购计划", "创建采购订单", "收货入库"]
     risk_level: "high"
-    approval: "required-before-order-and-receipt"
+    approval: "assistant-confirmation-before-draft; required-before-order-and-receipt"
     permissions: ["SYSTEM_ADMIN", "SCHOOL_ADMIN", "CANTEEN_STAFF"]
     scope: "schoolId + canteenId"
-    preconditions: ["只消费已发布食谱"]
+    preconditions: ["只消费当前范围内已发布菜单和食谱", "Draft 数量由 Recipe/BOM、库存和在途快照确定性计算", "不依赖客流预测服务"]
     idempotency: "业务 Idempotency-Key 同键重放"
     timeout: { mode: "request-bound", enforced: false }
-    steps: ["calculate-shortage", "snapshot-plan", "create-order", "receive"]
+    steps: ["calculate-shortage", "snapshot-plan", "create-draft", "create-order", "receive"]
     rollback: "收货和库存写入同一事务"
     requirements: ["PROCUREMENT-001"]
     references: ["skills/smart-canteen-sop/references/procurement.md"]
@@ -139,7 +139,7 @@ sops:
       modules: ["backend/src/main/java/com/example/smartcanteen/application/ProcurementPlanService.java"]
       apis: ["contracts/integration-plan.json"]
       migrations: ["backend/src/main/resources/db/migration/V5__create_operational_core.sql"]
-      tests: ["backend/src/test/java/com/example/smartcanteen/http/ProcurementPlanClosedLoopHttpTest.java"]
+      tests: ["backend/src/test/java/com/example/smartcanteen/http/ProcurementPlanClosedLoopHttpTest.java", "backend/src/test/java/com/example/smartcanteen/http/AssistantControllerHttpTest.java", "backend/src/test/java/com/example/smartcanteen/assistant/RuleBasedAssistantIntentResolverTest.java"]
       verification: ["docs/smart-canteen/phase5-verification.json"]
     adapters: [{ name: "JdbcOperationalStore", status: "implemented" }]
     evidence: ["docs/smart-canteen/phase5-traceability.md"]

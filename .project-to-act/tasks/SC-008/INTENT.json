@@ -1,0 +1,27 @@
+{
+  "taskId": "SC-008",
+  "title": "实现采购申请 Draft 生成",
+  "currentBehavior": "系统已有采购计划 API、确定性缺口计算和 confirmation-gated procurement.plan.generate Tool，但助手只识别“生成采购计划”并要求完整周期，不能直接识别“明天的采购申请草稿/采购 Draft”。",
+  "desiredBehavior": "运营人员或食堂管理者提出带日期的采购申请草稿请求时，助手生成可审阅的 procurement.plan.generate 计划；首次请求只返回待确认计划，确认后创建状态为 DRAFT 的采购计划，并可用同一业务请求幂等重放。",
+  "publicSeams": [
+    "RuleBasedAssistantIntentResolver.resolve：自然语言到 procurement.plan.generate 的结构化解析",
+    "AssistantConversationService.handle：预览、保存待确认动作、确认后执行",
+    "OperationsToolExecutor.execute(procurement.plan.generate)：把运行输入委托给 ProcurementPlanService",
+    "ProcurementPlanService.generate：菜单/Recipe/BOM/库存/在途事实到 DRAFT 采购计划",
+    "POST /api/v1/assistant/conversations/{conversationId}/messages：助手业务闭环 HTTP 入口"
+  ],
+  "deterministicBoundary": {
+    "model": "仅负责理解/解释；不生成日期之外的数量、价格或成本",
+    "procurementPlan": "ProcurementPlanService 根据已发布菜单、estimatedQuantity、Recipe/BOM、库存和未完成采购快照计算 DRAFT",
+    "forecast": "本轮不读取 traffic.forecast.query 或真实预测服务；采购草稿不依赖预测服务",
+    "businessWrite": "仅创建 ProcurementPlanStatus.DRAFT；CONFIRMED 计划转采购订单仍是另一条高风险动作"
+  },
+  "acceptancePlan": [
+    "规则解析器识别明天/ISO 日期的采购申请草稿和采购 Draft，并保留既有采购计划周期解析",
+    "助手首次请求返回 WAITING_CONFIRMATION，不写入 procurement_plans",
+    "明确确认后创建 DRAFT 计划，计划项数量来自服务端 BOM 计算，且不创建 purchase_orders",
+    "同一助手消息幂等重放不重复创建计划；不同 payload 复用同键被拒绝",
+    "CANTEEN_STAFF 可访问，DINER 不可访问；服务端 scope 不能由文本扩大",
+    "全量 Java、Python/SOP、治理校验和双轴审查通过"
+  ]
+}
