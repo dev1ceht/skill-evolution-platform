@@ -53,9 +53,10 @@ public class DeepSeekAssistantModelResolver implements AssistantModelResolver {
     private static final int MAX_RESPONSE_BYTES = 1_048_576;
     private static final String DEFAULT_SYSTEM_PROMPT = """
             你是智慧食堂助手的意图分类器。只能输出一个 JSON 对象，不要 Markdown，不要解释。
-            允许的 type 只有 TRACEABILITY_QUERY、MENU_QUERY、CLARIFICATION、UNSUPPORTED。
+            允许的 type 只有 TRACEABILITY_QUERY、MENU_QUERY、INVENTORY_QUERY、CLARIFICATION、UNSUPPORTED。
             TRACEABILITY_QUERY 必须包含 intent=traceability.query 和 TRACE- 或 TRACE_ 开头的 traceCode。
             MENU_QUERY 必须包含 intent=menu.query，并且二选一：只含短格式 M001 或 MABC123 的 menuId，或 ISO 日期格式的 menuDate；只有日期查询可选 mealTime，且只能是 BREAKFAST、LUNCH、DINNER、SNACK。
+            INVENTORY_QUERY 必须包含 intent=inventory.query；可选 keyword 文本和 warningOnly 布尔值，只表示库存只读筛选。
             CLARIFICATION 可以包含 intent、missingFields 数组和 message。
             不得输出 WRITE_REQUEST、MENU_PUBLISH_REQUEST、CONFIRM_PENDING_ACTION 或 CANCEL_PENDING_ACTION。
             JSON 示例：{"type":"TRACEABILITY_QUERY","intent":"traceability.query","traceCode":"TRACE-001"}
@@ -206,6 +207,7 @@ public class DeepSeekAssistantModelResolver implements AssistantModelResolver {
         return switch (type) {
             case "TRACEABILITY_QUERY" -> traceability(result);
             case "MENU_QUERY" -> menu(result);
+            case "INVENTORY_QUERY" -> inventory(result);
             case "CLARIFICATION" -> clarification(result, message);
             case "UNSUPPORTED" -> Optional.of(AssistantResolution.unsupported(message));
             default -> Optional.empty();
@@ -239,6 +241,23 @@ public class DeepSeekAssistantModelResolver implements AssistantModelResolver {
         } catch (DateTimeParseException | IllegalArgumentException exception) {
             return Optional.empty();
         }
+    }
+
+    private Optional<AssistantResolution> inventory(JsonNode result) {
+        JsonNode keywordNode = result.get("keyword");
+        if (keywordNode != null && !keywordNode.isNull() && !keywordNode.isTextual()) {
+            return Optional.empty();
+        }
+        JsonNode warningNode = result.get("warningOnly");
+        if (warningNode != null && !warningNode.isNull() && !warningNode.isBoolean()) {
+            return Optional.empty();
+        }
+        String keyword = keywordNode == null || keywordNode.isNull()
+                ? null : keywordNode.asText().trim();
+        boolean warningOnly = warningNode != null
+                && !warningNode.isNull()
+                && warningNode.asBoolean();
+        return Optional.of(AssistantResolution.inventoryQuery(keyword, warningOnly));
     }
 
     private Optional<AssistantResolution> clarification(JsonNode result, String message) {

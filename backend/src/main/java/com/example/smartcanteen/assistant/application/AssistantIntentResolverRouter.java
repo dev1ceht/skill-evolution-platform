@@ -98,6 +98,8 @@ public class AssistantIntentResolverRouter implements AssistantIntentResolver {
                     || hasPrefix(resolution.traceCode(), "TRACE_"));
             case MENU_QUERY -> resolution.intent().equals("menu.query")
                     && (isShortMenuId(resolution.menuId()) || isDateMenuQuery(resolution));
+            case INVENTORY_QUERY -> resolution.intent().equals("inventory.query")
+                    && isInventoryQuery(resolution);
             case MENU_PUBLISH_REQUEST, WRITE_REQUEST, CONFIRM_PENDING_ACTION, CANCEL_PENDING_ACTION -> false;
             case CLARIFICATION -> resolution.intent() == null
                     || resolution.intent().equals("traceability.query")
@@ -120,5 +122,14 @@ public class AssistantIntentResolverRouter implements AssistantIntentResolver {
                 && resolution.parameters().containsKey("menuDate")
                 && resolution.parameters().get("menuDate") != null
                 && !resolution.parameters().get("menuDate").isBlank();
+    }
+
+    private static boolean isInventoryQuery(AssistantResolution resolution) {
+        String keyword = resolution.parameters().get("keyword");
+        String warningOnly = resolution.parameters().get("warningOnly");
+        return (keyword == null || !keyword.isBlank())
+                && (warningOnly == null
+                || warningOnly.equalsIgnoreCase("true")
+                || warningOnly.equalsIgnoreCase("false"));
     }
 }

@@ -1,0 +1,52 @@
+{
+  "taskId": "SC-005",
+  "title": "实现运营/管理库存只读查询与低库存识别",
+  "status": "completed",
+  "owner": "Codex",
+  "goal": "让食堂运营人员和管理者可以通过智慧食堂助手，在服务端食堂范围内查询库存并识别系统已计算的低库存食材；员工/学生仍只能使用其已有的员工能力，不开放库存读取。",
+  "allowedPaths": [
+    "backend/src/main/java/com/example/smartcanteen/agent/**",
+    "backend/src/main/java/com/example/smartcanteen/assistant/**",
+    "backend/src/main/java/com/example/smartcanteen/application/BusinessAuthorizationPolicy.java",
+    "backend/src/main/java/com/example/smartcanteen/application/ProcurementOperationsService.java",
+    "backend/src/main/resources/db/migration/V29__add_inventory_read_permission.sql",
+    "backend/src/test/java/com/example/smartcanteen/agent/**",
+    "backend/src/test/java/com/example/smartcanteen/assistant/**",
+    "backend/src/test/java/com/example/smartcanteen/http/AssistantControllerHttpTest.java",
+    "backend/src/test/java/com/example/smartcanteen/application/BusinessAuthorizationPolicyTest.java",
+    "contracts/smart-canteen.openapi.yaml",
+    "docs/smart-canteen/**",
+    "README.md",
+    ".project-to-act/**"
+  ],
+  "invariants": [
+    "AgentScope、模型和解析器不能直接访问数据库；库存事实必须由 ProcurementOperationsService/OperationalStore 和 inventory.query Tool 提供。",
+    "inventory.query 是只读、可安全重放的查询，不创建采购、入库、出库或库存调整。",
+    "低库存判断使用业务服务返回的 warning 字段（数量不高于库存预警阈值），LLM 不计算或猜测库存事实。",
+    "查询范围继续来自服务端 ExecutionContext/CanteenScope，用户输入不能扩大学校或食堂范围。",
+    "库存读取权限只授予 CANTEEN_STAFF、SCHOOL_ADMIN 和 SYSTEM_ADMIN；DINER 不得通过助手执行 inventory.query。",
+    "本切片不实现采购缺口计算、备餐预测、采购写入、MCP Server 或 SubAgent 编排。"
+  ],
+  "acceptance": [
+    "规则解析器能把‘查询库存’解析为 inventory.query，把‘哪些食材库存不足’解析为 warningOnly=true，并能把食材名称作为 keyword。",
+    "inventory.query Tool 只调用现有 ProcurementOperationsService.listInventory，固定在服务端 scope 下返回分页库存事实，并拒绝非法输入。",
+    "助手通过现有 Agent Runtime/Skill 路径执行库存查询，返回结构化库存结果和低库存摘要，不绕过 Tool 直接读库。",
+    "Skill manifest 为 inventory.query 声明只读、可重试、无确认的运行策略；业务权限映射为 INVENTORY_READ。",
+    "HTTP 助手能让运营角色查询库存并识别低库存；员工/学生库存请求被权限边界拒绝；已有菜单、溯源和库存写入测试不回归。",
+    "Maven 定向测试、全量测试、项目治理校验、生命周期校验和代码审查通过。"
+  ],
+  "checks": [
+    "mvn -q -Dtest=RuleBasedAssistantIntentResolverTest,InventoryToolExecutorTest,AssistantConversationServiceTest,AssistantControllerHttpTest,BusinessAuthorizationPolicyTest test",
+    "mvn -q test",
+    "python -m pytest -q --basetemp .pytest-tmp-sc005",
+    "python C:\\Users\\th\\.agents\\skills\\project-to-act\\scripts\\init_project_management.py --project-root D:\\project\\smart-canteen --validate",
+    "python C:\\Users\\th\\.agents\\skills\\develop-ai-agents\\scripts\\manage_lifecycle.py --project-root D:\\project\\smart-canteen validate"
+  ],
+  "dependencies": [
+    "SC-001 智慧食堂领域边界与 SOP 清单",
+    "SC-002 学习环境库存和食材事实数据集",
+    "SC-003 AgentScope HarnessAgent、角色上下文与权限基线",
+    "SC-004 员工/学生菜单只读助手切片"
+  ],
+  "rollback": "回退本切片提交即可移除 inventory.query 助手入口、INVENTORY_READ 权限和只读 Tool；不触碰既有库存入库、出库和采购写入状态机。"
+}

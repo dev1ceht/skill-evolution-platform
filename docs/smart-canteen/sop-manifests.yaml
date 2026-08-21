@@ -161,6 +161,43 @@ sops:
       evidence: "required"
     status: "implemented"
 
+  - id: "smart-canteen.inventory-query"
+    version: "1.0.0"
+    trigger: ["查询库存", "查看低库存食材", "查询食材剩余量"]
+    risk_level: "low"
+    approval: "not-required"
+    permissions: ["INVENTORY_READ"]
+    scope: "schoolId + canteenId"
+    preconditions: ["库存事实来自当前食堂业务服务", "低库存标记由库存服务按预警阈值计算", "助手查询会 materialize 所有匹配分页"]
+    idempotency: "只读查询可安全重放"
+    timeout: { mode: "request-bound", enforced: true }
+    steps: ["resolve-filter", "load-scoped-inventory-pages", "return-warning-facts"]
+    rollback: "not-applicable"
+    requirements: ["INVENTORY-001"]
+    references: ["skills/canteen-inventory/SKILL.md"]
+    implementation:
+      modules: ["backend/src/main/java/com/example/smartcanteen/application/ProcurementOperationsService.java", "backend/src/main/java/com/example/smartcanteen/agent/infrastructure/InventoryToolExecutor.java"]
+      apis: ["contracts/smart-canteen.openapi.yaml"]
+      migrations: ["backend/src/main/resources/db/migration/V29__add_inventory_read_permission.sql"]
+      tests: ["backend/src/test/java/com/example/smartcanteen/assistant/RuleBasedAssistantIntentResolverTest.java", "backend/src/test/java/com/example/smartcanteen/agent/InventoryToolExecutorTest.java", "backend/src/test/java/com/example/smartcanteen/http/AssistantControllerHttpTest.java"]
+      verification: [".project-to-act/tasks/SC-005/evidence/E-SC005-TESTS.md"]
+    adapters: [{ name: "JdbcOperationalStore", status: "implemented" }]
+    evidence: [".project-to-act/tasks/SC-005/evidence/E-SC005-TESTS.md"]
+    runtime:
+      intents: ["inventory.query"]
+      input_schema: "#/components/schemas/InventoryQueryIntent"
+      output_schema: "#/components/schemas/InventoryQueryResult"
+      tools: ["inventory.query"]
+      tool_by_intent: { inventory.query: "inventory.query" }
+      side_effect: "read"
+      run_confirmation: "not-required"
+      domain_approval: "not-applicable"
+      activation: "active"
+      deadline_ms: 3000
+      retry_policy: "read-only-bounded"
+      evidence: "required"
+    status: "implemented"
+
   - id: "smart-canteen.inventory"
     version: "1.0.0"
     trigger: ["验收入库", "执行库存出库"]

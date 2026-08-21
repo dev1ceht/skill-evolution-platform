@@ -1,4 +1,4 @@
-# AgentScope Java 2.x Runtime（SC-003）
+# AgentScope Java 2.x Runtime（SC-003/SC-005）
 
 当前项目采用“现有业务 Runtime + AgentScope 可选 HarnessAgent”的渐进接入方式。
 
@@ -47,11 +47,13 @@ mvn spring-boot:run
 
 AgentScope 适配使用 `agentscope-harness` 和 OpenAI 兼容模型扩展，显式关闭文件系统、Shell、
 Memory、SubAgent、动态 Skill 和 tools 配置；本阶段不会让 HarnessAgent 直接访问数据库或
-执行采购、库存、支付等业务动作。
+执行采购、库存、支付等业务动作。SC-005 的库存问题由规则解析器或模型解析为
+`inventory.query`，随后仍由 Skill、Agent Runtime、`InventoryToolExecutor` 和
+`ProcurementOperationsService` 提供真实库存结果；模型只负责理解筛选条件和解释业务事实。
 
 ## 后续接入顺序
 
-1. SC-005：把库存与采购只读查询接入现有业务 Tool，并增加确定性缺口分析，LLM 只解释结果。
+1. SC-005 后续：在库存只读链路稳定后增加采购缺口分析，仍由 BOM/库存业务服务提供确定性计算。
 2. SC-006：在有明确价值时再接 MCP、SSE 流式事件和 SubAgent。
 
 当前不启用 AgentScope 的 Sandbox、SubAgent、MCP 和持久 Memory；它们属于后续需求驱动的

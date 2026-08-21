@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "projectId": "smart-canteen",
   "projectName": "Smart Canteen Business Assistant",
-  "revision": 5,
+  "revision": 7,
   "projectStatus": "active",
-  "currentStage": "7",
-  "updatedAt": "2026-08-21T10:05:31.678Z",
+  "currentStage": "8",
+  "updatedAt": "2026-08-21T10:44:46.689Z",
   "historicalLimitations": [
     "采用既有智慧食堂代码与学习数据，历史阶段以现有文档和测试为基线；从阶段5继续开发，早期阶段不可追溯部分标记为 legacy_unverified。"
   ],
@@ -169,23 +169,46 @@
     {
       "id": "7",
       "name": "定型发布与产品化",
-      "status": "ready",
+      "status": "conditional",
       "expectedArtifacts": [
         "版本与发布清单",
         "SLO 与监控",
         "灰度、停止和回滚方案"
       ],
-      "taskIds": [],
-      "evidenceIds": [],
-      "artifacts": [],
-      "decisions": [],
-      "startedAt": null,
-      "updatedAt": "2026-08-21T10:05:31.678Z"
+      "taskIds": [
+        "SC-005"
+      ],
+      "evidenceIds": [
+        "E-SC005-TESTS",
+        "E-SC005-REVIEW"
+      ],
+      "artifacts": [
+        "docs/smart-canteen/sc005-release-readiness.md",
+        "docs/smart-canteen/agentscope-runtime.md"
+      ],
+      "decisions": [
+        {
+          "at": "2026-08-21T10:44:46.689Z",
+          "decision": "conditional",
+          "evidenceIds": [
+            "E-SC005-TESTS",
+            "E-SC005-REVIEW"
+          ],
+          "artifacts": [
+            "docs/smart-canteen/sc005-release-readiness.md",
+            "docs/smart-canteen/agentscope-runtime.md"
+          ],
+          "summary": "SC-005 库存只读闭环、分页完整返回、输入校验、权限边界、Java/Python 回归和双轴评审通过；个人学习环境不宣称生产 SLO、灰度、真实 Provider 或真实业务系统集成，负责人为用户/Codex，在 SC-006 真实集成前复核。",
+          "nextStage": null
+        }
+      ],
+      "startedAt": "2026-08-21T10:11:45.278Z",
+      "updatedAt": "2026-08-21T10:44:46.689Z"
     },
     {
       "id": "8",
       "name": "运营、学习与退役",
-      "status": "pending",
+      "status": "ready",
       "expectedArtifacts": [
         "线上健康与漂移报告",
         "失败回灌与迭代队列",
@@ -196,7 +219,7 @@
       "artifacts": [],
       "decisions": [],
       "startedAt": null,
-      "updatedAt": null
+      "updatedAt": "2026-08-21T10:44:46.689Z"
     }
   ],
   "transitions": [
@@ -276,6 +299,38 @@
       ],
       "summary": "SC-004 菜单只读查询、已发布边界、互斥输入契约、全量回归和项目治理校验通过；日期/餐次共享值对象抽取留作后续优化。",
       "revision": 5
+    },
+    {
+      "at": "2026-08-21T10:11:45.278Z",
+      "action": "start",
+      "fromStage": "7",
+      "toStage": "7",
+      "fromStatus": "ready",
+      "toStatus": "in_progress",
+      "taskId": "SC-005",
+      "decision": null,
+      "evidenceIds": [],
+      "artifacts": [],
+      "summary": "启动 SC-005 库存只读查询与低库存识别纵向切片",
+      "revision": 6
+    },
+    {
+      "at": "2026-08-21T10:44:46.689Z",
+      "action": "decision",
+      "fromStage": "7",
+      "toStage": "8",
+      "taskId": "SC-005",
+      "decision": "conditional",
+      "evidenceIds": [
+        "E-SC005-TESTS",
+        "E-SC005-REVIEW"
+      ],
+      "artifacts": [
+        "docs/smart-canteen/sc005-release-readiness.md",
+        "docs/smart-canteen/agentscope-runtime.md"
+      ],
+      "summary": "SC-005 库存只读闭环、分页完整返回、输入校验、权限边界、Java/Python 回归和双轴评审通过；个人学习环境不宣称生产 SLO、灰度、真实 Provider 或真实业务系统集成，负责人为用户/Codex，在 SC-006 真实集成前复核。",
+      "revision": 7
     }
   ]
 }

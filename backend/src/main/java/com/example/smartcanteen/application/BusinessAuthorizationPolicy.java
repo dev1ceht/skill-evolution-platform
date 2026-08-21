@@ -243,6 +243,7 @@ public class BusinessAuthorizationPolicy {
             case "menu.submit" -> "MENU_SUBMIT";
             case "menu.record-decision" -> "MENU_APPROVE";
             case "menu.publish" -> "MENU_PUBLISH";
+            case "inventory.query" -> "INVENTORY_READ";
             case "procurement.plan.generate" -> "PROCUREMENT_PLAN_WRITE";
             case "procurement.order.create" -> "PROCUREMENT_ORDER_WRITE";
             case "procurement.order.receive" -> "PROCUREMENT_RECEIVE";

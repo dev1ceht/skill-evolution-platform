@@ -127,6 +127,29 @@ class BusinessAuthorizationPolicyTest {
     }
 
     @Test
+    void inventory_queries_require_the_operations_read_permission() {
+        ExecutionContext operatorContext = new ExecutionContext(
+                "request-inventory-read",
+                "USER-OPERATOR",
+                "operator",
+                scope,
+                Set.of(Role.CANTEEN_STAFF),
+                Set.of("INVENTORY_READ"));
+        ExecutionContext dinerContext = new ExecutionContext(
+                "request-diner-inventory",
+                "USER-DINER",
+                "diner",
+                scope,
+                Set.of(Role.DINER),
+                Set.of("MENU_READ"));
+
+        policy.requireIntentAccess(operatorContext, "inventory.query");
+        assertThatThrownBy(() -> policy.requireIntentAccess(dinerContext, "inventory.query"))
+                .isInstanceOf(ForbiddenException.class)
+                .hasMessageContaining("INVENTORY_READ");
+    }
+
+    @Test
     void domain_approval_reloads_current_roles_before_high_risk_execution() {
         AuthService authentication = mock(AuthService.class);
         BusinessAuthorizationPolicy currentPolicy = new BusinessAuthorizationPolicy(

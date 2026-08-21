@@ -2504,6 +2504,20 @@ components:
           properties:
             menuDate: { type: string, format: date }
             mealTime: { type: string, enum: [BREAKFAST, LUNCH, DINNER, SNACK] }
+    InventoryQueryIntent:
+      type: object
+      description: 在服务端已确定的食堂范围内查询库存；warningOnly=true 只返回数量不高于预警阈值的食材。
+      additionalProperties: false
+      properties:
+        keyword:
+          type: string
+          maxLength: 100
+          nullable: true
+          description: 食材 ID 或名称的可选筛选词。
+        warningOnly:
+          type: boolean
+          default: false
+          description: 是否只返回库存预警记录。
     AssistantTurn:
       type: object
       description: 助手响应；菜单发布以及采购、库存、预警写入必须先返回确认计划，之后仅由明确确认或取消推进 Agent Run。写入入口仍受部署灰度开关、scope、权限和幂等策略约束。
@@ -3244,6 +3258,17 @@ components:
             current: { type: integer, minimum: 1 }
             size: { type: integer, minimum: 1 }
             total: { type: integer, format: int64, minimum: 0 }
+    InventoryQueryResult:
+      type: object
+      required: [records, current, size, total]
+      properties:
+        records:
+          type: array
+          items:
+            $ref: '#/components/schemas/InventoryLine'
+        current: { type: integer, minimum: 1 }
+        size: { type: integer, minimum: 1 }
+        total: { type: integer, format: int64, minimum: 0 }
     DailyMenuDecisionRequest:
       type: object
       required: [version, decision]

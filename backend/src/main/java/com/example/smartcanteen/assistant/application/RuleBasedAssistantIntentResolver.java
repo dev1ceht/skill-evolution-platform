@@ -40,6 +40,8 @@ public class RuleBasedAssistantIntentResolver implements AssistantIntentResolver
             "(?i)([0-9]+(?:\\.[0-9]+)?)\\s*(kg|公斤|g|克|l|升|ml|毫升|count|个)");
     private static final Pattern ALERT_ID = Pattern.compile(
             "(?i)(?<![A-Za-z0-9])(?:[A-Z_]+:[A-Za-z0-9_-]+|WARN[-_][A-Za-z0-9_-]+)(?![A-Za-z0-9])");
+    private static final Pattern INVENTORY_KEYWORD = Pattern.compile(
+            "(?:查询|查看|查|请问)?\\s*([\\p{IsHan}A-Za-z0-9_-]{2,30}?)(?=(?:库存|还剩|剩余|剩下|够用))");
 
     @Override
     public AssistantResolution resolve(String message) {
@@ -87,6 +89,7 @@ public class RuleBasedAssistantIntentResolver implements AssistantIntentResolver
     static boolean isExplicitNewUnsupportedRequest(String message) {
         return message != null
                 && UNSUPPORTED_REQUEST.matcher(message).find()
+                && !isInventoryReadRequest(message)
                 && resolveExplicitWrite(message) == null;
     }
 
@@ -98,6 +101,16 @@ public class RuleBasedAssistantIntentResolver implements AssistantIntentResolver
         AssistantResolution write = resolveExplicitWrite(message);
         if (write != null) {
             return write;
+        }
+        if (isInventoryReadRequest(message)) {
+            boolean warningOnly = isWarningOnlyInventoryRequest(message);
+            String keyword = findInventoryKeyword(message).orElse(null);
+            if (keyword == null) {
+                keyword = findInventoryKeywordId(message).orElse(null);
+            }
+            return keyword == null && !warningOnly
+                    ? AssistantResolution.inventoryQuery()
+                    : AssistantResolution.inventoryQuery(keyword, warningOnly);
         }
         if (isExplicitNewUnsupportedRequest(message)) {
             return AssistantResolution.unsupported(
@@ -154,8 +167,8 @@ public class RuleBasedAssistantIntentResolver implements AssistantIntentResolver
                     "请提供菜单日期，例如“今天的菜单”或“2026-08-17 的菜单”。", "menuDate");
         }
         return AssistantResolution.unsupported(
-                "当前助手已开放食品溯源和日菜单只读查询。请说明“查询 TRACE-001 的溯源信息”"
-                        + "或“查询 M001 的菜单”，采购、库存和预警写入需要明确的灰度与确认。");
+                "当前助手已开放食品溯源、日菜单和库存只读查询。请说明“查询 TRACE-001 的溯源信息”"
+                        + "、“查询 M001 的菜单”或“查询库存”；采购、库存和预警写入需要明确的灰度与确认。");
     }
 
     private Optional<AssistantResolution> resolvePendingAnswer(
@@ -219,6 +232,56 @@ public class RuleBasedAssistantIntentResolver implements AssistantIntentResolver
 
     private static Optional<String> findMenuId(String message) {
         return MenuId.findIn(message);
+    }
+
+    private static boolean isInventoryReadRequest(String message) {
+        if (message == null || message.isBlank()) {
+            return false;
+        }
+        String normalized = message.trim().toLowerCase(Locale.ROOT);
+        if (normalized.contains("库存入库")
+                || normalized.contains("库存出库")
+                || normalized.contains("库存调整")
+                || normalized.contains("库存盘点")) {
+            return false;
+        }
+        return normalized.contains("库存")
+                || normalized.contains("还剩")
+                || normalized.contains("剩余")
+                || normalized.contains("剩下")
+                || normalized.contains("低库存")
+                || normalized.contains("库存不足")
+                || normalized.contains("库存预警")
+                || normalized.contains("够用几天");
+    }
+
+    private static boolean isWarningOnlyInventoryRequest(String message) {
+        String normalized = message.trim().toLowerCase(Locale.ROOT);
+        return normalized.contains("不足")
+                || normalized.contains("低库存")
+                || normalized.contains("库存预警")
+                || normalized.contains("库存告警")
+                || normalized.contains("低于阈值");
+    }
+
+    private static Optional<String> findInventoryKeyword(String message) {
+        Matcher matcher = INVENTORY_KEYWORD.matcher(message == null ? "" : message.trim());
+        if (!matcher.find()) {
+            return Optional.empty();
+        }
+        String keyword = matcher.group(1).trim()
+                .replaceFirst("^(查询|查看|查|请问)", "")
+                .trim();
+        return keyword.isBlank() || keyword.equals("哪些食材") || keyword.equals("食材")
+                ? Optional.empty()
+                : Optional.of(keyword);
+    }
+
+    private static Optional<String> findInventoryKeywordId(String message) {
+        Matcher matcher = INGREDIENT_ID.matcher(message == null ? "" : message);
+        return matcher.find()
+                ? Optional.of(matcher.group().toUpperCase(Locale.ROOT))
+                : Optional.empty();
     }
 
     private static Optional<LocalDate> findMenuDate(String message) {

@@ -30,6 +30,7 @@ public record AssistantResolution(
     public enum Type {
         TRACEABILITY_QUERY,
         MENU_QUERY,
+        INVENTORY_QUERY,
         MENU_PUBLISH_REQUEST,
         WRITE_REQUEST,
         CONFIRM_PENDING_ACTION,
@@ -94,6 +95,16 @@ public record AssistantResolution(
             if (traceCode != null) {
                 throw new IllegalArgumentException("Menu publish resolution cannot contain traceCode");
             }
+        } else if (type == Type.INVENTORY_QUERY) {
+            if (!"inventory.query".equals(intent)) {
+                throw new IllegalArgumentException(
+                        "Inventory resolution must select inventory.query");
+            }
+            if (traceCode != null || menuId != null) {
+                throw new IllegalArgumentException(
+                        "Inventory resolution cannot contain menu or trace identifiers");
+            }
+            validateInventoryParameters(parameters);
         } else if (type == Type.CONFIRM_PENDING_ACTION || type == Type.CANCEL_PENDING_ACTION) {
             if (!"menu.publish".equals(intent) && !WRITE_INTENTS.contains(intent)) {
                 throw new IllegalArgumentException(
@@ -119,6 +130,7 @@ public record AssistantResolution(
         } else if (intent != null
                 && !intent.equals("traceability.query")
                 && !intent.equals("menu.query")
+                && !intent.equals("inventory.query")
                 && !intent.equals("menu.publish")
                 && !WRITE_INTENTS.contains(intent)) {
             throw new IllegalArgumentException("Unsupported clarification intent: " + intent);
@@ -173,6 +185,32 @@ public record AssistantResolution(
                 List.of(),
                 "已识别为菜单发布请求。",
                 Map.of());
+    }
+
+    public static AssistantResolution inventoryQuery() {
+        return inventoryQuery(null, null);
+    }
+
+    public static AssistantResolution inventoryQuery(String keyword, boolean warningOnly) {
+        return inventoryQuery(keyword, Boolean.valueOf(warningOnly));
+    }
+
+    private static AssistantResolution inventoryQuery(String keyword, Boolean warningOnly) {
+        Map<String, String> parameters = new LinkedHashMap<>();
+        if (keyword != null && !keyword.isBlank()) {
+            parameters.put("keyword", keyword.trim());
+            parameters.put("warningOnly", String.valueOf(Boolean.TRUE.equals(warningOnly)));
+        } else if (Boolean.TRUE.equals(warningOnly)) {
+            parameters.put("warningOnly", "true");
+        }
+        return new AssistantResolution(
+                Type.INVENTORY_QUERY,
+                "inventory.query",
+                null,
+                null,
+                List.of(),
+                "已识别为库存只读查询。",
+                parameters);
     }
 
     public static AssistantResolution writeRequest(
@@ -261,6 +299,27 @@ public record AssistantResolution(
         String normalized = value.trim().toUpperCase(Locale.ROOT);
         if (!Set.of("BREAKFAST", "LUNCH", "DINNER", "SNACK").contains(normalized)) {
             throw new IllegalArgumentException("Unsupported mealTime: " + value);
+        }
+    }
+
+    private static void validateInventoryParameters(Map<String, String> parameters) {
+        String keyword = parameters.get("keyword");
+        if (keyword != null && keyword.isBlank()) {
+            throw new IllegalArgumentException("Inventory query keyword must not be blank");
+        }
+        if (keyword != null && keyword.length() > 100) {
+            throw new IllegalArgumentException("Inventory query keyword must be at most 100 characters");
+        }
+        String warningOnly = parameters.get("warningOnly");
+        if (warningOnly != null
+                && !warningOnly.equalsIgnoreCase("true")
+                && !warningOnly.equalsIgnoreCase("false")) {
+            throw new IllegalArgumentException("Inventory query warningOnly must be boolean");
+        }
+        for (String key : parameters.keySet()) {
+            if (!Set.of("keyword", "warningOnly").contains(key)) {
+                throw new IllegalArgumentException("Unsupported inventory query parameter: " + key);
+            }
         }
     }
 }

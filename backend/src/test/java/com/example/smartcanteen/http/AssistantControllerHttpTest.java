@@ -41,6 +41,15 @@ class AssistantControllerHttpTest {
 
     @BeforeEach
     void seedTraceabilityRecord() {
+        jdbc.update(
+                "MERGE INTO schools (id, name) KEY (id) VALUES (?, ?)",
+                SCHOOL_ID,
+                "Assistant HTTP School");
+        jdbc.update(
+                "MERGE INTO canteens (id, school_id, name) KEY (id) VALUES (?, ?, ?)",
+                CANTEEN_ID,
+                SCHOOL_ID,
+                "Assistant HTTP Canteen");
         jdbc.update("DELETE FROM assistant_pending_actions");
         jdbc.update("DELETE FROM assistant_clarifications");
         jdbc.update("DELETE FROM assistant_turns");
@@ -51,6 +60,7 @@ class AssistantControllerHttpTest {
         jdbc.update("DELETE FROM agent_run_claims");
         jdbc.update("DELETE FROM agent_runs");
         jdbc.update("DELETE FROM traceability_records WHERE school_id = ?", SCHOOL_ID);
+        jdbc.update("DELETE FROM inventory WHERE school_id = ?", SCHOOL_ID);
         jdbc.update("DELETE FROM inventory_batches WHERE school_id = ?", SCHOOL_ID);
         jdbc.update("DELETE FROM ingredients WHERE school_id = ?", SCHOOL_ID);
         jdbc.update("DELETE FROM suppliers WHERE school_id = ?", SCHOOL_ID);
@@ -60,6 +70,10 @@ class AssistantControllerHttpTest {
                 "INSERT INTO ingredients (school_id, canteen_id, ingredient_id, name, category, "
                         + "base_unit) VALUES (?, ?, ?, ?, ?, ?)",
                 SCHOOL_ID, CANTEEN_ID, "ING-ASSIST", "Assistant Ingredient", "VEGETABLE", "kg");
+        jdbc.update(
+                "INSERT INTO inventory (school_id, canteen_id, material_id, quantity_base, base_unit, "
+                        + "warning_threshold, last_update_time) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)",
+                SCHOOL_ID, CANTEEN_ID, "ING-ASSIST", 10, "kg", 20);
         jdbc.update(
                 "INSERT INTO suppliers (school_id, canteen_id, supplier_id, name) "
                         + "VALUES (?, ?, ?, ?)",
@@ -253,6 +267,22 @@ class AssistantControllerHttpTest {
                 .andExpect(jsonPath("$.data.result.records[0].status").value("PUBLISHED"))
                 .andExpect(jsonPath("$.data.message").value(
                         org.hamcrest.Matchers.containsString("2026-08-17")));
+    }
+
+    @Test
+    void resolves_an_inventory_query_and_returns_the_system_warning_fact() throws Exception {
+        mvc.perform(message(
+                        "inventory-message-001",
+                        "哪些食材库存不足？",
+                        "CONV-ASSIST-INVENTORY"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.kind").value("RESULT"))
+                .andExpect(jsonPath("$.data.intent").value("inventory.query"))
+                .andExpect(jsonPath("$.data.runStatus").value("SUCCEEDED"))
+                .andExpect(jsonPath("$.data.result.records[0].ingredientId").value("ING-ASSIST"))
+                .andExpect(jsonPath("$.data.result.records[0].warning").value(true))
+                .andExpect(jsonPath("$.data.message").value(
+                        org.hamcrest.Matchers.containsString("1 项低于或等于预警阈值")));
     }
 
     @Test

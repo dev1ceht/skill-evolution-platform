@@ -236,6 +236,12 @@ public class AssistantConversationService {
                         normalizedKey,
                         context,
                         principal);
+                case INVENTORY_QUERY -> executeInventory(
+                        conversation,
+                        resolution,
+                        normalizedKey,
+                        context,
+                        principal);
                 case MENU_PUBLISH_REQUEST -> previewMenuPublish(
                         conversation,
                         resolution,
@@ -737,6 +743,30 @@ public class AssistantConversationService {
                 (run, result) -> assistantMenuMessage(run, result, resolution));
     }
 
+    private AssistantTurn executeInventory(
+            AssistantConversation conversation,
+            AssistantResolution resolution,
+            String idempotencyKey,
+            ExecutionContext context,
+            AuthPrincipal principal) {
+        Map<String, Object> input = new LinkedHashMap<>();
+        resolution.parameters().forEach((key, value) -> {
+            if ("warningOnly".equals(key)) {
+                input.put(key, Boolean.parseBoolean(value));
+            } else {
+                input.put(key, value);
+            }
+        });
+        return executeReadOnly(
+                conversation,
+                resolution.intent(),
+                input,
+                idempotencyKey,
+                context,
+                principal,
+                AssistantConversationService::assistantInventoryMessage);
+    }
+
     private AssistantTurn executeReadOnly(
             AssistantConversation conversation,
             String intent,
@@ -841,6 +871,25 @@ public class AssistantConversationService {
                 ? result.path("items").size() : 0;
         return "已完成菜单查询：" + menuId + "，日期「" + date + "」、餐次「" + mealTime
                 + "」、状态「" + status + "」、版本「" + version + "」，共 " + itemCount + " 道菜。";
+    }
+
+    private static String assistantInventoryMessage(AgentRun run, JsonNode result) {
+        if (!"SUCCEEDED".equals(run.status().name())) {
+            return "库存查询未完成，请查看运行状态后重试或人工处理。";
+        }
+        long total = result == null || !result.path("total").canConvertToLong()
+                ? result == null || !result.path("records").isArray()
+                        ? 0 : result.path("records").size()
+                : result.path("total").asLong();
+        long warnings = 0;
+        if (result != null && result.path("records").isArray()) {
+            for (JsonNode record : result.path("records")) {
+                if (record.path("warning").asBoolean(false)) {
+                    warnings++;
+                }
+            }
+        }
+        return "已完成库存查询：返回 " + total + " 项食材，其中 " + warnings + " 项低于或等于预警阈值。";
     }
 
     private static String textOr(JsonNode node, String field, String fallback) {

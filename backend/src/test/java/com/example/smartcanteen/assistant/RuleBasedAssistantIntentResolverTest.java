@@ -242,6 +242,44 @@ class RuleBasedAssistantIntentResolverTest {
     }
 
     @Test
+    void resolves_a_general_inventory_query_for_operations_staff() {
+        AssistantResolution result = resolver.resolve("查询库存");
+
+        assertThat(result.type()).isEqualTo(AssistantResolution.Type.INVENTORY_QUERY);
+        assertThat(result.intent()).isEqualTo("inventory.query");
+        assertThat(result.parameters()).isEmpty();
+    }
+
+    @Test
+    void resolves_a_low_inventory_query_as_a_deterministic_warning_filter() {
+        AssistantResolution result = resolver.resolve("哪些食材库存不足？");
+
+        assertThat(result.type()).isEqualTo(AssistantResolution.Type.INVENTORY_QUERY);
+        assertThat(result.intent()).isEqualTo("inventory.query");
+        assertThat(result.parameters()).containsEntry("warningOnly", "true");
+    }
+
+    @Test
+    void keeps_an_ingredient_name_as_the_inventory_keyword() {
+        AssistantResolution result = resolver.resolve("西兰花还剩多少？");
+
+        assertThat(result.type()).isEqualTo(AssistantResolution.Type.INVENTORY_QUERY);
+        assertThat(result.intent()).isEqualTo("inventory.query");
+        assertThat(result.parameters()).containsEntry("keyword", "西兰花");
+        assertThat(result.parameters()).containsEntry("warningOnly", "false");
+    }
+
+    @Test
+    void keeps_an_ingredient_name_when_the_inventory_query_is_filtered_to_warnings() {
+        AssistantResolution result = resolver.resolve("西兰花库存不足吗？");
+
+        assertThat(result.type()).isEqualTo(AssistantResolution.Type.INVENTORY_QUERY);
+        assertThat(result.parameters())
+                .containsEntry("keyword", "西兰花")
+                .containsEntry("warningOnly", "true");
+    }
+
+    @Test
     void asks_for_an_alert_id_before_allowing_disposal() {
         AssistantResolution result = resolver.resolve("处置预警，说明已整改");
 
