@@ -1,0 +1,58 @@
+{
+  "taskId": "SC-006",
+  "title": "实现已发布菜单原料缺口只读分析",
+  "status": "completed",
+  "owner": "Codex",
+  "goal": "让食堂运营人员和管理者通过智慧食堂助手，按指定日期和餐次检查已发布菜单的 Recipe/BOM 需求是否被当前库存与未完成采购覆盖，并返回可审计的原料缺口事实；不创建采购计划。",
+  "allowedPaths": [
+    "backend/src/main/java/com/example/smartcanteen/domain/**",
+    "backend/src/main/java/com/example/smartcanteen/application/ProcurementPlanService.java",
+    "backend/src/main/java/com/example/smartcanteen/agent/**",
+    "backend/src/main/java/com/example/smartcanteen/assistant/**",
+    "backend/src/main/java/com/example/smartcanteen/application/BusinessAuthorizationPolicy.java",
+    "backend/src/main/resources/db/migration/V30__add_procurement_analysis_read_permission.sql",
+    "backend/src/test/java/com/example/smartcanteen/agent/**",
+    "backend/src/test/java/com/example/smartcanteen/application/**",
+    "backend/src/test/java/com/example/smartcanteen/assistant/**",
+    "backend/src/test/java/com/example/smartcanteen/http/AssistantControllerHttpTest.java",
+    "contracts/smart-canteen.openapi.yaml",
+    "docs/smart-canteen/**",
+    "tests/test_smart_canteen_sop.py",
+    ".project-to-act/**",
+    "README.md"
+  ],
+  "invariants": [
+    "AgentScope、模型和 Tool 不能直接访问数据库；菜单、Recipe/BOM、库存和在途采购事实必须由 ProcurementPlanService/ProcurementPlanStore 提供。",
+    "procurement.gap.query 是只读、可安全重放的查询，不创建采购计划、采购订单、库存调整或备餐计划。",
+    "理论需求使用已发布菜单的 estimatedQuantity 和确定性 Recipe/BOM 单位换算；LLM 不预测份数、不计算数量。",
+    "查询范围继续来自服务端 ExecutionContext/CanteenScope，用户输入不能扩大学校或食堂范围。",
+    "采购缺口分析权限只授予 CANTEEN_STAFF、SCHOOL_ADMIN 和 SYSTEM_ADMIN；DINER 不得通过助手执行。",
+    "本切片不实现客流预测、成本预测、采购写入、MCP、SubAgent、RAG 或持久 Memory。"
+  ],
+  "acceptance": [
+    "规则解析器能把‘检查一下明天的菜单有没有原材料不足’解析为 procurement.gap.query，并默认明日日期；午餐请求保留 LUNCH。",
+    "ProcurementPlanService 的只读分析复用已发布菜单、DishIngredient、IngredientQuantityConverter、库存快照和未完成采购快照，返回每种原料的需求、库存、在途和缺口。",
+    "procurement.gap.query Tool 严格拒绝非对象、未知字段、非法日期和非法餐次，并始终使用服务端 scope。",
+    "助手沿现有 Skill/Agent Runtime 执行 Tool，返回结构化缺口结果和‘未创建采购计划’摘要；没有菜单时返回空分析而非猜测。",
+    "Skill manifest 为该意图声明低风险、只读、无需确认、可有界重试，并映射 PROCUREMENT_ANALYSIS_READ。",
+    "Spring/H2 助手集成证明自然语言请求能读取菜单、配方和库存，且数据库中没有新增采购计划。",
+    "定向测试、全量 Java 测试、Python SOP 测试、治理校验、生命周期校验和双轴代码审查通过。"
+  ],
+  "checks": [
+    "mvn -q -Dtest=RuleBasedAssistantIntentResolverTest,ProcurementGapToolExecutorTest,ProcurementPlanServiceModuleTest,BusinessAuthorizationPolicyTest,YamlSkillRegistryTest test",
+    "mvn -q -Dtest=AssistantControllerHttpTest test",
+    "mvn -q test",
+    "python -m pytest -q --basetemp .pytest-tmp-sc006",
+    "python skills/smart-canteen-sop/scripts/validate_sop_manifest.py --manifest docs/smart-canteen/sop-manifests.yaml --run sop-runs/menu-to-traceability.yaml",
+    "python C:\\Users\\th\\.agents\\skills\\project-to-act\\scripts\\init_project_management.py --project-root D:\\project\\smart-canteen --validate",
+    "python C:\\Users\\th\\.agents\\skills\\develop-ai-agents\\scripts\\manage_lifecycle.py --project-root D:\\project\\smart-canteen validate"
+  ],
+  "dependencies": [
+    "SC-001 智慧食堂领域边界与采购 SOP",
+    "SC-002 学习环境菜单、Recipe/BOM、库存和采购事实数据集",
+    "SC-003 AgentScope HarnessAgent、角色上下文与权限基线",
+    "SC-004 员工/学生菜单只读助手切片",
+    "SC-005 运营/管理库存只读查询切片"
+  ],
+  "rollback": "回退本切片提交即可移除 procurement.gap.query、PROCUREMENT_ANALYSIS_READ 和 V30 迁移；不触碰既有采购计划生成、采购订单、库存收发状态机。"
+}

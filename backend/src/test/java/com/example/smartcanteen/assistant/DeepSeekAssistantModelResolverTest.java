@@ -11,6 +11,7 @@ import com.example.smartcanteen.assistant.domain.AssistantResolution;
 import com.example.smartcanteen.assistant.infrastructure.DeepSeekAssistantModelResolver;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Optional;
+import java.time.LocalDate;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
@@ -64,6 +65,34 @@ class DeepSeekAssistantModelResolverTest {
 
         assertThat(disabled.resolve("查询 TRACE-001", Optional.empty())).isEmpty();
         assertThat(missingKey.resolve("查询 TRACE-001", Optional.empty())).isEmpty();
+    }
+
+    @Test
+    void resolves_a_read_only_procurement_gap_result_from_openai_compatible_response() {
+        RestClient.Builder builder = RestClient.builder();
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        DeepSeekAssistantModelResolver resolver = new DeepSeekAssistantModelResolver(
+                builder.baseUrl("https://deepseek.test").build(),
+                new ObjectMapper(),
+                "deepseek-v4-flash",
+                "test-key",
+                true);
+        server.expect(requestTo("https://deepseek.test/chat/completions"))
+                .andRespond(withSuccess(
+                        """
+                        {"choices":[{"message":{"content":"{\\\"type\\\":\\\"PROCUREMENT_GAP_QUERY\\\",\\\"intent\\\":\\\"procurement.gap.query\\\",\\\"menuDate\\\":\\\"2026-08-22\\\",\\\"mealTime\\\":\\\"LUNCH\\\"}"}}]}
+                        """,
+                        MediaType.APPLICATION_JSON));
+
+        Optional<AssistantResolution> result = resolver.resolve("核对明日菜单食材缺口", Optional.empty());
+
+        assertThat(result).get().extracting(AssistantResolution::type)
+                .isEqualTo(AssistantResolution.Type.PROCUREMENT_GAP_QUERY);
+        assertThat(result).get().extracting(item -> item.parameters().get("menuDate"))
+                .isEqualTo(LocalDate.of(2026, 8, 22).toString());
+        assertThat(result).get().extracting(item -> item.parameters().get("mealTime"))
+                .isEqualTo("LUNCH");
+        server.verify();
     }
 
     @Test

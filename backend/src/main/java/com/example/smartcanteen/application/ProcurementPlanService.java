@@ -13,6 +13,8 @@ import com.example.smartcanteen.domain.PageResult;
 import com.example.smartcanteen.domain.ProcurementPlan;
 import com.example.smartcanteen.domain.ProcurementPlanItem;
 import com.example.smartcanteen.domain.ProcurementPlanStatus;
+import com.example.smartcanteen.domain.ProcurementGapAnalysis;
+import com.example.smartcanteen.domain.ProcurementGapItem;
 import com.example.smartcanteen.domain.PurchaseOrder;
 import com.example.smartcanteen.domain.PurchaseOrderItem;
 import java.nio.charset.StandardCharsets;
@@ -68,6 +70,39 @@ public class ProcurementPlanService {
                 .orElseThrow(() -> new IllegalArgumentException("Procurement plan not found: " + planId));
     }
 
+    /**
+     * Compares a published menu's deterministic recipe demand with current inventory and open
+     * purchase-order snapshots. This method deliberately does not persist a procurement plan.
+     */
+    @Transactional(readOnly = true)
+    public ProcurementGapAnalysis analyzeGap(
+            CanteenScope scope, LocalDate menuDate, String mealTime) {
+        if (scope == null || menuDate == null) {
+            throw new IllegalArgumentException("scope and menuDate are required");
+        }
+        String normalizedMealTime = normalizeMealTime(mealTime);
+        List<DailyMenu> menus = plans.findPublishedMenus(scope, menuDate, menuDate).stream()
+                .filter(menu -> normalizedMealTime == null
+                        || normalizedMealTime.equals(menu.mealTime()))
+                .toList();
+        if (menus.isEmpty()) {
+            return ProcurementGapAnalysis.of(menuDate, normalizedMealTime, List.of(), List.of());
+        }
+        Map<String, BigDecimal> inventory = plans.inventorySnapshot(scope);
+        Map<String, BigDecimal> openOrders = plans.openOrderSnapshot(scope);
+        Map<String, RequirementAccumulator> requirements = calculateRequirements(scope, menus);
+        List<ProcurementGapItem> items = sortedRequirements(requirements).stream()
+                .map(requirement -> requirement.toGapItem(
+                        inventory.getOrDefault(requirement.ingredient.id(), BigDecimal.ZERO),
+                        openOrders.getOrDefault(requirement.ingredient.id(), BigDecimal.ZERO)))
+                .toList();
+        return ProcurementGapAnalysis.of(
+                menuDate,
+                normalizedMealTime,
+                menus.stream().map(DailyMenu::id).toList(),
+                items);
+    }
+
     @Transactional
     public ProcurementPlan generate(
             CanteenScope scope,
@@ -91,29 +126,10 @@ public class ProcurementPlanService {
         if (menus.isEmpty()) {
             throw new IllegalStateException("No published menus exist in the requested period");
         }
-        Map<String, RequirementAccumulator> requirements = new LinkedHashMap<>();
-        for (DailyMenu menu : menus) {
-            for (DailyMenuItem menuItem : menu.items()) {
-                Dish dish = plans.findDish(scope, menuItem.dishId())
-                        .filter(Dish::active)
-                        .orElseThrow(() -> new IllegalStateException(
-                                "Published menu references an unavailable dish: " + menuItem.dishId()));
-                for (DishIngredient recipe : dish.ingredients()) {
-                    Ingredient ingredient = plans.findIngredient(scope, recipe.ingredientId())
-                            .filter(Ingredient::active)
-                            .orElseThrow(() -> new IllegalStateException(
-                                    "Dish references an unavailable ingredient: " + recipe.ingredientId()));
-                    BaseQuantity perServing = quantities.toBase(
-                            scope, ingredient, recipe.quantity(), recipe.unit());
-                    requirements.computeIfAbsent(
-                                    ingredient.id(), id -> new RequirementAccumulator(ingredient, perServing.unit()))
-                            .add(perServing.quantity().multiply(menuItem.estimatedQuantity()));
-                }
-            }
-        }
+        Map<String, RequirementAccumulator> requirements = calculateRequirements(scope, menus);
         Map<String, BigDecimal> inventory = plans.inventorySnapshot(scope);
         Map<String, BigDecimal> openOrders = plans.openOrderSnapshot(scope);
-        List<ProcurementPlanItem> items = requirements.values().stream()
+        List<ProcurementPlanItem> items = sortedRequirements(requirements).stream()
                 .map(requirement -> requirement.toPlanItem(
                         inventory.getOrDefault(requirement.ingredient.id(), BigDecimal.ZERO),
                         openOrders.getOrDefault(requirement.ingredient.id(), BigDecimal.ZERO)))
@@ -130,6 +146,50 @@ public class ProcurementPlanService {
                 items,
                 List.of());
         return plans.create(scope, plan, idempotencyKey);
+    }
+
+    private Map<String, RequirementAccumulator> calculateRequirements(
+            CanteenScope scope, List<DailyMenu> menus) {
+        Map<String, RequirementAccumulator> requirements = new LinkedHashMap<>();
+        for (DailyMenu menu : menus) {
+            for (DailyMenuItem menuItem : menu.items()) {
+                Dish dish = plans.findDish(scope, menuItem.dishId())
+                        .filter(Dish::active)
+                        .orElseThrow(() -> new IllegalStateException(
+                                "Published menu references an unavailable dish: " + menuItem.dishId()));
+                for (DishIngredient recipe : dish.ingredients()) {
+                    Ingredient ingredient = plans.findIngredient(scope, recipe.ingredientId())
+                            .filter(Ingredient::active)
+                            .orElseThrow(() -> new IllegalStateException(
+                                    "Dish references an unavailable ingredient: " + recipe.ingredientId()));
+                    BaseQuantity perServing = quantities.toBase(
+                            scope, ingredient, recipe.quantity(), recipe.unit());
+                    requirements.computeIfAbsent(
+                                    ingredient.id(), id -> new RequirementAccumulator(
+                                            ingredient, perServing.unit()))
+                            .add(perServing.quantity().multiply(menuItem.estimatedQuantity()));
+                }
+            }
+        }
+        return requirements;
+    }
+
+    private static List<RequirementAccumulator> sortedRequirements(
+            Map<String, RequirementAccumulator> requirements) {
+        return requirements.values().stream()
+                .sorted(Comparator.comparing(requirement -> requirement.ingredient.id()))
+                .toList();
+    }
+
+    private static String normalizeMealTime(String mealTime) {
+        if (mealTime == null || mealTime.isBlank()) {
+            return null;
+        }
+        String normalized = mealTime.trim().toUpperCase(java.util.Locale.ROOT);
+        if (!List.of("BREAKFAST", "LUNCH", "DINNER", "SNACK").contains(normalized)) {
+            throw new IllegalArgumentException("Unsupported mealTime: " + mealTime);
+        }
+        return normalized;
     }
 
     @Transactional
@@ -398,6 +458,21 @@ public class ProcurementPlanService {
             return new ProcurementPlanItem(
                     ingredient.id(), required, inventory, openOrders,
                     shortage, shortage, baseUnit);
+        }
+
+        private ProcurementGapItem toGapItem(
+                BigDecimal inventory, BigDecimal openOrders) {
+            BigDecimal available = inventory.add(openOrders);
+            BigDecimal shortage = required.subtract(available).max(BigDecimal.ZERO);
+            return new ProcurementGapItem(
+                    ingredient.id(),
+                    ingredient.name(),
+                    ingredient.category(),
+                    required,
+                    inventory,
+                    openOrders,
+                    shortage,
+                    baseUnit);
         }
     }
 

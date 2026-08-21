@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "projectId": "smart-canteen",
   "projectName": "Smart Canteen Business Assistant",
-  "revision": 7,
-  "projectStatus": "active",
-  "currentStage": "8",
-  "updatedAt": "2026-08-21T10:44:46.689Z",
+  "revision": 9,
+  "projectStatus": "completed",
+  "currentStage": null,
+  "updatedAt": "2026-08-21T11:20:08.976Z",
   "historicalLimitations": [
     "采用既有智慧食堂代码与学习数据，历史阶段以现有文档和测试为基线；从阶段5继续开发，早期阶段不可追溯部分标记为 legacy_unverified。"
   ],
@@ -208,18 +208,39 @@
     {
       "id": "8",
       "name": "运营、学习与退役",
-      "status": "ready",
+      "status": "conditional",
       "expectedArtifacts": [
         "线上健康与漂移报告",
         "失败回灌与迭代队列",
         "迁移或退役计划"
       ],
-      "taskIds": [],
-      "evidenceIds": [],
-      "artifacts": [],
-      "decisions": [],
-      "startedAt": null,
-      "updatedAt": "2026-08-21T10:44:46.689Z"
+      "taskIds": [
+        "SC-006"
+      ],
+      "evidenceIds": [
+        "E-SC006-TESTS",
+        "E-SC006-REVIEW"
+      ],
+      "artifacts": [
+        "docs/smart-canteen/sc006-learning-operations.md"
+      ],
+      "decisions": [
+        {
+          "at": "2026-08-21T11:20:08.976Z",
+          "decision": "conditional",
+          "evidenceIds": [
+            "E-SC006-TESTS",
+            "E-SC006-REVIEW"
+          ],
+          "artifacts": [
+            "docs/smart-canteen/sc006-learning-operations.md"
+          ],
+          "summary": "SC-006 在个人学习环境完成条件收口：只读原料缺口链路、空菜单边界、全量测试与双轴审查通过；真实系统、生产 SLO、预测和采购写入继续留待后续。",
+          "nextStage": null
+        }
+      ],
+      "startedAt": "2026-08-21T10:51:33.925Z",
+      "updatedAt": "2026-08-21T11:20:08.976Z"
     }
   ],
   "transitions": [
@@ -331,6 +352,37 @@
       ],
       "summary": "SC-005 库存只读闭环、分页完整返回、输入校验、权限边界、Java/Python 回归和双轴评审通过；个人学习环境不宣称生产 SLO、灰度、真实 Provider 或真实业务系统集成，负责人为用户/Codex，在 SC-006 真实集成前复核。",
       "revision": 7
+    },
+    {
+      "at": "2026-08-21T10:51:33.925Z",
+      "action": "start",
+      "fromStage": "8",
+      "toStage": "8",
+      "fromStatus": "ready",
+      "toStatus": "in_progress",
+      "taskId": "SC-006",
+      "decision": null,
+      "evidenceIds": [],
+      "artifacts": [],
+      "summary": "实现明日菜单原料缺口只读分析纵向切片，复用 BOM、库存和在途采购事实",
+      "revision": 8
+    },
+    {
+      "at": "2026-08-21T11:20:08.976Z",
+      "action": "decision",
+      "fromStage": "8",
+      "toStage": null,
+      "taskId": "SC-006",
+      "decision": "conditional",
+      "evidenceIds": [
+        "E-SC006-TESTS",
+        "E-SC006-REVIEW"
+      ],
+      "artifacts": [
+        "docs/smart-canteen/sc006-learning-operations.md"
+      ],
+      "summary": "SC-006 在个人学习环境完成条件收口：只读原料缺口链路、空菜单边界、全量测试与双轴审查通过；真实系统、生产 SLO、预测和采购写入继续留待后续。",
+      "revision": 9
     }
   ]
 }

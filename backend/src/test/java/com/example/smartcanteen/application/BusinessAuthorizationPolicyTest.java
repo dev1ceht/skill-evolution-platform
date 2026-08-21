@@ -150,6 +150,30 @@ class BusinessAuthorizationPolicyTest {
     }
 
     @Test
+    void procurement_gap_queries_require_the_operations_analysis_permission() {
+        ExecutionContext operatorContext = new ExecutionContext(
+                "request-gap-read",
+                "USER-OPERATOR",
+                "operator",
+                scope,
+                Set.of(Role.CANTEEN_STAFF),
+                Set.of("PROCUREMENT_ANALYSIS_READ"));
+        ExecutionContext dinerContext = new ExecutionContext(
+                "request-diner-gap",
+                "USER-DINER",
+                "diner",
+                scope,
+                Set.of(Role.DINER),
+                Set.of("MENU_READ"));
+
+        policy.requireIntentAccess(operatorContext, "procurement.gap.query");
+        assertThatThrownBy(() -> policy.requireIntentAccess(
+                        dinerContext, "procurement.gap.query"))
+                .isInstanceOf(ForbiddenException.class)
+                .hasMessageContaining("PROCUREMENT_ANALYSIS_READ");
+    }
+
+    @Test
     void domain_approval_reloads_current_roles_before_high_risk_execution() {
         AuthService authentication = mock(AuthService.class);
         BusinessAuthorizationPolicy currentPolicy = new BusinessAuthorizationPolicy(

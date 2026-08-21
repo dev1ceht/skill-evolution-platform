@@ -1,4 +1,4 @@
-# AgentScope Java 2.x Runtime（SC-003/SC-005）
+# AgentScope Java 2.x Runtime（SC-003/SC-006）
 
 当前项目采用“现有业务 Runtime + AgentScope 可选 HarnessAgent”的渐进接入方式。
 
@@ -49,12 +49,15 @@ AgentScope 适配使用 `agentscope-harness` 和 OpenAI 兼容模型扩展，显
 Memory、SubAgent、动态 Skill 和 tools 配置；本阶段不会让 HarnessAgent 直接访问数据库或
 执行采购、库存、支付等业务动作。SC-005 的库存问题由规则解析器或模型解析为
 `inventory.query`，随后仍由 Skill、Agent Runtime、`InventoryToolExecutor` 和
-`ProcurementOperationsService` 提供真实库存结果；模型只负责理解筛选条件和解释业务事实。
+`ProcurementOperationsService` 提供真实库存结果。SC-006 的菜单原料缺口问题解析为
+`procurement.gap.query`，由 `ProcurementGapToolExecutor` 调用 `ProcurementPlanService.analyzeGap`，
+复用已发布菜单、Recipe/BOM、库存和未完成采购快照；模型只负责理解请求和解释结构化业务事实，
+不预测份数、不写入采购计划。
 
 ## 后续接入顺序
 
-1. SC-005 后续：在库存只读链路稳定后增加采购缺口分析，仍由 BOM/库存业务服务提供确定性计算。
-2. SC-006：在有明确价值时再接 MCP、SSE 流式事件和 SubAgent。
+1. SC-006 后续：在缺口只读链路稳定后，再评估客流预测、备餐建议和 Draft 生成。
+2. 后续：在有明确价值时再接 MCP、SSE 流式事件和 SubAgent。
 
 当前不启用 AgentScope 的 Sandbox、SubAgent、MCP 和持久 Memory；它们属于后续需求驱动的
 扩展点，不是首个可运行切片的前置条件。

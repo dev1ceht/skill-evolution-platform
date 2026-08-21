@@ -9,6 +9,7 @@ import com.example.smartcanteen.assistant.port.AssistantModelResolver;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -100,10 +101,13 @@ public class AssistantIntentResolverRouter implements AssistantIntentResolver {
                     && (isShortMenuId(resolution.menuId()) || isDateMenuQuery(resolution));
             case INVENTORY_QUERY -> resolution.intent().equals("inventory.query")
                     && isInventoryQuery(resolution);
+            case PROCUREMENT_GAP_QUERY -> resolution.intent().equals("procurement.gap.query")
+                    && isProcurementGapQuery(resolution);
             case MENU_PUBLISH_REQUEST, WRITE_REQUEST, CONFIRM_PENDING_ACTION, CANCEL_PENDING_ACTION -> false;
             case CLARIFICATION -> resolution.intent() == null
                     || resolution.intent().equals("traceability.query")
                     || resolution.intent().equals("menu.query")
+                    || resolution.intent().equals("procurement.gap.query")
                     || AssistantResolution.isWriteIntent(resolution.intent());
             case UNSUPPORTED -> true;
         };
@@ -131,5 +135,15 @@ public class AssistantIntentResolverRouter implements AssistantIntentResolver {
                 && (warningOnly == null
                 || warningOnly.equalsIgnoreCase("true")
                 || warningOnly.equalsIgnoreCase("false"));
+    }
+
+    private static boolean isProcurementGapQuery(AssistantResolution resolution) {
+        String menuDate = resolution.parameters().get("menuDate");
+        String mealTime = resolution.parameters().get("mealTime");
+        return menuDate != null
+                && !menuDate.isBlank()
+                && (mealTime == null
+                || Set.of("BREAKFAST", "LUNCH", "DINNER", "SNACK")
+                .contains(mealTime.toUpperCase(Locale.ROOT)));
     }
 }

@@ -14,6 +14,7 @@ import com.example.smartcanteen.domain.Nutrition;
 import com.example.smartcanteen.domain.PageResult;
 import com.example.smartcanteen.domain.ProcurementPlan;
 import com.example.smartcanteen.domain.ProcurementPlanItem;
+import com.example.smartcanteen.domain.ProcurementGapAnalysis;
 import com.example.smartcanteen.domain.UnitConverter;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -62,6 +63,21 @@ class ProcurementPlanServiceModuleTest {
                 new UnitConverter());
         ProcurementPlanService service = new ProcurementPlanService(
                 store, converter, null, null);
+
+        ProcurementGapAnalysis analysis = service.analyzeGap(
+                scope, LocalDate.of(2026, 8, 14), null);
+
+        assertThat(analysis.sourceMenuIds()).containsExactly("M002");
+        assertThat(analysis.shortageCount()).isEqualTo(1);
+        assertThat(analysis.items()).singleElement().satisfies(item -> {
+            assertThat(item.ingredientId()).isEqualTo("RICE");
+            assertThat(item.ingredientName()).isEqualTo("Rice");
+            assertThat(item.requiredBaseQuantity()).isEqualByComparingTo("10000");
+            assertThat(item.inventoryBaseQuantity()).isEqualByComparingTo("1000");
+            assertThat(item.openOrderBaseQuantity()).isEqualByComparingTo("2000");
+            assertThat(item.shortageBaseQuantity()).isEqualByComparingTo("7000");
+        });
+        assertThat(store.persisted).isNull();
 
         ProcurementPlan plan = service.generate(
                 scope, LocalDate.of(2026, 8, 14), LocalDate.of(2026, 8, 14), "PLAN-MODULE-1");

@@ -280,6 +280,26 @@ class RuleBasedAssistantIntentResolverTest {
     }
 
     @Test
+    void resolves_a_tomorrow_menu_ingredient_gap_query() {
+        AssistantResolution result = resolver.resolve("检查一下明天的菜单有没有原材料不足");
+
+        assertThat(result.type()).isEqualTo(AssistantResolution.Type.PROCUREMENT_GAP_QUERY);
+        assertThat(result.intent()).isEqualTo("procurement.gap.query");
+        assertThat(result.parameters())
+                .containsEntry("menuDate", LocalDate.now().plusDays(1).toString());
+    }
+
+    @Test
+    void keeps_the_meal_time_when_resolving_a_menu_ingredient_gap_query() {
+        AssistantResolution result = resolver.resolve("明天午餐有哪些食材缺口？");
+
+        assertThat(result.type()).isEqualTo(AssistantResolution.Type.PROCUREMENT_GAP_QUERY);
+        assertThat(result.parameters())
+                .containsEntry("menuDate", LocalDate.now().plusDays(1).toString())
+                .containsEntry("mealTime", "LUNCH");
+    }
+
+    @Test
     void asks_for_an_alert_id_before_allowing_disposal() {
         AssistantResolution result = resolver.resolve("处置预警，说明已整改");
 

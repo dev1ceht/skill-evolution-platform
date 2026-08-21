@@ -2518,6 +2518,14 @@ components:
           type: boolean
           default: false
           description: 是否只返回库存预警记录。
+    ProcurementGapQueryIntent:
+      type: object
+      description: 比较指定日期已发布菜单的 Recipe/BOM 需求与当前库存、未完成采购快照；只读，不创建采购计划。
+      required: [menuDate]
+      additionalProperties: false
+      properties:
+        menuDate: { type: string, format: date }
+        mealTime: { type: string, enum: [BREAKFAST, LUNCH, DINNER, SNACK] }
     AssistantTurn:
       type: object
       description: 助手响应；菜单发布以及采购、库存、预警写入必须先返回确认计划，之后仅由明确确认或取消推进 Agent Run。写入入口仍受部署灰度开关、scope、权限和幂等策略约束。
@@ -3269,6 +3277,32 @@ components:
         current: { type: integer, minimum: 1 }
         size: { type: integer, minimum: 1 }
         total: { type: integer, format: int64, minimum: 0 }
+    ProcurementGapQueryResult:
+      type: object
+      required: [menuDate, sourceMenuIds, items, shortageCount]
+      properties:
+        menuDate: { type: string, format: date }
+        mealTime: { type: string, enum: [BREAKFAST, LUNCH, DINNER, SNACK], nullable: true }
+        sourceMenuIds:
+          type: array
+          items: { type: string }
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProcurementGapItem'
+        shortageCount: { type: integer, format: int64, minimum: 0 }
+    ProcurementGapItem:
+      type: object
+      required: [ingredientId, ingredientName, category, requiredBaseQuantity, inventoryBaseQuantity, openOrderBaseQuantity, shortageBaseQuantity, baseUnit]
+      properties:
+        ingredientId: { type: string }
+        ingredientName: { type: string }
+        category: { type: string }
+        requiredBaseQuantity: { type: number, format: double, exclusiveMinimum: true, minimum: 0 }
+        inventoryBaseQuantity: { type: number, format: double, minimum: 0 }
+        openOrderBaseQuantity: { type: number, format: double, minimum: 0 }
+        shortageBaseQuantity: { type: number, format: double, minimum: 0 }
+        baseUnit: { type: string }
     DailyMenuDecisionRequest:
       type: object
       required: [version, decision]

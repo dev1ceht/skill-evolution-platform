@@ -90,6 +90,7 @@ public class RuleBasedAssistantIntentResolver implements AssistantIntentResolver
         return message != null
                 && UNSUPPORTED_REQUEST.matcher(message).find()
                 && !isInventoryReadRequest(message)
+                && !isProcurementGapReadRequest(message)
                 && resolveExplicitWrite(message) == null;
     }
 
@@ -111,6 +112,17 @@ public class RuleBasedAssistantIntentResolver implements AssistantIntentResolver
             return keyword == null && !warningOnly
                     ? AssistantResolution.inventoryQuery()
                     : AssistantResolution.inventoryQuery(keyword, warningOnly);
+        }
+        if (isProcurementGapReadRequest(message)) {
+            Optional<LocalDate> menuDate = findMenuDate(message);
+            if (menuDate.isEmpty()) {
+                return AssistantResolution.clarificationFor(
+                        "procurement.gap.query",
+                        "请提供要检查的菜单日期，例如“明天的菜单有没有原材料不足”。",
+                        "menuDate");
+            }
+            return AssistantResolution.procurementGapQuery(
+                    menuDate.get(), findMealTime(message).orElse(null));
         }
         if (isExplicitNewUnsupportedRequest(message)) {
             return AssistantResolution.unsupported(
@@ -211,6 +223,17 @@ public class RuleBasedAssistantIntentResolver implements AssistantIntentResolver
                     "menu.query",
                     "请提供菜单日期，例如“今天的菜单”或“2026-08-17 的菜单”。", "menuDate"));
         }
+        if ("procurement.gap.query".equals(pending.intent())) {
+            Optional<LocalDate> menuDate = findMenuDate(message);
+            if (menuDate.isPresent()) {
+                return Optional.of(AssistantResolution.procurementGapQuery(
+                        menuDate.get(), findMealTime(message).orElse(null)));
+            }
+            return Optional.of(AssistantResolution.clarificationFor(
+                    "procurement.gap.query",
+                    "请提供要检查的菜单日期，例如“明天的菜单有没有原材料不足”。",
+                    "menuDate"));
+        }
         if ("menu.publish".equals(pending.intent())) {
             return Optional.of(AssistantResolution.clarificationFor(
                     "menu.publish",
@@ -253,6 +276,27 @@ public class RuleBasedAssistantIntentResolver implements AssistantIntentResolver
                 || normalized.contains("库存不足")
                 || normalized.contains("库存预警")
                 || normalized.contains("够用几天");
+    }
+
+    private static boolean isProcurementGapReadRequest(String message) {
+        if (message == null || message.isBlank()) {
+            return false;
+        }
+        String normalized = message.trim().toLowerCase(Locale.ROOT);
+        boolean material = normalized.contains("原材料")
+                || normalized.contains("原料")
+                || normalized.contains("食材");
+        boolean shortage = normalized.contains("不足")
+                || normalized.contains("缺口")
+                || normalized.contains("缺料")
+                || normalized.contains("不够")
+                || normalized.contains("够不够");
+        boolean planningContext = normalized.contains("菜单")
+                || normalized.contains("采购")
+                || normalized.contains("明天")
+                || normalized.contains("明日")
+                || normalized.contains("tomorrow");
+        return material && shortage && planningContext;
     }
 
     private static boolean isWarningOnlyInventoryRequest(String message) {
@@ -302,6 +346,11 @@ public class RuleBasedAssistantIntentResolver implements AssistantIntentResolver
                 || normalized.contains("今日")
                 || normalized.contains("today")) {
             return Optional.of(LocalDate.now());
+        }
+        if (normalized.contains("明天")
+                || normalized.contains("明日")
+                || normalized.contains("tomorrow")) {
+            return Optional.of(LocalDate.now().plusDays(1));
         }
         return Optional.empty();
     }

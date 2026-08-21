@@ -66,10 +66,12 @@ class AssistantControllerHttpTest {
         jdbc.update("DELETE FROM suppliers WHERE school_id = ?", SCHOOL_ID);
         jdbc.update("DELETE FROM daily_menu_items WHERE school_id = ?", SCHOOL_ID);
         jdbc.update("DELETE FROM daily_menus WHERE school_id = ?", SCHOOL_ID);
+        jdbc.update("DELETE FROM dish_ingredients WHERE school_id = ?", SCHOOL_ID);
+        jdbc.update("DELETE FROM dishes WHERE school_id = ?", SCHOOL_ID);
         jdbc.update(
                 "INSERT INTO ingredients (school_id, canteen_id, ingredient_id, name, category, "
                         + "base_unit) VALUES (?, ?, ?, ?, ?, ?)",
-                SCHOOL_ID, CANTEEN_ID, "ING-ASSIST", "Assistant Ingredient", "VEGETABLE", "kg");
+                SCHOOL_ID, CANTEEN_ID, "ING-ASSIST", "Assistant Ingredient", "VEGETABLE", "g");
         jdbc.update(
                 "INSERT INTO inventory (school_id, canteen_id, material_id, quantity_base, base_unit, "
                         + "warning_threshold, last_update_time) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)",
@@ -283,6 +285,79 @@ class AssistantControllerHttpTest {
                 .andExpect(jsonPath("$.data.result.records[0].warning").value(true))
                 .andExpect(jsonPath("$.data.message").value(
                         org.hamcrest.Matchers.containsString("1 项低于或等于预警阈值")));
+    }
+
+    @Test
+    void resolves_a_menu_ingredient_gap_query_without_creating_a_procurement_plan()
+            throws Exception {
+        jdbc.update(
+                "INSERT INTO dishes (school_id, canteen_id, dish_id, name, category, status, version) "
+                        + "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                SCHOOL_ID, CANTEEN_ID, "DISH-GAP-001", "西兰花炒肉", "主菜", "ACTIVE", 0);
+        jdbc.update(
+                "INSERT INTO dish_ingredients (school_id, canteen_id, dish_id, ingredient_id, quantity, unit) "
+                        + "VALUES (?, ?, ?, ?, ?, ?)",
+                SCHOOL_ID, CANTEEN_ID, "DISH-GAP-001", "ING-ASSIST", 500, "g");
+        jdbc.update(
+                "UPDATE inventory SET quantity_base = ?, base_unit = ? "
+                        + "WHERE school_id = ? AND canteen_id = ? AND material_id = ?",
+                10000, "g", SCHOOL_ID, CANTEEN_ID, "ING-ASSIST");
+        jdbc.update(
+                "INSERT INTO daily_menus (school_id, canteen_id, menu_id, menu_date, meal_time, status, version) "
+                        + "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                SCHOOL_ID, CANTEEN_ID, "M005", "2026-08-22", "LUNCH", "PUBLISHED", 1);
+        jdbc.update(
+                "INSERT INTO daily_menu_items (school_id, canteen_id, menu_id, dish_id, estimated_quantity, sort_order) "
+                        + "VALUES (?, ?, ?, ?, ?, ?)",
+                SCHOOL_ID, CANTEEN_ID, "M005", "DISH-GAP-001", 40, 1);
+
+        mvc.perform(message(
+                        "gap-message-001",
+                        "检查 2026-08-22 午餐菜单有没有原材料不足",
+                        "CONV-ASSIST-GAP"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.kind").value("RESULT"))
+                .andExpect(jsonPath("$.data.intent").value("procurement.gap.query"))
+                .andExpect(jsonPath("$.data.runStatus").value("SUCCEEDED"))
+                .andExpect(jsonPath("$.data.result.menuDate").value("2026-08-22"))
+                .andExpect(jsonPath("$.data.result.sourceMenuIds[0]").value("M005"))
+                .andExpect(jsonPath("$.data.result.items[0].ingredientId").value("ING-ASSIST"))
+                .andExpect(jsonPath("$.data.result.items[0].shortageBaseQuantity").value(10000))
+                .andExpect(jsonPath("$.data.result.shortageCount").value(1))
+                .andExpect(jsonPath("$.data.message").value(
+                        org.hamcrest.Matchers.containsString("未创建采购计划")));
+
+        assertEquals(
+                0,
+                jdbc.queryForObject(
+                        "SELECT COUNT(*) FROM procurement_plans WHERE school_id = ?",
+                        Integer.class,
+                SCHOOL_ID));
+    }
+
+    @Test
+    void reports_an_empty_gap_analysis_without_creating_a_procurement_plan() throws Exception {
+        mvc.perform(message(
+                        "gap-empty-message-001",
+                        "检查 2026-09-01 午餐菜单有没有原材料不足",
+                        "CONV-ASSIST-GAP-EMPTY"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.kind").value("RESULT"))
+                .andExpect(jsonPath("$.data.intent").value("procurement.gap.query"))
+                .andExpect(jsonPath("$.data.runStatus").value("SUCCEEDED"))
+                .andExpect(jsonPath("$.data.result.sourceMenuIds.length()").value(0))
+                .andExpect(jsonPath("$.data.result.items.length()").value(0))
+                .andExpect(jsonPath("$.data.message").value(
+                        org.hamcrest.Matchers.allOf(
+                                org.hamcrest.Matchers.containsString("未找到"),
+                                org.hamcrest.Matchers.containsString("未创建采购计划"))));
+
+        assertEquals(
+                0,
+                jdbc.queryForObject(
+                        "SELECT COUNT(*) FROM procurement_plans WHERE school_id = ?",
+                        Integer.class,
+                        SCHOOL_ID));
     }
 
     @Test

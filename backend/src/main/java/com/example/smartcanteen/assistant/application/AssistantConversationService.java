@@ -242,6 +242,12 @@ public class AssistantConversationService {
                         normalizedKey,
                         context,
                         principal);
+                case PROCUREMENT_GAP_QUERY -> executeProcurementGap(
+                        conversation,
+                        resolution,
+                        normalizedKey,
+                        context,
+                        principal);
                 case MENU_PUBLISH_REQUEST -> previewMenuPublish(
                         conversation,
                         resolution,
@@ -767,6 +773,23 @@ public class AssistantConversationService {
                 AssistantConversationService::assistantInventoryMessage);
     }
 
+    private AssistantTurn executeProcurementGap(
+            AssistantConversation conversation,
+            AssistantResolution resolution,
+            String idempotencyKey,
+            ExecutionContext context,
+            AuthPrincipal principal) {
+        Map<String, Object> input = new LinkedHashMap<>(resolution.parameters());
+        return executeReadOnly(
+                conversation,
+                resolution.intent(),
+                input,
+                idempotencyKey,
+                context,
+                principal,
+                AssistantConversationService::assistantProcurementGapMessage);
+    }
+
     private AssistantTurn executeReadOnly(
             AssistantConversation conversation,
             String intent,
@@ -890,6 +913,27 @@ public class AssistantConversationService {
             }
         }
         return "已完成库存查询：返回 " + total + " 项食材，其中 " + warnings + " 项低于或等于预警阈值。";
+    }
+
+    private static String assistantProcurementGapMessage(AgentRun run, JsonNode result) {
+        if (!"SUCCEEDED".equals(run.status().name())) {
+            return "原料缺口分析未完成，请查看运行状态后重试或人工处理。";
+        }
+        String date = textOr(result, "menuDate", "未知日期");
+        String mealTime = textOr(result, "mealTime", "全部餐次");
+        int menuCount = result != null && result.path("sourceMenuIds").isArray()
+                ? result.path("sourceMenuIds").size() : 0;
+        int itemCount = result != null && result.path("items").isArray()
+                ? result.path("items").size() : 0;
+        long shortageCount = result != null && result.path("shortageCount").canConvertToLong()
+                ? result.path("shortageCount").asLong() : 0;
+        if (menuCount == 0) {
+            return "未找到日期「" + date + "」、餐次「" + mealTime
+                    + "」的已发布菜单，未执行原料缺口计算，未创建采购计划。";
+        }
+        return "已完成原料缺口分析：日期「" + date + "」、餐次「" + mealTime
+                + "」，共 " + menuCount + " 个菜单、" + itemCount + " 项原料，其中 "
+                + shortageCount + " 项存在缺口；本次仅查询和分析，未创建采购计划。";
     }
 
     private static String textOr(JsonNode node, String field, String fallback) {

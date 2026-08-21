@@ -31,6 +31,7 @@ public record AssistantResolution(
         TRACEABILITY_QUERY,
         MENU_QUERY,
         INVENTORY_QUERY,
+        PROCUREMENT_GAP_QUERY,
         MENU_PUBLISH_REQUEST,
         WRITE_REQUEST,
         CONFIRM_PENDING_ACTION,
@@ -105,6 +106,16 @@ public record AssistantResolution(
                         "Inventory resolution cannot contain menu or trace identifiers");
             }
             validateInventoryParameters(parameters);
+        } else if (type == Type.PROCUREMENT_GAP_QUERY) {
+            if (!"procurement.gap.query".equals(intent)) {
+                throw new IllegalArgumentException(
+                        "Procurement gap resolution must select procurement.gap.query");
+            }
+            if (traceCode != null || menuId != null) {
+                throw new IllegalArgumentException(
+                        "Procurement gap resolution cannot contain menu or trace identifiers");
+            }
+            validateProcurementGapParameters(parameters);
         } else if (type == Type.CONFIRM_PENDING_ACTION || type == Type.CANCEL_PENDING_ACTION) {
             if (!"menu.publish".equals(intent) && !WRITE_INTENTS.contains(intent)) {
                 throw new IllegalArgumentException(
@@ -131,6 +142,7 @@ public record AssistantResolution(
                 && !intent.equals("traceability.query")
                 && !intent.equals("menu.query")
                 && !intent.equals("inventory.query")
+                && !intent.equals("procurement.gap.query")
                 && !intent.equals("menu.publish")
                 && !WRITE_INTENTS.contains(intent)) {
             throw new IllegalArgumentException("Unsupported clarification intent: " + intent);
@@ -210,6 +222,23 @@ public record AssistantResolution(
                 null,
                 List.of(),
                 "已识别为库存只读查询。",
+                parameters);
+    }
+
+    public static AssistantResolution procurementGapQuery(LocalDate menuDate, String mealTime) {
+        Objects.requireNonNull(menuDate, "menuDate");
+        Map<String, String> parameters = new LinkedHashMap<>();
+        parameters.put("menuDate", menuDate.toString());
+        if (mealTime != null && !mealTime.isBlank()) {
+            parameters.put("mealTime", mealTime.trim().toUpperCase(Locale.ROOT));
+        }
+        return new AssistantResolution(
+                Type.PROCUREMENT_GAP_QUERY,
+                "procurement.gap.query",
+                null,
+                null,
+                List.of(),
+                "已识别为菜单原料缺口只读分析。",
                 parameters);
     }
 
@@ -319,6 +348,21 @@ public record AssistantResolution(
         for (String key : parameters.keySet()) {
             if (!Set.of("keyword", "warningOnly").contains(key)) {
                 throw new IllegalArgumentException("Unsupported inventory query parameter: " + key);
+            }
+        }
+    }
+
+    private static void validateProcurementGapParameters(Map<String, String> parameters) {
+        String menuDate = parameters.get("menuDate");
+        if (menuDate == null || menuDate.isBlank()) {
+            throw new IllegalArgumentException("Procurement gap resolution requires menuDate");
+        }
+        validateMenuDate(menuDate);
+        validateMealTime(parameters.get("mealTime"));
+        for (String key : parameters.keySet()) {
+            if (!Set.of("menuDate", "mealTime").contains(key)) {
+                throw new IllegalArgumentException(
+                        "Unsupported procurement gap query parameter: " + key);
             }
         }
     }

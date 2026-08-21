@@ -1,0 +1,22 @@
+{
+  "taskId": "SC-006",
+  "baseRevision": "f77f827409aa98e76aa8ccefd6da919768e098a6",
+  "workspace": "D:\\project\\smart-canteen",
+  "intent": "在 SC-005 库存只读能力之后，增加最小的菜单到原料缺口纵向闭环。",
+  "knownUncommittedBaseline": [],
+  "writeSet": [
+    "backend/src/main/java/com/example/smartcanteen/domain/",
+    "backend/src/main/java/com/example/smartcanteen/application/ProcurementPlanService.java",
+    "backend/src/main/java/com/example/smartcanteen/agent/",
+    "backend/src/main/java/com/example/smartcanteen/assistant/",
+    "backend/src/main/resources/db/migration/V30__add_procurement_analysis_read_permission.sql",
+    "backend/src/test/java/com/example/smartcanteen/",
+    "contracts/smart-canteen.openapi.yaml",
+    "docs/smart-canteen/",
+    "tests/test_smart_canteen_sop.py",
+    "README.md",
+    ".project-to-act/"
+  ],
+  "conflicts": [],
+  "freshness": "2026-08-21T19:02:00+08:00"
+}

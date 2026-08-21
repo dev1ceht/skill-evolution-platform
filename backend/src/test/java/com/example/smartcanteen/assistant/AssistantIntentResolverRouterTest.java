@@ -14,6 +14,7 @@ import com.example.smartcanteen.domain.CanteenScope;
 import com.example.smartcanteen.security.Role;
 import com.example.smartcanteen.assistant.port.AssistantModelResolver;
 import java.util.Optional;
+import java.time.LocalDate;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 
@@ -113,6 +114,22 @@ class AssistantIntentResolverRouterTest {
         AssistantResolution result = router.resolve("帮我处理这个事项");
 
         assertThat(result.type()).isEqualTo(AssistantResolution.Type.UNSUPPORTED);
+    }
+
+    @Test
+    void accepts_a_valid_model_read_only_procurement_gap_result() {
+        RuleBasedAssistantIntentResolver rules = new RuleBasedAssistantIntentResolver();
+        AssistantModelResolver model = mock(AssistantModelResolver.class);
+        when(model.resolve("核对供应覆盖", Optional.empty()))
+                .thenReturn(Optional.of(AssistantResolution.procurementGapQuery(
+                        LocalDate.of(2026, 8, 22), "LUNCH")));
+        AssistantIntentResolverRouter router = new AssistantIntentResolverRouter(
+                rules, model, true);
+
+        AssistantResolution result = router.resolve("核对供应覆盖");
+
+        assertThat(result.type()).isEqualTo(AssistantResolution.Type.PROCUREMENT_GAP_QUERY);
+        assertThat(result.intent()).isEqualTo("procurement.gap.query");
     }
 
     @Test

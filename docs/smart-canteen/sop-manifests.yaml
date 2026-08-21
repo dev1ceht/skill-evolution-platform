@@ -198,6 +198,43 @@ sops:
       evidence: "required"
     status: "implemented"
 
+  - id: "smart-canteen.procurement-gap-query"
+    version: "1.0.0"
+    trigger: ["检查菜单原材料是否不足", "查询明日食材缺口", "分析菜单采购缺口"]
+    risk_level: "low"
+    approval: "not-required"
+    permissions: ["PROCUREMENT_ANALYSIS_READ"]
+    scope: "schoolId + canteenId"
+    preconditions: ["只读取已发布菜单", "Recipe/BOM、库存和未完成采购快照来自业务服务"]
+    idempotency: "只读分析可安全重放"
+    timeout: { mode: "request-bound", enforced: true }
+    steps: ["resolve-menu-date-and-meal", "load-published-menu", "aggregate-recipe-demand", "compare-supply-snapshots", "return-shortage-evidence"]
+    rollback: "not-applicable"
+    requirements: ["PROCUREMENT-001"]
+    references: ["skills/smart-canteen-sop/references/procurement.md"]
+    implementation:
+      modules: ["backend/src/main/java/com/example/smartcanteen/application/ProcurementPlanService.java", "backend/src/main/java/com/example/smartcanteen/agent/infrastructure/ProcurementGapToolExecutor.java"]
+      apis: ["contracts/smart-canteen.openapi.yaml"]
+      migrations: ["backend/src/main/resources/db/migration/V30__add_procurement_analysis_read_permission.sql"]
+      tests: ["backend/src/test/java/com/example/smartcanteen/assistant/RuleBasedAssistantIntentResolverTest.java", "backend/src/test/java/com/example/smartcanteen/agent/ProcurementGapToolExecutorTest.java", "backend/src/test/java/com/example/smartcanteen/application/ProcurementPlanServiceModuleTest.java"]
+      verification: [".project-to-act/tasks/SC-006/evidence/E-SC006-TESTS.md"]
+    adapters: [{ name: "JdbcProcurementPlanStore", status: "implemented" }]
+    evidence: [".project-to-act/tasks/SC-006/evidence/E-SC006-TESTS.md"]
+    runtime:
+      intents: ["procurement.gap.query"]
+      input_schema: "#/components/schemas/ProcurementGapQueryIntent"
+      output_schema: "#/components/schemas/ProcurementGapQueryResult"
+      tools: ["procurement.gap.query"]
+      tool_by_intent: { procurement.gap.query: "procurement.gap.query" }
+      side_effect: "read"
+      run_confirmation: "not-required"
+      domain_approval: "not-applicable"
+      activation: "active"
+      deadline_ms: 3000
+      retry_policy: "read-only-bounded"
+      evidence: "required"
+    status: "implemented"
+
   - id: "smart-canteen.inventory"
     version: "1.0.0"
     trigger: ["验收入库", "执行库存出库"]
