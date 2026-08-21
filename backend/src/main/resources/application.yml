@@ -46,7 +46,7 @@ agent:
 smart-canteen:
   bootstrap:
     username: ${SMART_CANTEEN_BOOTSTRAP_USERNAME:admin}
-    password: ${SMART_CANTEEN_BOOTSTRAP_PASSWORD:}
+    password: ${SMART_CANTEEN_BOOTSTRAP_PASSWORD:admin123}
   canteen:
     single-mode: true
     school-id: ${SMART_CANTEEN_SCHOOL_ID:SCHOOL-001}
