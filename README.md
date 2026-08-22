@@ -1,50 +1,49 @@
 ## 本地启动
 
-项目目前没有根目录的一键启动命令，需要按“基础设施 → 后端 → 前端”的顺序启动，建议使用三个 PowerShell 窗口。
+需要：Docker Desktop、Java 17、Maven、Node.js 20+。按以下顺序打开三个 PowerShell 窗口。
 
 ### 1. 启动基础设施
 
-首次启动时，在 `infra/` 下复制环境文件并替换其中的占位密码：
+首次运行：
 
 ```powershell
 cd infra
-Copy-Item .env.example .env
-# 编辑 .env，替换所有 replace-with-* 值
+Copy-Item .env.example .env  # 仅首次执行
+# 编辑 .env，填写数据库和中间件密码
 docker compose --env-file .env up -d --build --wait
 ```
 
-该命令启动 MySQL、Redis 和 RabbitMQ。当前后端启动时实际依赖 MySQL；Redis 和 RabbitMQ 已纳入本地基础设施编排，但尚未接入后端运行链路。
+如本机端口冲突，修改 `.env` 中对应端口后重新执行启动命令。
 
 ### 2. 启动后端
-
-在第二个窗口执行：
 
 ```powershell
 cd backend
 mvn spring-boot:run
 ```
 
-后端启动时会读取 `src/main/resources/application.yml`，连接 MySQL，并自动执行和校验 `src/main/resources/db/migration/` 下的 Flyway 迁移。默认监听 `http://localhost:8080`。
-
-健康检查地址：
-
-```text
-http://localhost:8080/actuator/health
-```
-
-本地管理员由 `BOOTSTRAP_ADMIN_USERNAME` 和 `BOOTSTRAP_ADMIN_PASSWORD` 配置；生产环境应通过部署环境变量或密钥管理系统覆盖本地默认值。
+后端地址：`http://localhost:8080`  
+健康检查：`http://localhost:8080/actuator/health`
 
 ### 3. 启动前端
 
-在第三个窗口执行：
-
 ```powershell
 cd frontend
-npm ci
+npm ci       # 首次运行执行
 npm run dev
 ```
 
-前端地址为 `http://localhost:5173`。Vite 会把 `/api` 请求代理到 `http://localhost:8080`，因此浏览器访问前端地址即可使用后端 API。
+浏览器打开：`http://localhost:5173`
+
+### 本地登录
+
+| 项目 | 值 |
+| --- | --- |
+| 用户名 | `admin` |
+| 密码 | `admin123` |
+
+如需修改默认账号，在启动后端前设置 `SMART_CANTEEN_BOOTSTRAP_USERNAME` 和
+`SMART_CANTEEN_BOOTSTRAP_PASSWORD`。以上账号仅供本地开发使用。
 
 ### 导入智慧食堂学习数据
 
